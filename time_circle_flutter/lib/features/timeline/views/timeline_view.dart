@@ -9,6 +9,12 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../widgets/feed_card.dart';
 
+/// 检查是否为有效的网络 URL
+bool _isValidNetworkUrl(String url) {
+  if (url.isEmpty) return false;
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
 class TimelineView extends ConsumerWidget {
   const TimelineView({super.key});
 
@@ -66,10 +72,19 @@ class TimelineView extends ConsumerWidget {
                               boxShadow: AppShadows.subtle,
                             ),
                             child: ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: 'https://picsum.photos/seed/child/100/100',
-                                fit: BoxFit.cover,
-                              ),
+                              child: _isValidNetworkUrl('https://picsum.photos/seed/child/100/100')
+                                  ? CachedNetworkImage(
+                                      imageUrl: 'https://picsum.photos/seed/child/100/100',
+                                      fit: BoxFit.cover,
+                                      errorWidget: (context, url, error) => Container(
+                                        color: AppColors.warmGray200,
+                                        child: const Icon(Icons.child_care, color: AppColors.warmGray400),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: AppColors.warmGray200,
+                                      child: const Icon(Icons.child_care, color: AppColors.warmGray400),
+                                    ),
                             ),
                           ),
                           Positioned(
@@ -231,10 +246,17 @@ class TimelineView extends ConsumerWidget {
         ),
       ),
       child: ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: url,
-          fit: BoxFit.cover,
-        ),
+        child: _isValidNetworkUrl(url)
+            ? CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                errorWidget: (context, url, error) => Container(
+                  color: AppColors.warmGray300,
+                ),
+              )
+            : Container(
+                color: AppColors.warmGray300,
+              ),
       ),
     );
   }

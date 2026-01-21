@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -5,6 +7,18 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
+
+/// 检查是否为有效的网络 URL
+bool _isNetworkUrl(String url) {
+  if (url.isEmpty) return false;
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
+/// 检查是否为本地文件路径
+bool _isLocalFile(String path) {
+  if (path.isEmpty) return false;
+  return path.startsWith('/') || path.startsWith('file://');
+}
 
 /// 去年的今天 - 回忆卡片
 class MemoryCard extends ConsumerWidget {
@@ -66,24 +80,11 @@ class MemoryCard extends ConsumerWidget {
           ),
 
           // 图片区
-          if (featuredMoment.mediaUrl != null)
+          if (featuredMoment.mediaUrl != null && featuredMoment.mediaUrl!.isNotEmpty)
             ClipRRect(
               child: AspectRatio(
                 aspectRatio: 16 / 10,
-                child: CachedNetworkImage(
-                  imageUrl: featuredMoment.mediaUrl!,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: AppColors.warmGray100,
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: AppColors.warmGray100,
-                    child: const Icon(
-                      Iconsax.image,
-                      color: AppColors.warmGray300,
-                    ),
-                  ),
-                ),
+                child: _buildMediaImage(featuredMoment.mediaUrl!),
               ),
             ),
 
@@ -134,5 +135,34 @@ class MemoryCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// 构建图片组件（支持网络和本地）
+  Widget _buildMediaImage(String url) {
+    if (_isLocalFile(url)) {
+      return Image.file(
+        File(url),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: AppColors.warmGray100,
+          child: const Icon(Iconsax.image, color: AppColors.warmGray300),
+        ),
+      );
+    } else if (_isNetworkUrl(url)) {
+      return CachedNetworkImage(
+        imageUrl: url,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(color: AppColors.warmGray100),
+        errorWidget: (context, url, error) => Container(
+          color: AppColors.warmGray100,
+          child: const Icon(Iconsax.image, color: AppColors.warmGray300),
+        ),
+      );
+    } else {
+      return Container(
+        color: AppColors.warmGray100,
+        child: const Icon(Iconsax.image, color: AppColors.warmGray300),
+      );
+    }
   }
 }

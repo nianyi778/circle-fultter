@@ -12,6 +12,12 @@ import '../widgets/time_header.dart';
 import '../widgets/annual_letter_card.dart';
 import '../widgets/fragments_section.dart';
 
+/// 检查是否为有效的网络 URL
+bool _isValidNetworkUrl(String url) {
+  if (url.isEmpty) return false;
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
 class HomeView extends ConsumerWidget {
   const HomeView({super.key});
 
@@ -66,20 +72,28 @@ class HomeView extends ConsumerWidget {
                             boxShadow: AppShadows.subtle,
                           ),
                           child: ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: currentUser.avatar,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
-                                color: AppColors.warmGray200,
-                              ),
-                              errorWidget: (context, url, error) => Container(
-                                color: AppColors.warmGray200,
-                                child: const Icon(
-                                  Iconsax.user,
-                                  color: AppColors.warmGray400,
-                                ),
-                              ),
-                            ),
+                            child: _isValidNetworkUrl(currentUser.avatar)
+                                ? CachedNetworkImage(
+                                    imageUrl: currentUser.avatar,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                      color: AppColors.warmGray200,
+                                    ),
+                                    errorWidget: (context, url, error) => Container(
+                                      color: AppColors.warmGray200,
+                                      child: const Icon(
+                                        Iconsax.user,
+                                        color: AppColors.warmGray400,
+                                      ),
+                                    ),
+                                  )
+                                : Container(
+                                    color: AppColors.warmGray200,
+                                    child: const Icon(
+                                      Iconsax.user,
+                                      color: AppColors.warmGray400,
+                                    ),
+                                  ),
                           ),
                         ),
                       ),
