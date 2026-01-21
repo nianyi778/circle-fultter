@@ -13,7 +13,7 @@ class WorldView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final posts = ref.watch(worldPostsProvider);
-    final channels = ref.watch(worldChannelsProvider);
+    final channels = ref.watch(worldChannelsSyncProvider);
 
     return Scaffold(
       backgroundColor: AppColors.warmGray100,

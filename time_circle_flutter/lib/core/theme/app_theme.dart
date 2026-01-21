@@ -28,6 +28,7 @@ class AppColors {
   static const Color warmGray300 = Color(0xFFE7E5E4);
   static const Color warmGray200 = Color(0xFFF5F5F4);
   static const Color warmGray100 = Color(0xFFFAFAF9);
+  static const Color warmGray50 = Color(0xFFFDFDFC);
   
   // === 情绪辅助色（低饱和，仅点缀）===
   

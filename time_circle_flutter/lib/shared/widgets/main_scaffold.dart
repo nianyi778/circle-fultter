@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../features/create/views/create_moment_view.dart';
 
 /// 当前导航索引 Provider
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -65,7 +66,7 @@ class MainScaffold extends ConsumerWidget {
                 
                 // 中央发布按钮
                 _ComposeButton(
-                  onTap: () => context.push('/create'),
+                  onTap: () => _showCreateModal(context),
                 ),
                 
                 // 信
@@ -96,6 +97,17 @@ class MainScaffold extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// 显示创建时刻的底部浮层
+  void _showCreateModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: AppColors.warmGray900.withValues(alpha: 0.4),
+      builder: (context) => const CreateMomentModal(),
     );
   }
 }

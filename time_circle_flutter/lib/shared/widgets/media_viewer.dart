@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -5,6 +7,18 @@ import 'dart:math' as math;
 
 import '../../core/theme/app_theme.dart';
 import '../../core/models/moment.dart';
+
+/// 检查是否为有效的网络 URL
+bool _isNetworkUrl(String url) {
+  if (url.isEmpty) return false;
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
+/// 检查是否为本地文件路径
+bool _isLocalFile(String path) {
+  if (path.isEmpty) return false;
+  return path.startsWith('/') || path.startsWith('file://');
+}
 
 /// 媒体内容统一渲染组件
 /// 支持图片、视频、音频的展示
@@ -26,7 +40,8 @@ class MediaViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (mediaType == MediaType.text || mediaUrl == null) {
+    // 检查媒体 URL 是否有效
+    if (mediaType == MediaType.text || mediaUrl == null || mediaUrl!.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -65,30 +80,47 @@ class _ImageViewer extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: borderRadius,
-      child: CachedNetworkImage(
-        imageUrl: url,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        placeholder: (context, url) => Container(
-          height: 200,
-          color: AppColors.warmGray100,
-          child: const Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.warmGray300,
-            ),
-          ),
+      child: _isLocalFile(url)
+          ? Image.file(
+              File(url),
+              fit: BoxFit.cover,
+              width: double.infinity,
+              errorBuilder: (context, error, stackTrace) => _buildErrorWidget(),
+            )
+          : _isNetworkUrl(url)
+              ? CachedNetworkImage(
+                  imageUrl: url,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  placeholder: (context, url) => _buildLoadingWidget(),
+                  errorWidget: (context, url, error) => _buildErrorWidget(),
+                )
+              : _buildErrorWidget(),
+    );
+  }
+
+  Widget _buildLoadingWidget() {
+    return Container(
+      height: 200,
+      color: AppColors.warmGray100,
+      child: const Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: AppColors.warmGray300,
         ),
-        errorWidget: (context, url, error) => Container(
-          height: 200,
-          color: AppColors.warmGray100,
-          child: const Center(
-            child: Icon(
-              Iconsax.image,
-              color: AppColors.warmGray300,
-              size: 48,
-            ),
-          ),
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Container(
+      height: 200,
+      color: AppColors.warmGray100,
+      child: const Center(
+        child: Icon(
+          Iconsax.image,
+          color: AppColors.warmGray300,
+          size: 48,
         ),
       ),
     );
@@ -121,12 +153,10 @@ class _VideoViewer extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.cover,
+              // 视频缩略图背景（本地文件显示纯色背景）
+              Container(
                 width: double.infinity,
-                color: Colors.black.withValues(alpha: 0.2),
-                colorBlendMode: BlendMode.darken,
+                color: AppColors.warmGray800,
               ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,

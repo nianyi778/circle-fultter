@@ -13,7 +13,7 @@ class SettingsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUser = ref.watch(currentUserSyncProvider);
     final childInfo = ref.watch(childInfoProvider);
 
     return Scaffold(

@@ -101,35 +101,40 @@ class LettersView extends ConsumerWidget {
               ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
             ),
 
-            // 信件列表
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final letter = letters[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _LetterCard(
-                        letter: letter,
-                        onTap: () {
-                          if (letter.status == LetterStatus.draft) {
-                            context.push('/letter/${letter.id}/edit');
-                          } else {
-                            context.push('/letter/${letter.id}');
-                          }
-                        },
-                      ),
-                    ).animate().fadeIn(
-                      duration: 400.ms,
-                      delay: Duration(milliseconds: 100 + (index * 50)),
-                      curve: Curves.easeOut,
-                    ).slideY(begin: 0.05, end: 0);
-                  },
-                  childCount: letters.length,
+            // 信件列表或空状态
+            if (letters.isEmpty)
+              SliverToBoxAdapter(
+                child: _buildEmptyState(context, ref),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final letter = letters[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _LetterCard(
+                          letter: letter,
+                          onTap: () {
+                            if (letter.status == LetterStatus.draft) {
+                              context.push('/letter/${letter.id}/edit');
+                            } else {
+                              context.push('/letter/${letter.id}');
+                            }
+                          },
+                        ),
+                      ).animate().fadeIn(
+                        duration: 400.ms,
+                        delay: Duration(milliseconds: 100 + (index * 50)),
+                        curve: Curves.easeOut,
+                      ).slideY(begin: 0.05, end: 0);
+                    },
+                    childCount: letters.length,
+                  ),
                 ),
               ),
-            ),
 
             const SliverToBoxAdapter(
               child: SizedBox(height: 120),
@@ -139,6 +144,137 @@ class LettersView extends ConsumerWidget {
       ),
     );
   }
+
+  /// 空状态设计
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: AppColors.warmGray200,
+            width: 1,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: CustomPaint(
+          painter: _DottedBackgroundPainter(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 羽毛笔图标
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.warmGray100,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Iconsax.edit_2,
+                  size: 28,
+                  color: AppColors.warmGray400,
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // 主文案
+              Text(
+                '这一年的信，还没开始',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppColors.warmGray700,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+
+              // 副文案
+              Text(
+                '哪怕只写下"你今天学会了叫妈妈"，\n也是给未来最好的礼物。',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.warmGray400,
+                  height: 1.6,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+
+              // CTA 按钮
+              GestureDetector(
+                onTap: () => _createNewLetter(context, ref),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: AppColors.warmGray700,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    '提笔写下第一句',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppColors.warmGray700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).animate()
+      .fadeIn(duration: 500.ms, delay: 200.ms)
+      .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
+  }
+
+  /// 创建新信件
+  void _createNewLetter(BuildContext context, WidgetRef ref) {
+    final childInfo = ref.read(childInfoProvider);
+    final newLetter = Letter(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: '给 ${childInfo.shortAgeLabel} 的${childInfo.name}',
+      preview: '',
+      status: LetterStatus.draft,
+      recipient: childInfo.name,
+      type: LetterType.annual,
+      createdAt: DateTime.now(),
+    );
+    
+    ref.read(lettersProvider.notifier).addLetter(newLetter);
+    context.push('/letter/${newLetter.id}/edit');
+  }
+}
+
+/// 点状背景绘制器
+class _DottedBackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.warmGray200.withValues(alpha: 0.5)
+      ..strokeWidth = 1;
+
+    const spacing = 20.0;
+    const dotRadius = 1.0;
+
+    for (double x = spacing; x < size.width; x += spacing) {
+      for (double y = spacing; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), dotRadius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// 信件卡片

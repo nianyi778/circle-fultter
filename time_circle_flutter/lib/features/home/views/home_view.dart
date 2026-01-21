@@ -17,7 +17,7 @@ class HomeView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUser = ref.watch(currentUserSyncProvider);
     final childInfo = ref.watch(childInfoProvider);
     final moments = ref.watch(momentsProvider);
     final hasHistory = moments.isNotEmpty;

@@ -3,6 +3,17 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/theme/app_theme.dart';
 
+/// 检查 URL 是否有效
+bool _isValidUrl(String url) {
+  if (url.isEmpty) return false;
+  try {
+    final uri = Uri.parse(url);
+    return uri.hasScheme && uri.hasAuthority;
+  } catch (_) {
+    return false;
+  }
+}
+
 /// 圆形头像组件
 class CircleAvatar extends StatelessWidget {
   final String imageUrl;
@@ -22,6 +33,8 @@ class CircleAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasValidUrl = _isValidUrl(imageUrl);
+    
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -36,21 +49,16 @@ class CircleAvatar extends StatelessWidget {
             boxShadow: AppShadows.subtle,
           ),
           child: ClipOval(
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: AppColors.warmGray200,
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: AppColors.warmGray200,
-                child: Icon(
-                  Icons.person,
-                  color: AppColors.warmGray400,
-                  size: size * 0.5,
-                ),
-              ),
-            ),
+            child: hasValidUrl
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      color: AppColors.warmGray200,
+                    ),
+                    errorWidget: (context, url, error) => _buildPlaceholder(),
+                  )
+                : _buildPlaceholder(),
           ),
         ),
         if (badge != null)
@@ -78,6 +86,17 @@ class CircleAvatar extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: AppColors.warmGray200,
+      child: Icon(
+        Icons.person,
+        color: AppColors.warmGray400,
+        size: size * 0.5,
+      ),
     );
   }
 }
@@ -122,16 +141,30 @@ class AvatarStack extends StatelessWidget {
                   ),
                 ),
                 child: ClipOval(
-                  child: CachedNetworkImage(
-                    imageUrl: avatarUrls[i],
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: AppColors.warmGray300,
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      color: AppColors.warmGray300,
-                    ),
-                  ),
+                  child: _isValidUrl(avatarUrls[i])
+                      ? CachedNetworkImage(
+                          imageUrl: avatarUrls[i],
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: AppColors.warmGray300,
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.warmGray300,
+                            child: Icon(
+                              Icons.person,
+                              color: AppColors.warmGray400,
+                              size: size * 0.5,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: AppColors.warmGray300,
+                          child: Icon(
+                            Icons.person,
+                            color: AppColors.warmGray400,
+                            size: size * 0.5,
+                          ),
+                        ),
                 ),
               ),
             ),
