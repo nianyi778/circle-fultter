@@ -23,48 +23,49 @@ final currentUserSyncProvider = Provider<User>((ref) {
     data: (user) => user,
     loading: () => const User(
       id: 'u1',
-      name: '爸爸',
+      name: '我',
       avatar: '',
-      role: UserRole.dad,
     ),
     error: (_, __) => const User(
       id: 'u1',
-      name: '爸爸',
+      name: '我',
       avatar: '',
-      role: UserRole.dad,
     ),
   );
 });
 
-/// 家庭成员 Provider
-final familyMembersProvider = FutureProvider<List<User>>((ref) async {
+/// 圈子成员 Provider
+final circleMembersProvider = FutureProvider<List<User>>((ref) async {
   final db = ref.watch(databaseServiceProvider);
   return await db.getUsers();
 });
 
-// ============== 孩子信息相关 ==============
+// ============== 圈子信息相关 ==============
 
-/// 孩子信息 Provider（异步）
-final childInfoAsyncProvider = FutureProvider<ChildInfo>((ref) async {
+/// 圈子信息 Provider（异步）
+final circleInfoAsyncProvider = FutureProvider<CircleInfo>((ref) async {
   final db = ref.watch(databaseServiceProvider);
-  return await db.getChildInfo();
+  return await db.getCircleInfo();
 });
 
-/// 孩子信息（同步访问）
-final childInfoProvider = Provider<ChildInfo>((ref) {
-  final asyncChild = ref.watch(childInfoAsyncProvider);
-  return asyncChild.when(
-    data: (child) => child,
-    loading: () => ChildInfo(
-      name: '宝贝',
-      birthDate: DateTime.now().subtract(const Duration(days: 365 * 3)),
+/// 圈子信息（同步访问）
+final circleInfoProvider = Provider<CircleInfo>((ref) {
+  final asyncInfo = ref.watch(circleInfoAsyncProvider);
+  return asyncInfo.when(
+    data: (info) => info,
+    loading: () => CircleInfo(
+      name: '我们的圈子',
+      startDate: DateTime.now().subtract(const Duration(days: 365)),
     ),
-    error: (_, __) => ChildInfo(
-      name: '宝贝',
-      birthDate: DateTime.now().subtract(const Duration(days: 365 * 3)),
+    error: (_, __) => CircleInfo(
+      name: '我们的圈子',
+      startDate: DateTime.now().subtract(const Duration(days: 365)),
     ),
   );
 });
+
+/// 向后兼容的别名
+final childInfoProvider = circleInfoProvider;
 
 // ============== 时刻相关 ==============
 
@@ -273,6 +274,113 @@ class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
   }
 }
 
+// ============== 时间线筛选相关 ==============
+
+/// 筛选排序方式
+enum SortOrder { desc, asc }
+
+/// 时间线筛选状态
+class TimelineFilterState {
+  final String filterYear;
+  final String filterAuthor;
+  final String filterType;
+  final SortOrder sortOrder;
+
+  const TimelineFilterState({
+    this.filterYear = 'ALL',
+    this.filterAuthor = 'ALL',
+    this.filterType = 'ALL',
+    this.sortOrder = SortOrder.desc,
+  });
+
+  TimelineFilterState copyWith({
+    String? filterYear,
+    String? filterAuthor,
+    String? filterType,
+    SortOrder? sortOrder,
+  }) {
+    return TimelineFilterState(
+      filterYear: filterYear ?? this.filterYear,
+      filterAuthor: filterAuthor ?? this.filterAuthor,
+      filterType: filterType ?? this.filterType,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
+  bool get isFiltering =>
+      filterYear != 'ALL' || filterAuthor != 'ALL' || filterType != 'ALL';
+}
+
+/// 时间线筛选 Provider
+final timelineFilterProvider =
+    StateNotifierProvider<TimelineFilterNotifier, TimelineFilterState>((ref) {
+  return TimelineFilterNotifier();
+});
+
+class TimelineFilterNotifier extends StateNotifier<TimelineFilterState> {
+  TimelineFilterNotifier() : super(const TimelineFilterState());
+
+  void setYear(String year) => state = state.copyWith(filterYear: year);
+  void setAuthor(String author) => state = state.copyWith(filterAuthor: author);
+  void setType(String type) => state = state.copyWith(filterType: type);
+  void setSortOrder(SortOrder order) => state = state.copyWith(sortOrder: order);
+  void reset() => state = const TimelineFilterState();
+}
+
+/// 过滤后的时刻列表
+final filteredMomentsProvider = Provider<List<Moment>>((ref) {
+  final moments = ref.watch(momentsProvider);
+  final filter = ref.watch(timelineFilterProvider);
+
+  var result = [...moments];
+
+  // 按年份筛选
+  if (filter.filterYear != 'ALL') {
+    result = result.where((m) {
+      return m.timestamp.year.toString() == filter.filterYear;
+    }).toList();
+  }
+
+  // 按作者筛选
+  if (filter.filterAuthor != 'ALL') {
+    result = result.where((m) => m.author.id == filter.filterAuthor).toList();
+  }
+
+  // 按类型筛选
+  if (filter.filterType != 'ALL') {
+    result = result.where((m) {
+      return m.mediaType.name.toUpperCase() == filter.filterType;
+    }).toList();
+  }
+
+  // 排序
+  result.sort((a, b) {
+    return filter.sortOrder == SortOrder.desc
+        ? b.timestamp.compareTo(a.timestamp)
+        : a.timestamp.compareTo(b.timestamp);
+  });
+
+  return result;
+});
+
+/// 可用的筛选年份列表
+final availableYearsProvider = Provider<List<String>>((ref) {
+  final moments = ref.watch(momentsProvider);
+  final years = moments.map((m) => m.timestamp.year.toString()).toSet().toList();
+  years.sort((a, b) => b.compareTo(a)); // 降序
+  return years;
+});
+
+/// 可用的作者列表
+final availableAuthorsProvider = Provider<List<User>>((ref) {
+  final moments = ref.watch(momentsProvider);
+  final authorsMap = <String, User>{};
+  for (final m in moments) {
+    authorsMap[m.author.id] = m.author;
+  }
+  return authorsMap.values.toList();
+});
+
 /// 世界频道 Provider
 final worldChannelsProvider = FutureProvider<List<WorldChannel>>((ref) async {
   final db = ref.watch(databaseServiceProvider);
@@ -293,3 +401,45 @@ final worldChannelsSyncProvider = Provider<List<WorldChannel>>((ref) {
     error: (_, __) => const [],
   );
 });
+
+// ============== 留言相关 ==============
+
+/// 留言 Provider (按 momentId 获取)
+final commentsProvider =
+    StateNotifierProvider.family<CommentsNotifier, List<Comment>, String>(
+        (ref, momentId) {
+  final db = ref.watch(databaseServiceProvider);
+  return CommentsNotifier(db, momentId);
+});
+
+class CommentsNotifier extends StateNotifier<List<Comment>> {
+  final DatabaseService _db;
+  final String momentId;
+  bool _initialized = false;
+
+  CommentsNotifier(this._db, this.momentId) : super([]) {
+    _loadComments();
+  }
+
+  Future<void> _loadComments() async {
+    if (_initialized) return;
+    final comments = await _db.getCommentsByMomentId(momentId);
+    state = comments;
+    _initialized = true;
+  }
+
+  Future<void> refresh() async {
+    final comments = await _db.getCommentsByMomentId(momentId);
+    state = comments;
+  }
+
+  Future<void> addComment(Comment comment) async {
+    await _db.insertComment(comment);
+    state = [...state, comment]; // 追加到末尾
+  }
+
+  Future<void> deleteComment(String id) async {
+    await _db.deleteComment(id);
+    state = state.where((c) => c.id != id).toList();
+  }
+}

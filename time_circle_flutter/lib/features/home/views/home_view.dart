@@ -54,7 +54,7 @@ class HomeView extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: TimeHeader(
-                          childInfo: childInfo,
+                          circleInfo: childInfo,
                           hasHistory: hasHistory,
                         ),
                       ),

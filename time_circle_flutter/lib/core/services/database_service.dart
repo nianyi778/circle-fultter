@@ -28,7 +28,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -69,6 +69,8 @@ class DatabaseService {
         location TEXT,
         is_favorite INTEGER DEFAULT 0,
         future_message TEXT,
+        is_shared_to_world INTEGER DEFAULT 0,
+        world_topic TEXT,
         FOREIGN KEY (author_id) REFERENCES users (id)
       )
     ''');
@@ -112,6 +114,22 @@ class DatabaseService {
       )
     ''');
 
+    // 留言表
+    await db.execute('''
+      CREATE TABLE comments (
+        id TEXT PRIMARY KEY,
+        moment_id TEXT NOT NULL,
+        author_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        likes INTEGER DEFAULT 0,
+        reply_to_id TEXT,
+        FOREIGN KEY (moment_id) REFERENCES moments (id) ON DELETE CASCADE,
+        FOREIGN KEY (author_id) REFERENCES users (id),
+        FOREIGN KEY (reply_to_id) REFERENCES users (id)
+      )
+    ''');
+
     // 初始化默认数据
     await _insertDefaultData(db);
   }
@@ -121,22 +139,22 @@ class DatabaseService {
     // 默认用户
     await db.insert('users', {
       'id': 'u1',
-      'name': '爸爸',
+      'name': '我',
       'avatar': '',
-      'role': 'dad',
+      'role': '', // 用户自定义角色标签，留空表示未设置
     });
 
     await db.insert('users', {
       'id': 'u2',
-      'name': '妈妈',
+      'name': 'TA',
       'avatar': '',
-      'role': 'mom',
+      'role': '',
     });
 
-    // 默认孩子信息
+    // 默认圈子信息
     await db.insert('child_info', {
-      'name': '宝贝',
-      'birth_date': DateTime.now().subtract(const Duration(days: 365 * 3)).toIso8601String(),
+      'name': '我们的圈子',
+      'birth_date': DateTime.now().subtract(const Duration(days: 365)).toIso8601String(),
     });
 
     // 默认世界频道
@@ -255,7 +273,42 @@ class DatabaseService {
 
   /// 数据库升级
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // 未来版本升级逻辑
+    // 版本 1 -> 2: 添加 comments 表
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS comments (
+          id TEXT PRIMARY KEY,
+          moment_id TEXT NOT NULL,
+          author_id TEXT NOT NULL,
+          content TEXT NOT NULL,
+          timestamp TEXT NOT NULL,
+          likes INTEGER DEFAULT 0,
+          reply_to_id TEXT,
+          FOREIGN KEY (moment_id) REFERENCES moments (id) ON DELETE CASCADE,
+          FOREIGN KEY (author_id) REFERENCES users (id),
+          FOREIGN KEY (reply_to_id) REFERENCES users (id)
+        )
+      ''');
+    }
+    
+    // 版本 2 -> 3: 添加 comments 表缺失字段 + moments 表世界分享字段
+    if (oldVersion < 3) {
+      // 添加 comments 表新字段
+      try {
+        await db.execute('ALTER TABLE comments ADD COLUMN likes INTEGER DEFAULT 0');
+      } catch (_) {} // 字段可能已存在
+      try {
+        await db.execute('ALTER TABLE comments ADD COLUMN reply_to_id TEXT');
+      } catch (_) {}
+      
+      // 添加 moments 表世界分享字段
+      try {
+        await db.execute('ALTER TABLE moments ADD COLUMN is_shared_to_world INTEGER DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE moments ADD COLUMN world_topic TEXT');
+      } catch (_) {}
+    }
   }
 
   // ============== 用户相关 ==============
@@ -291,33 +344,39 @@ class DatabaseService {
     );
   }
 
-  // ============== 孩子信息相关 ==============
+  // ============== 圈子信息相关 ==============
 
-  /// 获取孩子信息
-  Future<ChildInfo> getChildInfo() async {
+  /// 获取圈子信息
+  Future<CircleInfo> getCircleInfo() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('child_info');
+    final List<Map<String, dynamic>> maps = await db.query('child_info'); // 保持表名兼容
     if (maps.isNotEmpty) {
-      return ChildInfo(
+      return CircleInfo(
         name: maps.first['name'] as String,
-        birthDate: DateTime.parse(maps.first['birth_date'] as String),
+        startDate: DateTime.parse(maps.first['birth_date'] as String),
       );
     }
-    return ChildInfo(
-      name: '宝贝',
-      birthDate: DateTime.now().subtract(const Duration(days: 365 * 3)),
+    return CircleInfo(
+      name: '我们的圈子',
+      startDate: DateTime.now().subtract(const Duration(days: 365)),
     );
   }
 
-  /// 更新孩子信息
-  Future<void> updateChildInfo(ChildInfo childInfo) async {
+  /// 兼容旧代码的别名
+  Future<CircleInfo> getChildInfo() => getCircleInfo();
+
+  /// 更新圈子信息
+  Future<void> updateCircleInfo(CircleInfo circleInfo) async {
     final db = await database;
-    await db.delete('child_info');
+    await db.delete('child_info'); // 保持表名兼容
     await db.insert('child_info', {
-      'name': childInfo.name,
-      'birth_date': childInfo.birthDate.toIso8601String(),
+      'name': circleInfo.name,
+      'birth_date': circleInfo.startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
     });
   }
+
+  /// 兼容旧代码的别名
+  Future<void> updateChildInfo(CircleInfo info) => updateCircleInfo(info);
 
   // ============== 时刻相关 ==============
 
@@ -454,6 +513,43 @@ class DatabaseService {
     );
   }
 
+  // ============== 留言相关 ==============
+
+  /// 获取时刻的所有留言
+  Future<List<Comment>> getCommentsByMomentId(String momentId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'comments',
+      where: 'moment_id = ?',
+      whereArgs: [momentId],
+      orderBy: 'timestamp ASC',
+    );
+
+    final users = await getUsers();
+    final userMap = {for (var u in users) u.id: u};
+
+    return maps.map((map) => _mapToComment(map, userMap)).toList();
+  }
+
+  /// 插入留言
+  Future<void> insertComment(Comment comment) async {
+    final db = await database;
+    await db.insert('comments', _commentToMap(comment),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  /// 删除留言
+  Future<void> deleteComment(String id) async {
+    final db = await database;
+    await db.delete('comments', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// 删除时刻的所有留言
+  Future<void> deleteCommentsByMomentId(String momentId) async {
+    final db = await database;
+    await db.delete('comments', where: 'moment_id = ?', whereArgs: [momentId]);
+  }
+
   // ============== 世界频道相关 ==============
 
   /// 获取所有世界频道
@@ -472,26 +568,22 @@ class DatabaseService {
 
   User _defaultUser() => const User(
     id: 'u1',
-    name: '爸爸',
+    name: '我',
     avatar: '',
-    role: UserRole.dad,
   );
 
   Map<String, dynamic> _userToMap(User user) => {
     'id': user.id,
     'name': user.name,
     'avatar': user.avatar,
-    'role': user.role.name,
+    'role': user.roleLabel ?? '',
   };
 
   User _mapToUser(Map<String, dynamic> map) => User(
     id: map['id'] as String,
     name: map['name'] as String,
     avatar: map['avatar'] as String? ?? '',
-    role: UserRole.values.firstWhere(
-      (r) => r.name == map['role'],
-      orElse: () => UserRole.dad,
-    ),
+    roleLabel: (map['role'] as String?)?.isNotEmpty == true ? map['role'] as String : null,
   );
 
   Map<String, dynamic> _momentToMap(Moment moment) => {
@@ -501,7 +593,7 @@ class DatabaseService {
     'media_type': moment.mediaType.name,
     'media_url': moment.mediaUrl,
     'timestamp': moment.timestamp.toIso8601String(),
-    'child_age_label': moment.childAgeLabel,
+    'child_age_label': moment.timeLabel, // 保持数据库字段名兼容
     'context_tags': jsonEncode(moment.contextTags.map((t) => {
       'type': t.type.name,
       'label': t.label,
@@ -510,6 +602,8 @@ class DatabaseService {
     'location': moment.location,
     'is_favorite': moment.isFavorite ? 1 : 0,
     'future_message': moment.futureMessage,
+    'is_shared_to_world': moment.isSharedToWorld ? 1 : 0,
+    'world_topic': moment.worldTopic,
   };
 
   Moment _mapToMoment(Map<String, dynamic> map, Map<String, User> userMap) {
@@ -519,14 +613,21 @@ class DatabaseService {
     List<ContextTag> contextTags = [];
     if (map['context_tags'] != null) {
       final tagsJson = jsonDecode(map['context_tags'] as String) as List;
-      contextTags = tagsJson.map((t) => ContextTag(
-        type: ContextTagType.values.firstWhere(
-          (ct) => ct.name == t['type'],
-          orElse: () => ContextTagType.parentMood,
-        ),
-        label: t['label'] as String,
-        emoji: t['emoji'] as String,
-      )).toList();
+      contextTags = tagsJson.map((t) {
+        // 兼容旧数据：将 parentMood 映射为 myMood，childState 映射为 atmosphere
+        var typeName = t['type'] as String;
+        if (typeName == 'parentMood') typeName = 'myMood';
+        if (typeName == 'childState') typeName = 'atmosphere';
+        
+        return ContextTag(
+          type: ContextTagType.values.firstWhere(
+            (ct) => ct.name == typeName,
+            orElse: () => ContextTagType.myMood,
+          ),
+          label: t['label'] as String,
+          emoji: t['emoji'] as String,
+        );
+      }).toList();
     }
 
     return Moment(
@@ -539,11 +640,13 @@ class DatabaseService {
       ),
       mediaUrl: map['media_url'] as String?,
       timestamp: DateTime.parse(map['timestamp'] as String),
-      childAgeLabel: map['child_age_label'] as String,
+      timeLabel: map['child_age_label'] as String,
       contextTags: contextTags,
       location: map['location'] as String?,
       isFavorite: (map['is_favorite'] as int? ?? 0) == 1,
       futureMessage: map['future_message'] as String?,
+      isSharedToWorld: (map['is_shared_to_world'] as int? ?? 0) == 1,
+      worldTopic: map['world_topic'] as String?,
     );
   }
 
@@ -604,6 +707,34 @@ class DatabaseService {
     timestamp: DateTime.parse(map['timestamp'] as String),
     hasResonated: (map['has_resonated'] as int? ?? 0) == 1,
   );
+
+  Map<String, dynamic> _commentToMap(Comment comment) => {
+    'id': comment.id,
+    'moment_id': comment.momentId,
+    'author_id': comment.author.id,
+    'content': comment.content,
+    'timestamp': comment.timestamp.toIso8601String(),
+    'likes': comment.likes,
+    'reply_to_id': comment.replyTo?.id,
+  };
+
+  Comment _mapToComment(Map<String, dynamic> map, Map<String, User> userMap) {
+    final authorId = map['author_id'] as String;
+    final author = userMap[authorId] ?? _defaultUser();
+    
+    final replyToId = map['reply_to_id'] as String?;
+    final replyTo = replyToId != null ? userMap[replyToId] : null;
+
+    return Comment(
+      id: map['id'] as String,
+      momentId: map['moment_id'] as String,
+      author: author,
+      content: map['content'] as String,
+      timestamp: DateTime.parse(map['timestamp'] as String),
+      likes: map['likes'] as int? ?? 0,
+      replyTo: replyTo,
+    );
+  }
 
   /// 关闭数据库
   Future<void> close() async {

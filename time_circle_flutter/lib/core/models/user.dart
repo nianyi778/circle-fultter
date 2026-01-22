@@ -1,54 +1,54 @@
-/// 用户角色
-enum UserRole { mom, dad, child }
-
 /// 用户模型
+/// 
+/// 不再限定固定角色（dad/mom/child），用户就是圈子里的一个成员。
+/// 角色标签由用户自定义，如"我"、"他"、"闺蜜"等。
 class User {
   final String id;
   final String name;
   final String avatar;
-  final UserRole role;
+  final String? roleLabel; // 可选的角色标签，用户自定义
 
   const User({
     required this.id,
     required this.name,
     required this.avatar,
-    required this.role,
+    this.roleLabel,
   });
 
-  String get roleLabel {
-    switch (role) {
-      case UserRole.mom:
-        return '妈妈';
-      case UserRole.dad:
-        return '爸爸';
-      case UserRole.child:
-        return '孩子';
-    }
-  }
+  /// 显示名称（优先使用 roleLabel，否则用 name）
+  String get displayName => roleLabel ?? name;
 }
 
-/// 孩子信息
-class ChildInfo {
-  final String name;
-  final DateTime birthDate;
+/// 圈子信息
+/// 
+/// 代表一个私密回忆圈子，可以是：
+/// - 亲子圈（记录孩子成长）
+/// - 情侣圈（记录恋爱时光）
+/// - 好友圈（记录友情岁月）
+/// - 个人独白（自己的时间胶囊）
+class CircleInfo {
+  final String name; // 圈子名称或主角名称
+  final DateTime? startDate; // 可选的起始日期（如孩子生日、相识日等）
 
-  const ChildInfo({
+  const CircleInfo({
     required this.name,
-    required this.birthDate,
+    this.startDate,
   });
 
-  /// 计算年龄标签 (如: "3 岁 5 个月")
-  String get ageLabel {
+  /// 计算时间标签 (如: "第 3 年 5 个月" 或 "3 岁 5 个月")
+  String get timeLabel {
+    if (startDate == null) return '';
+    
     final now = DateTime.now();
-    int years = now.year - birthDate.year;
-    int months = now.month - birthDate.month;
+    int years = now.year - startDate!.year;
+    int months = now.month - startDate!.month;
     
     if (months < 0) {
       years--;
       months += 12;
     }
     
-    if (now.day < birthDate.day) {
+    if (now.day < startDate!.day) {
       months--;
       if (months < 0) {
         years--;
@@ -59,25 +59,29 @@ class ChildInfo {
     if (years == 0) {
       return '$months 个月';
     }
-    return '$years 岁 $months 个月';
+    return '$years 年 $months 个月';
   }
 
-  /// 简短年龄 (如: "3岁")
-  String get shortAgeLabel {
+  /// 简短时间标签 (如: "第3年")
+  String get shortTimeLabel {
+    if (startDate == null) return '';
+    
     final now = DateTime.now();
-    int years = now.year - birthDate.year;
-    if (now.month < birthDate.month ||
-        (now.month == birthDate.month && now.day < birthDate.day)) {
+    int years = now.year - startDate!.year;
+    if (now.month < startDate!.month ||
+        (now.month == startDate!.month && now.day < startDate!.day)) {
       years--;
     }
-    return '$years岁';
+    return '第${years + 1}年';
   }
 
   /// 季节描述 (如: "第 3 个冬天")
   String get seasonLabel {
+    if (startDate == null) return '这是你们的故事';
+    
     final now = DateTime.now();
-    int years = now.year - birthDate.year;
-    if (now.month < birthDate.month) {
+    int years = now.year - startDate!.year;
+    if (now.month < startDate!.month) {
       years--;
     }
     
@@ -95,4 +99,13 @@ class ChildInfo {
     
     return '第 ${years + 1} 个$season';
   }
+
+  /// 兼容旧代码的别名
+  String get ageLabel => timeLabel;
+
+  /// 兼容旧代码的别名
+  String get shortAgeLabel => shortTimeLabel;
 }
+
+/// 保持向后兼容的别名
+typedef ChildInfo = CircleInfo;

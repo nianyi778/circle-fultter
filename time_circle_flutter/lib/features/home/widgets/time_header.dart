@@ -5,12 +5,12 @@ import '../../../core/models/user.dart';
 
 /// 时间感知区头部
 class TimeHeader extends StatelessWidget {
-  final ChildInfo childInfo;
+  final CircleInfo circleInfo;
   final bool hasHistory;
 
   const TimeHeader({
     super.key,
-    required this.childInfo,
+    required this.circleInfo,
     required this.hasHistory,
   });
 
@@ -20,7 +20,7 @@ class TimeHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          hasHistory ? childInfo.seasonLabel : '这是你们的第一个时间圈',
+          hasHistory ? circleInfo.seasonLabel : '这是你们的第一个时间圈',
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
             height: 1.3,
           ),
@@ -28,7 +28,7 @@ class TimeHeader extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           hasHistory
-              ? '你正在经历${childInfo.name}的 ${childInfo.ageLabel}。'
+              ? '${circleInfo.name}的 ${circleInfo.timeLabel}。'
               : '时间会过去，但你可以留下些什么。',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: AppColors.warmGray500,

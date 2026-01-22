@@ -22,29 +22,11 @@ class ContextTagsView extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final parentMoods = tags
-        .where((t) => t.type == ContextTagType.parentMood)
-        .toList();
-    final childStates = tags
-        .where((t) => t.type == ContextTagType.childState)
-        .toList();
-
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (parentMoods.isNotEmpty)
-          _ContextRow(
-            label: '那时候你的心情',
-            tags: parentMoods,
-          ),
-        if (parentMoods.isNotEmpty && childStates.isNotEmpty)
-          const SizedBox(height: 12),
-        if (childStates.isNotEmpty)
-          _ContextRow(
-            label: '孩子当时的状态',
-            tags: childStates,
-          ),
-      ],
+    // 所有标签横向排列
+    final content = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: tags.map((tag) => _ContextTagChip(tag: tag)).toList(),
     );
 
     if (!showContainer) {
@@ -54,45 +36,9 @@ class ContextTagsView extends StatelessWidget {
       );
     }
 
-    return Container(
-      padding: padding ?? const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.warmGray100.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
+    return Padding(
+      padding: padding ?? const EdgeInsets.symmetric(vertical: 8),
       child: content,
-    );
-  }
-}
-
-class _ContextRow extends StatelessWidget {
-  final String label;
-  final List<ContextTag> tags;
-
-  const _ContextRow({
-    required this.label,
-    required this.tags,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: AppColors.warmGray400,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: tags.map((tag) => _ContextTagChip(tag: tag)).toList(),
-          ),
-        ),
-      ],
     );
   }
 }

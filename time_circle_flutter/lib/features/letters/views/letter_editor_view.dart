@@ -43,7 +43,7 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
     final letter = ref.read(letterByIdProvider(widget.letterId));
     _contentController = TextEditingController(
       text: letter?.content ??
-          "亲爱的${letter?.recipient ?? '宝贝'}：\n\n",
+          "亲爱的${letter?.recipient ?? '你'}：\n\n",
     );
   }
 

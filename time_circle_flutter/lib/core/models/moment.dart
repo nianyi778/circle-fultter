@@ -4,7 +4,11 @@ import 'user.dart';
 enum MediaType { text, image, video, audio }
 
 /// 语境标签类型
-enum ContextTagType { parentMood, childState }
+/// 
+/// 泛化设计：
+/// - myMood: 我当时的心情
+/// - atmosphere: 当时的氛围/TA的状态
+enum ContextTagType { myMood, atmosphere }
 
 /// 语境标签
 class ContextTag {
@@ -18,24 +22,24 @@ class ContextTag {
     required this.emoji,
   });
 
-  /// 预设的父母情绪标签
-  static const List<ContextTag> parentMoodTags = [
-    ContextTag(type: ContextTagType.parentMood, label: '平静', emoji: '😌'),
-    ContextTag(type: ContextTagType.parentMood, label: '开心', emoji: '😊'),
-    ContextTag(type: ContextTagType.parentMood, label: '累', emoji: '😵‍💫'),
-    ContextTag(type: ContextTagType.parentMood, label: '担心', emoji: '😟'),
-    ContextTag(type: ContextTagType.parentMood, label: '想哭', emoji: '🥹'),
-    ContextTag(type: ContextTagType.parentMood, label: '骄傲', emoji: '🥲'),
+  /// 预设的心情标签
+  static const List<ContextTag> myMoodTags = [
+    ContextTag(type: ContextTagType.myMood, label: '平静', emoji: '😌'),
+    ContextTag(type: ContextTagType.myMood, label: '开心', emoji: '😊'),
+    ContextTag(type: ContextTagType.myMood, label: '累', emoji: '😵‍💫'),
+    ContextTag(type: ContextTagType.myMood, label: '担心', emoji: '😟'),
+    ContextTag(type: ContextTagType.myMood, label: '想哭', emoji: '🥹'),
+    ContextTag(type: ContextTagType.myMood, label: '感动', emoji: '🥲'),
   ];
 
-  /// 预设的孩子状态标签
-  static const List<ContextTag> childStateTags = [
-    ContextTag(type: ContextTagType.childState, label: '黏人', emoji: '🐨'),
-    ContextTag(type: ContextTagType.childState, label: '闹腾', emoji: '⚡️'),
-    ContextTag(type: ContextTagType.childState, label: '在进步', emoji: '🧠'),
-    ContextTag(type: ContextTagType.childState, label: '安静', emoji: '🤫'),
-    ContextTag(type: ContextTagType.childState, label: '生病', emoji: '🤒'),
-    ContextTag(type: ContextTagType.childState, label: '专注', emoji: '🧐'),
+  /// 预设的氛围/状态标签
+  static const List<ContextTag> atmosphereTags = [
+    ContextTag(type: ContextTagType.atmosphere, label: '温馨', emoji: '🫂'),
+    ContextTag(type: ContextTagType.atmosphere, label: '热闹', emoji: '⚡️'),
+    ContextTag(type: ContextTagType.atmosphere, label: '安静', emoji: '🤫'),
+    ContextTag(type: ContextTagType.atmosphere, label: '日常', emoji: '☕️'),
+    ContextTag(type: ContextTagType.atmosphere, label: '特别', emoji: '✨'),
+    ContextTag(type: ContextTagType.atmosphere, label: '治愈', emoji: '🌿'),
   ];
 
   String get display => '$emoji $label';
@@ -49,11 +53,13 @@ class Moment {
   final MediaType mediaType;
   final String? mediaUrl;
   final DateTime timestamp;
-  final String childAgeLabel;
+  final String timeLabel; // 时间标签（如"第3年"或"3岁2个月"）
   final List<ContextTag> contextTags;
   final String? location;
   final bool isFavorite;
   final String? futureMessage; // 对未来说一句
+  final bool isSharedToWorld; // 是否已分享到世界
+  final String? worldTopic; // 世界频道话题
 
   const Moment({
     required this.id,
@@ -62,12 +68,17 @@ class Moment {
     required this.mediaType,
     this.mediaUrl,
     required this.timestamp,
-    required this.childAgeLabel,
+    required this.timeLabel,
     this.contextTags = const [],
     this.location,
     this.isFavorite = false,
     this.futureMessage,
+    this.isSharedToWorld = false,
+    this.worldTopic,
   });
+
+  /// 向后兼容的别名
+  String get childAgeLabel => timeLabel;
 
   Moment copyWith({
     String? id,
@@ -76,11 +87,13 @@ class Moment {
     MediaType? mediaType,
     String? mediaUrl,
     DateTime? timestamp,
-    String? childAgeLabel,
+    String? timeLabel,
     List<ContextTag>? contextTags,
     String? location,
     bool? isFavorite,
     String? futureMessage,
+    bool? isSharedToWorld,
+    String? worldTopic,
   }) {
     return Moment(
       id: id ?? this.id,
@@ -89,11 +102,13 @@ class Moment {
       mediaType: mediaType ?? this.mediaType,
       mediaUrl: mediaUrl ?? this.mediaUrl,
       timestamp: timestamp ?? this.timestamp,
-      childAgeLabel: childAgeLabel ?? this.childAgeLabel,
+      timeLabel: timeLabel ?? this.timeLabel,
       contextTags: contextTags ?? this.contextTags,
       location: location ?? this.location,
       isFavorite: isFavorite ?? this.isFavorite,
       futureMessage: futureMessage ?? this.futureMessage,
+      isSharedToWorld: isSharedToWorld ?? this.isSharedToWorld,
+      worldTopic: worldTopic ?? this.worldTopic,
     );
   }
 
@@ -121,6 +136,9 @@ class Moment {
 
   /// 生成时间叙事句
   String get timeNarrative {
-    return '这是你在 TA $childAgeLabel 时留下的这一刻。';
+    if (timeLabel.isEmpty) {
+      return '这是你留下的这一刻。';
+    }
+    return '这是 $timeLabel 时留下的这一刻。';
   }
 }

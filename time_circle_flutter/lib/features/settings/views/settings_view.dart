@@ -99,7 +99,7 @@ class SettingsView extends ConsumerWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${childInfo.name}的${currentUser.roleLabel}',
+                              childInfo.name,
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: AppColors.warmGray500,
                               ),
@@ -129,17 +129,17 @@ class SettingsView extends ConsumerWidget {
                   children: [
                     _buildSettingsGroup(
                       context,
-                      title: '家庭圈',
+                      title: '我的圈子',
                       items: [
                         _SettingsItem(
                           icon: Iconsax.people,
                           title: '成员管理',
-                          subtitle: '邀请家人加入',
+                          subtitle: '邀请成员加入',
                           onTap: () {},
                         ),
                         _SettingsItem(
                           icon: Iconsax.user_octagon,
-                          title: '孩子信息',
+                          title: '圈子信息',
                           subtitle: childInfo.name,
                           onTap: () {},
                         ),
@@ -155,14 +155,14 @@ class SettingsView extends ConsumerWidget {
                         _SettingsItem(
                           icon: Iconsax.sms,
                           title: '年度信提醒',
-                          subtitle: '生日月提醒',
+                          subtitle: '纪念日提醒',
                           trailing: _buildSwitch(true),
                           onTap: () {},
                         ),
                         _SettingsItem(
                           icon: Iconsax.lock_1,
                           title: '时间锁信规则',
-                          subtitle: '默认 18 岁解锁',
+                          subtitle: '默认锁定时长',
                           onTap: () {},
                         ),
                       ],
@@ -183,7 +183,7 @@ class SettingsView extends ConsumerWidget {
                         _SettingsItem(
                           icon: Iconsax.eye_slash,
                           title: '面部自动模糊',
-                          subtitle: '分享时保护孩子',
+                          subtitle: '分享时保护隐私',
                           trailing: _buildSwitch(true),
                           onTap: () {},
                         ),

@@ -92,7 +92,15 @@ codebase/         # 架构/公共组件/函数文档（代码视角，持续更�
 
 ## 项目概述
 
-TimeCircle（家庭回忆时间胶囊）是一个 Flutter 应用，用于记录家庭成长回忆。这是一个 **情感体验产品**，不是效率工具。
+TimeCircle（私密回忆时间胶囊）是一个 Flutter 应用，用于记录和分享私密回忆。这是一个 **情感体验产品**，不是效率工具。
+
+**适用场景**：
+- 亲子圈（记录孩子成长）
+- 情侣圈（记录恋爱时光）
+- 好友圈（记录友情岁月）
+- 个人独白（自己的时间胶囊）
+
+核心理念：温情、回忆、慢节奏，一个分享倾诉的私密圈子。
 
 设计规范详见 [docs/time_circle_设计规范_home_首页设计（设计基准稿）.md](../docs/time_circle_设计规范_home_首页设计（设计基准稿）.md)
 web版本代码详见 [Circle](../Circle)
@@ -201,10 +209,11 @@ flutter run -d macos    # macOS 桌面（需先配置网络权限）
 
 | 模型 | 用途 | 关键字段 |
 |------|------|----------|
-| `Moment` | 时刻/记录 | mediaType, contextTags, futureMessage |
+| `Moment` | 时刻/记录 | mediaType, contextTags, futureMessage, timeLabel |
 | `Letter` | 年度信/随记 | status (draft/sealed/opened), type |
-| `User` | 用户 | role (dad/mom/grandpa/grandma) |
-| `ContextTag` | 语境标签 | type (parentMood/childState), emoji |
+| `User` | 用户 | name, avatar, roleLabel (可选自定义角色标签) |
+| `CircleInfo` | 圈子信息 | name (圈子名称), startDate (可选的起始日期) |
+| `ContextTag` | 语境标签 | type (myMood/atmosphere), emoji |
 
 ## 共享组件（优先复用）
 

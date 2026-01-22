@@ -78,7 +78,7 @@ class FragmentsSection extends ConsumerWidget {
     final moodCount = <String, int>{};
     for (final moment in moments) {
       for (final tag in moment.contextTags) {
-        if (tag.type == ContextTagType.parentMood) {
+        if (tag.type == ContextTagType.myMood) {
           moodCount[tag.label] = (moodCount[tag.label] ?? 0) + 1;
         }
       }

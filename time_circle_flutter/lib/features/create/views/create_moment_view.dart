@@ -36,38 +36,48 @@ class CreateMomentView extends ConsumerStatefulWidget {
 
 class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
   final _textController = TextEditingController();
-  final _futureMessageController = TextEditingController();
 
-  final Set<ContextTag> _selectedParentMoods = {};
-  final Set<ContextTag> _selectedChildStates = {};
-  bool _showFutureMessage = true; // 默认展开
+  final Set<ContextTag> _selectedMyMoods = {};
+  final Set<ContextTag> _selectedAtmospheres = {};
+  
+  // 发布到世界
+  bool _shareToWorld = false;
+  String _worldTopic = '生活碎片';
+  
+  // 世界话题选项
+  static const List<String> _worldTopicOptions = [
+    '生活碎片',
+    '今天很累',
+    '写给未来',
+    '小确幸',
+    '想分享',
+  ];
 
   // 已选择的媒体文件
   final List<XFile> _selectedMedia = [];
   MediaType _mediaType = MediaType.text;
 
-  // 父母情绪选项
-  static const List<ContextTag> _parentMoodOptions = [
-    ContextTag(type: ContextTagType.parentMood, emoji: '😌', label: '平静'),
-    ContextTag(type: ContextTagType.parentMood, emoji: '😊', label: '开心'),
-    ContextTag(type: ContextTagType.parentMood, emoji: '😵‍💫', label: '累'),
-    ContextTag(type: ContextTagType.parentMood, emoji: '🥹', label: '想哭'),
-    ContextTag(type: ContextTagType.parentMood, emoji: '😟', label: '担心'),
+  // 我的心情选项
+  static const List<ContextTag> _myMoodOptions = [
+    ContextTag(type: ContextTagType.myMood, emoji: '😌', label: '平静'),
+    ContextTag(type: ContextTagType.myMood, emoji: '😊', label: '开心'),
+    ContextTag(type: ContextTagType.myMood, emoji: '😵‍💫', label: '累'),
+    ContextTag(type: ContextTagType.myMood, emoji: '🥹', label: '想哭'),
+    ContextTag(type: ContextTagType.myMood, emoji: '😟', label: '担心'),
   ];
 
-  // 孩子状态选项
-  static const List<ContextTag> _childStateOptions = [
-    ContextTag(type: ContextTagType.childState, emoji: '🐨', label: '黏人'),
-    ContextTag(type: ContextTagType.childState, emoji: '⚡️', label: '闹腾'),
-    ContextTag(type: ContextTagType.childState, emoji: '🧠', label: '在进步'),
-    ContextTag(type: ContextTagType.childState, emoji: '🤒', label: '生病'),
-    ContextTag(type: ContextTagType.childState, emoji: '😴', label: '安静'),
+  // 当时的氛围选项
+  static const List<ContextTag> _atmosphereOptions = [
+    ContextTag(type: ContextTagType.atmosphere, emoji: '🫂', label: '温馨'),
+    ContextTag(type: ContextTagType.atmosphere, emoji: '⚡️', label: '热闹'),
+    ContextTag(type: ContextTagType.atmosphere, emoji: '🤫', label: '安静'),
+    ContextTag(type: ContextTagType.atmosphere, emoji: '☕️', label: '日常'),
+    ContextTag(type: ContextTagType.atmosphere, emoji: '✨', label: '特别'),
   ];
 
   @override
   void dispose() {
     _textController.dispose();
-    _futureMessageController.dispose();
     super.dispose();
   }
 
@@ -541,6 +551,8 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
         }
         return;
       }
+
+      if (!mounted) return;
       
       final assets = await AssetPicker.pickAssets(
         context,
@@ -604,6 +616,8 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
         }
         return;
       }
+
+      if (!mounted) return;
 
       final assets = await AssetPicker.pickAssets(
         context,
@@ -679,23 +693,23 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 当时的我
-        _buildContextLabel(context, '当时的我'),
+        // 我的心情
+        _buildContextLabel(context, '我的心情'),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _parentMoodOptions.map((tag) {
-            final isSelected = _selectedParentMoods.contains(tag);
+          children: _myMoodOptions.map((tag) {
+            final isSelected = _selectedMyMoods.contains(tag);
             return _ContextChip(
               tag: tag,
               isSelected: isSelected,
               onTap: () {
                 setState(() {
                   if (isSelected) {
-                    _selectedParentMoods.remove(tag);
+                    _selectedMyMoods.remove(tag);
                   } else {
-                    _selectedParentMoods.add(tag);
+                    _selectedMyMoods.add(tag);
                   }
                 });
               },
@@ -705,23 +719,23 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
 
         const SizedBox(height: 20),
 
-        // 当时的你
-        _buildContextLabel(context, '当时的你'),
+        // 当时的氛围
+        _buildContextLabel(context, '当时的氛围'),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _childStateOptions.map((tag) {
-            final isSelected = _selectedChildStates.contains(tag);
+          children: _atmosphereOptions.map((tag) {
+            final isSelected = _selectedAtmospheres.contains(tag);
             return _ContextChip(
               tag: tag,
               isSelected: isSelected,
               onTap: () {
                 setState(() {
                   if (isSelected) {
-                    _selectedChildStates.remove(tag);
+                    _selectedAtmospheres.remove(tag);
                   } else {
-                    _selectedChildStates.add(tag);
+                    _selectedAtmospheres.add(tag);
                   }
                 });
               },
@@ -744,17 +758,28 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
     );
   }
 
-  /// 对未来说一句
+  /// 发布到世界
   Widget _buildFutureMessageSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.warmOrange.withValues(alpha: 0.2),
+        color: _shareToWorld 
+            ? AppColors.warmOrange.withValues(alpha: 0.15)
+            : AppColors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.warmOrangeDeep.withValues(alpha: 0.08),
-          width: 0.5,
+          color: _shareToWorld 
+              ? AppColors.warmOrangeDeep.withValues(alpha: 0.2)
+              : AppColors.warmGray200.withValues(alpha: 0.5),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmGray900.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -763,44 +788,63 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '对未来说一句',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.warmOrangeDark.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                  fontSize: 10,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    Iconsax.global,
+                    size: 16,
+                    color: _shareToWorld 
+                        ? AppColors.warmOrangeDeep 
+                        : AppColors.warmGray400,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '发布到世界',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _shareToWorld 
+                          ? AppColors.warmGray800 
+                          : AppColors.warmGray500,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
               // 开关
               GestureDetector(
                 onTap: () {
                   setState(() {
-                    _showFutureMessage = !_showFutureMessage;
+                    _shareToWorld = !_shareToWorld;
                   });
                 },
                 child: AnimatedContainer(
                   duration: AppDurations.fast,
-                  width: 36,
-                  height: 20,
+                  width: 40,
+                  height: 24,
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: _showFutureMessage
-                        ? AppColors.warmOrangeDeep.withValues(alpha: 0.7)
+                    color: _shareToWorld
+                        ? AppColors.warmOrangeDeep
                         : AppColors.warmGray300,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: AnimatedAlign(
                     duration: AppDurations.fast,
-                    alignment: _showFutureMessage
+                    alignment: _shareToWorld
                         ? Alignment.centerRight
                         : Alignment.centerLeft,
                     child: Container(
-                      width: 16,
-                      height: 16,
-                      decoration: const BoxDecoration(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
                         color: AppColors.white,
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.warmGray900.withValues(alpha: 0.1),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -809,26 +853,73 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
             ],
           ),
 
-          // 输入框
-          if (_showFutureMessage) ...[
+          // 话题选择
+          if (_shareToWorld) ...[
             const SizedBox(height: 12),
-            TextField(
-              controller: _futureMessageController,
-              maxLength: 40,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.warmGray700,
+            Container(
+              padding: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: AppColors.warmGray100,
+                    width: 1,
+                  ),
+                ),
               ),
-              decoration: InputDecoration(
-                hintText: '比如：原来你也会长这么快...',
-                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.warmOrangeDark.withValues(alpha: 0.35),
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                counterStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.warmOrangeDark.withValues(alpha: 0.4),
-                  fontSize: 10,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '选择话题',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.warmGray400,
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _worldTopicOptions.map((topic) {
+                      final isSelected = _worldTopic == topic;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _worldTopic = topic;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? AppColors.warmOrange.withValues(alpha: 0.3)
+                                : AppColors.warmGray50,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected 
+                                  ? AppColors.warmOrangeDeep.withValues(alpha: 0.3)
+                                  : AppColors.warmGray100,
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            '#$topic',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: isSelected 
+                                  ? AppColors.warmOrangeDark 
+                                  : AppColors.warmGray500,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
             ),
           ],
@@ -838,8 +929,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
   }
 
   void _showExitDialog(BuildContext context) {
-    if (_textController.text.isEmpty && 
-        _futureMessageController.text.isEmpty) {
+    if (_textController.text.isEmpty && _selectedMedia.isEmpty) {
       context.pop();
       return;
     }
@@ -893,7 +983,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
     );
   }
 
-  void _submitMoment(BuildContext context, User user, ChildInfo childInfo) {
+  void _submitMoment(BuildContext context, User user, CircleInfo circleInfo) {
     // 取第一个媒体路径（当前模型只支持单个）
     final mediaUrl = _selectedMedia.isNotEmpty ? _selectedMedia.first.path : null;
     
@@ -904,14 +994,13 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
       mediaType: _mediaType,
       mediaUrl: mediaUrl,
       timestamp: DateTime.now(),
-      childAgeLabel: childInfo.ageLabel,
+      timeLabel: circleInfo.ageLabel,
       contextTags: [
-        ..._selectedParentMoods,
-        ..._selectedChildStates,
+        ..._selectedMyMoods,
+        ..._selectedAtmospheres,
       ],
-      futureMessage: _showFutureMessage && _futureMessageController.text.isNotEmpty
-          ? _futureMessageController.text
-          : null,
+      isSharedToWorld: _shareToWorld,
+      worldTopic: _shareToWorld ? _worldTopic : null,
     );
 
     ref.read(momentsProvider.notifier).addMoment(moment);
@@ -919,14 +1008,36 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
     // 显示成功反馈
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('这一刻，已经被你留住了。'),
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.softGreen.withValues(alpha: 0.25),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Iconsax.tick_circle5,
+                size: 16,
+                color: AppColors.softGreenDeep,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('这一刻，已经被你留住了。'),
+          ],
+        ),
         backgroundColor: AppColors.warmGray800,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
         ),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 2),
+        elevation: 8,
       ),
     );
 
@@ -1118,11 +1229,22 @@ class CreateMomentModal extends ConsumerStatefulWidget {
 
 class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   final _textController = TextEditingController();
-  final _futureMessageController = TextEditingController();
 
-  final Set<ContextTag> _selectedParentMoods = {};
-  final Set<ContextTag> _selectedChildStates = {};
-  bool _showFutureMessage = true;
+  final Set<ContextTag> _selectedMyMoods = {};
+  final Set<ContextTag> _selectedAtmospheres = {};
+  
+  // 发布到世界
+  bool _shareToWorld = false;
+  String _worldTopic = '生活碎片';
+  
+  // 世界话题选项
+  static const List<String> _worldTopicOptions = [
+    '生活碎片',
+    '今天很累',
+    '写给未来',
+    '小确幸',
+    '想分享',
+  ];
 
   final List<XFile> _selectedMedia = [];
   MediaType _mediaType = MediaType.text;
@@ -1134,26 +1256,25 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   bool _isDragging = false;
   bool _isOverDeleteZone = false;
 
-  static const List<ContextTag> _parentMoodOptions = [
-    ContextTag(type: ContextTagType.parentMood, emoji: '😌', label: '平静'),
-    ContextTag(type: ContextTagType.parentMood, emoji: '😊', label: '开心'),
-    ContextTag(type: ContextTagType.parentMood, emoji: '😵‍💫', label: '累'),
-    ContextTag(type: ContextTagType.parentMood, emoji: '🥹', label: '想哭'),
-    ContextTag(type: ContextTagType.parentMood, emoji: '😟', label: '担心'),
+  static const List<ContextTag> _myMoodOptions = [
+    ContextTag(type: ContextTagType.myMood, emoji: '😌', label: '平静'),
+    ContextTag(type: ContextTagType.myMood, emoji: '😊', label: '开心'),
+    ContextTag(type: ContextTagType.myMood, emoji: '😵‍💫', label: '累'),
+    ContextTag(type: ContextTagType.myMood, emoji: '🥹', label: '想哭'),
+    ContextTag(type: ContextTagType.myMood, emoji: '😟', label: '担心'),
   ];
 
-  static const List<ContextTag> _childStateOptions = [
-    ContextTag(type: ContextTagType.childState, emoji: '🐨', label: '黏人'),
-    ContextTag(type: ContextTagType.childState, emoji: '⚡️', label: '闹腾'),
-    ContextTag(type: ContextTagType.childState, emoji: '🧠', label: '在进步'),
-    ContextTag(type: ContextTagType.childState, emoji: '🤒', label: '生病'),
-    ContextTag(type: ContextTagType.childState, emoji: '😴', label: '安静'),
+  static const List<ContextTag> _atmosphereOptions = [
+    ContextTag(type: ContextTagType.atmosphere, emoji: '🫂', label: '温馨'),
+    ContextTag(type: ContextTagType.atmosphere, emoji: '⚡️', label: '热闹'),
+    ContextTag(type: ContextTagType.atmosphere, emoji: '🤫', label: '安静'),
+    ContextTag(type: ContextTagType.atmosphere, emoji: '☕️', label: '日常'),
+    ContextTag(type: ContextTagType.atmosphere, emoji: '✨', label: '特别'),
   ];
 
   @override
   void dispose() {
     _textController.dispose();
-    _futureMessageController.dispose();
     super.dispose();
   }
 
@@ -1848,22 +1969,22 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildContextLabel(context, '当时的我'),
+        _buildContextLabel(context, '我的心情'),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _parentMoodOptions.map((tag) {
-            final isSelected = _selectedParentMoods.contains(tag);
+          children: _myMoodOptions.map((tag) {
+            final isSelected = _selectedMyMoods.contains(tag);
             return _ContextChip(
               tag: tag,
               isSelected: isSelected,
               onTap: () {
                 setState(() {
                   if (isSelected) {
-                    _selectedParentMoods.remove(tag);
+                    _selectedMyMoods.remove(tag);
                   } else {
-                    _selectedParentMoods.add(tag);
+                    _selectedMyMoods.add(tag);
                   }
                 });
               },
@@ -1871,22 +1992,22 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
           }).toList(),
         ),
         const SizedBox(height: 20),
-        _buildContextLabel(context, '当时的你'),
+        _buildContextLabel(context, '当时的氛围'),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _childStateOptions.map((tag) {
-            final isSelected = _selectedChildStates.contains(tag);
+          children: _atmosphereOptions.map((tag) {
+            final isSelected = _selectedAtmospheres.contains(tag);
             return _ContextChip(
               tag: tag,
               isSelected: isSelected,
               onTap: () {
                 setState(() {
                   if (isSelected) {
-                    _selectedChildStates.remove(tag);
+                    _selectedAtmospheres.remove(tag);
                   } else {
-                    _selectedChildStates.add(tag);
+                    _selectedAtmospheres.add(tag);
                   }
                 });
               },
@@ -1911,52 +2032,90 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
   Widget _buildFutureMessageSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.warmOrange.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
+        color: _shareToWorld 
+            ? AppColors.warmOrange.withValues(alpha: 0.15)
+            : AppColors.white,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.warmOrangeDeep.withValues(alpha: 0.15),
+          color: _shareToWorld 
+              ? AppColors.warmOrangeDeep.withValues(alpha: 0.2)
+              : AppColors.warmGray200.withValues(alpha: 0.5),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmGray900.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 标题行
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '对未来说一句',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.warmOrangeDark.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                  fontSize: 11,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    Iconsax.global,
+                    size: 16,
+                    color: _shareToWorld 
+                        ? AppColors.warmOrangeDeep 
+                        : AppColors.warmGray400,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '发布到世界',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _shareToWorld 
+                          ? AppColors.warmGray800 
+                          : AppColors.warmGray500,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
+              // 开关
               GestureDetector(
-                onTap: () => setState(() => _showFutureMessage = !_showFutureMessage),
+                onTap: () {
+                  setState(() {
+                    _shareToWorld = !_shareToWorld;
+                  });
+                },
                 child: AnimatedContainer(
                   duration: AppDurations.fast,
-                  width: 36,
-                  height: 20,
+                  width: 40,
+                  height: 24,
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: _showFutureMessage
-                        ? AppColors.warmOrangeDeep.withValues(alpha: 0.7)
+                    color: _shareToWorld
+                        ? AppColors.warmOrangeDeep
                         : AppColors.warmGray300,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: AnimatedAlign(
                     duration: AppDurations.fast,
-                    alignment: _showFutureMessage ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment: _shareToWorld
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
                     child: Container(
-                      width: 16,
-                      height: 16,
-                      decoration: const BoxDecoration(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
                         color: AppColors.white,
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.warmGray900.withValues(alpha: 0.1),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1964,25 +2123,74 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
               ),
             ],
           ),
-          if (_showFutureMessage) ...[
+
+          // 话题选择
+          if (_shareToWorld) ...[
             const SizedBox(height: 12),
-            TextField(
-              controller: _futureMessageController,
-              maxLength: 40,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.warmGray700,
+            Container(
+              padding: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: AppColors.warmGray100,
+                    width: 1,
+                  ),
+                ),
               ),
-              decoration: InputDecoration(
-                hintText: '比如：原来你也会长这么快...',
-                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.warmOrangeDark.withValues(alpha: 0.35),
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                counterStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.warmOrangeDark.withValues(alpha: 0.4),
-                  fontSize: 10,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '选择话题',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.warmGray400,
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _worldTopicOptions.map((topic) {
+                      final isSelected = _worldTopic == topic;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _worldTopic = topic;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? AppColors.warmOrange.withValues(alpha: 0.3)
+                                : AppColors.warmGray50,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected 
+                                  ? AppColors.warmOrangeDeep.withValues(alpha: 0.3)
+                                  : AppColors.warmGray100,
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            '#$topic',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: isSelected 
+                                  ? AppColors.warmOrangeDark 
+                                  : AppColors.warmGray500,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
             ),
           ],
@@ -2008,6 +2216,8 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
         }
         return;
       }
+
+      if (!mounted) return;
 
       // 计算还能选多少张
       final currentCount = _mediaType == MediaType.image ? _selectedMedia.length : 0;
@@ -2085,6 +2295,8 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
         return;
       }
 
+      if (!mounted) return;
+
       final assets = await AssetPicker.pickAssets(
         context,
         pickerConfig: _buildAssetPickerConfig(
@@ -2152,7 +2364,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   }
 
   void _showExitDialog(BuildContext context) {
-    if (_textController.text.isEmpty && _futureMessageController.text.isEmpty && _selectedMedia.isEmpty) {
+    if (_textController.text.isEmpty && _selectedMedia.isEmpty) {
       Navigator.of(context).pop();
       return;
     }
@@ -2203,7 +2415,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   }
 
   void _submitMoment(BuildContext context) {
-    final childInfo = ref.read(childInfoProvider);
+    final circleInfo = ref.read(childInfoProvider);
     final currentUser = ref.read(currentUserSyncProvider);
     final mediaUrl = _selectedMedia.isNotEmpty ? _selectedMedia.first.path : null;
 
@@ -2214,23 +2426,44 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       mediaType: _mediaType,
       mediaUrl: mediaUrl,
       timestamp: DateTime.now(),
-      childAgeLabel: childInfo.ageLabel,
-      contextTags: [..._selectedParentMoods, ..._selectedChildStates],
-      futureMessage: _showFutureMessage && _futureMessageController.text.isNotEmpty
-          ? _futureMessageController.text
-          : null,
+      timeLabel: circleInfo.ageLabel,
+      contextTags: [..._selectedMyMoods, ..._selectedAtmospheres],
+      isSharedToWorld: _shareToWorld,
+      worldTopic: _shareToWorld ? _worldTopic : null,
     );
 
     ref.read(momentsProvider.notifier).addMoment(moment);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('这一刻，已经被你留住了。'),
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.softGreen.withValues(alpha: 0.25),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Iconsax.tick_circle5,
+                size: 16,
+                color: AppColors.softGreenDeep,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('这一刻，已经被你留住了。'),
+          ],
+        ),
         backgroundColor: AppColors.warmGray800,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 2),
+        elevation: 8,
       ),
     );
 
