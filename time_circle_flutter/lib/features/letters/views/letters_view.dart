@@ -45,9 +45,8 @@ class LettersView extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Text(
                           '给未来的时间胶囊。',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.warmGray500,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.warmGray500),
                         ),
                       ],
                     ),
@@ -103,42 +102,40 @@ class LettersView extends ConsumerWidget {
 
             // 信件列表或空状态
             if (letters.isEmpty)
-              SliverToBoxAdapter(
-                child: _buildEmptyState(context, ref),
-              )
+              SliverToBoxAdapter(child: _buildEmptyState(context, ref))
             else
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final letter = letters[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _LetterCard(
-                          letter: letter,
-                          onTap: () {
-                            if (letter.status == LetterStatus.draft) {
-                              context.push('/letter/${letter.id}/edit');
-                            } else {
-                              context.push('/letter/${letter.id}');
-                            }
-                          },
-                        ),
-                      ).animate().fadeIn(
-                        duration: 400.ms,
-                        delay: Duration(milliseconds: 100 + (index * 50)),
-                        curve: Curves.easeOut,
-                      ).slideY(begin: 0.05, end: 0);
-                    },
-                    childCount: letters.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final letter = letters[index];
+                    return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _LetterCard(
+                            letter: letter,
+                            onTap: () {
+                              if (letter.status == LetterStatus.draft) {
+                                context.push('/letter/${letter.id}/edit');
+                              } else {
+                                context.push('/letter/${letter.id}');
+                              }
+                            },
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(
+                          duration: 400.ms,
+                          delay: Duration(milliseconds: 100 + (index * 50)),
+                          curve: Curves.easeOut,
+                        )
+                        .slideY(begin: 0.05, end: 0);
+                  }, childCount: letters.length),
                 ),
               ),
 
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 120),
-            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
         ),
       ),
@@ -148,93 +145,96 @@ class LettersView extends ConsumerWidget {
   /// 空状态设计
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(
-            color: AppColors.warmGray200,
-            width: 1,
-            style: BorderStyle.solid,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pagePadding,
           ),
-        ),
-        child: CustomPaint(
-          painter: _DottedBackgroundPainter(),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 羽毛笔图标
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: AppColors.warmGray100,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Iconsax.edit_2,
-                  size: 28,
-                  color: AppColors.warmGray400,
-                ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(
+                color: AppColors.warmGray200,
+                width: 1,
+                style: BorderStyle.solid,
               ),
-              const SizedBox(height: 28),
-
-              // 主文案
-              Text(
-                '这一年的信，还没开始',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.warmGray700,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-
-              // 副文案
-              Text(
-                '哪怕只写下"你今天学会了叫妈妈"，\n也是给未来最好的礼物。',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.warmGray400,
-                  height: 1.6,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 28),
-
-              // CTA 按钮
-              GestureDetector(
-                onTap: () => _createNewLetter(context, ref),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: AppColors.warmGray700,
-                        width: 1,
-                      ),
+            ),
+            child: CustomPaint(
+              painter: _DottedBackgroundPainter(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 羽毛笔图标
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: AppColors.warmGray100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Iconsax.edit_2,
+                      size: 28,
+                      color: AppColors.warmGray400,
                     ),
                   ),
-                  child: Text(
-                    '提笔写下第一句',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  const SizedBox(height: 28),
+
+                  // 主文案
+                  Text(
+                    '这一年的信，还没开始',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: AppColors.warmGray700,
                       fontWeight: FontWeight.w500,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
+                  const SizedBox(height: 12),
+
+                  // 副文案
+                  Text(
+                    '哪怕只写下"你今天学会了叫妈妈"，\n也是给未来最好的礼物。',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.warmGray400,
+                      height: 1.6,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 28),
+
+                  // CTA 按钮
+                  GestureDetector(
+                    onTap: () => _createNewLetter(context, ref),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: AppColors.warmGray700,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        '提笔写下第一句',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: AppColors.warmGray700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    ).animate()
-      .fadeIn(duration: 500.ms, delay: 200.ms)
-      .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
+        )
+        .animate()
+        .fadeIn(duration: 500.ms, delay: 200.ms)
+        .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
   }
 
   /// 创建新信件
@@ -249,7 +249,7 @@ class LettersView extends ConsumerWidget {
       type: LetterType.annual,
       createdAt: DateTime.now(),
     );
-    
+
     ref.read(lettersProvider.notifier).addLetter(newLetter);
     context.push('/letter/${newLetter.id}/edit');
   }
@@ -259,9 +259,10 @@ class LettersView extends ConsumerWidget {
 class _DottedBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.warmGray200.withValues(alpha: 0.5)
-      ..strokeWidth = 1;
+    final paint =
+        Paint()
+          ..color = AppColors.warmGray200.withValues(alpha: 0.5)
+          ..strokeWidth = 1;
 
     const spacing = 20.0;
     const dotRadius = 1.0;
@@ -282,10 +283,7 @@ class _LetterCard extends StatelessWidget {
   final Letter letter;
   final VoidCallback onTap;
 
-  const _LetterCard({
-    required this.letter,
-    required this.onTap,
-  });
+  const _LetterCard({required this.letter, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -297,14 +295,13 @@ class _LetterCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isLocked 
-              ? AppColors.warmGray100 
-              : AppColors.white,
+          color: isLocked ? AppColors.warmGray100 : AppColors.white,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(
-            color: isLocked 
-                ? AppColors.warmGray200 
-                : AppColors.warmGray200.withValues(alpha: 0.5),
+            color:
+                isLocked
+                    ? AppColors.warmGray200
+                    : AppColors.warmGray200.withValues(alpha: 0.5),
             width: 1,
           ),
           boxShadow: isLocked ? null : AppShadows.subtle,
@@ -321,9 +318,10 @@ class _LetterCard extends StatelessWidget {
                   child: Text(
                     letter.title,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: isLocked 
-                          ? AppColors.warmGray600 
-                          : AppColors.warmGray800,
+                      color:
+                          isLocked
+                              ? AppColors.warmGray600
+                              : AppColors.warmGray800,
                     ),
                   ),
                 ),
@@ -348,23 +346,28 @@ class _LetterCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: isDraft 
-                          ? AppColors.warmOrange 
-                          : AppColors.softGreen,
+                      color:
+                          isDraft ? AppColors.warmOrange : AppColors.softGreen,
                       borderRadius: BorderRadius.circular(AppRadius.full),
                       border: Border.all(
-                        color: isDraft 
-                            ? AppColors.warmOrangeDeep.withValues(alpha: 0.3)
-                            : AppColors.softGreenDeep.withValues(alpha: 0.3),
+                        color:
+                            isDraft
+                                ? AppColors.warmOrangeDeep.withValues(
+                                  alpha: 0.3,
+                                )
+                                : AppColors.softGreenDeep.withValues(
+                                  alpha: 0.3,
+                                ),
                         width: 1,
                       ),
                     ),
                     child: Text(
                       letter.statusLabel,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: isDraft 
-                            ? AppColors.warmOrangeDark 
-                            : AppColors.successDark,
+                        color:
+                            isDraft
+                                ? AppColors.warmOrangeDark
+                                : AppColors.successDark,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -375,9 +378,7 @@ class _LetterCard extends StatelessWidget {
 
             // 预览内容
             Text(
-              isLocked 
-                  ? '这封信已封存，直到解锁日期。它很安全。' 
-                  : letter.preview,
+              isLocked ? '这封信已封存，直到解锁日期。它很安全。' : letter.preview,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppColors.warmGray500,
                 height: 1.5,
@@ -403,8 +404,8 @@ class _LetterCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    isLocked 
-                        ? '解锁于：${_formatDate(letter.unlockDate)}' 
+                    isLocked
+                        ? '解锁于：${_formatDate(letter.unlockDate)}'
                         : '给：${letter.recipient}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: AppColors.warmGray400,

@@ -1,28 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/theme/app_theme.dart';
-
-/// 检查 URL 是否有效
-bool _isValidUrl(String url) {
-  if (url.isEmpty) return false;
-  try {
-    final uri = Uri.parse(url);
-    return uri.hasScheme && uri.hasAuthority;
-  } catch (_) {
-    return false;
-  }
-}
+import '../../core/utils/image_utils.dart';
 
 /// 圆形头像组件
-class CircleAvatar extends StatelessWidget {
+/// 注意：重命名为 AppAvatar 以避免与 Flutter 内置 CircleAvatar 冲突
+class AppAvatar extends StatelessWidget {
   final String imageUrl;
   final double size;
   final String? badge;
   final Color? borderColor;
   final double borderWidth;
 
-  const CircleAvatar({
+  const AppAvatar({
     super.key,
     required this.imageUrl,
     this.size = 40,
@@ -33,8 +23,6 @@ class CircleAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasValidUrl = _isValidUrl(imageUrl);
-    
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -43,23 +31,13 @@ class CircleAvatar extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: borderColor != null
-                ? Border.all(color: borderColor!, width: borderWidth)
-                : null,
+            border:
+                borderColor != null
+                    ? Border.all(color: borderColor!, width: borderWidth)
+                    : null,
             boxShadow: AppShadows.subtle,
           ),
-          child: ClipOval(
-            child: hasValidUrl
-                ? CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: AppColors.warmGray200,
-                    ),
-                    errorWidget: (context, url, error) => _buildPlaceholder(),
-                  )
-                : _buildPlaceholder(),
-          ),
+          child: ImageUtils.buildAvatar(url: imageUrl, size: size),
         ),
         if (badge != null)
           Positioned(
@@ -70,10 +48,7 @@ class CircleAvatar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.warmGray800,
                 borderRadius: BorderRadius.circular(AppRadius.full),
-                border: Border.all(
-                  color: AppColors.white,
-                  width: 1.5,
-                ),
+                border: Border.all(color: AppColors.white, width: 1.5),
               ),
               child: Text(
                 badge!,
@@ -86,17 +61,6 @@ class CircleAvatar extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return Container(
-      color: AppColors.warmGray200,
-      child: Icon(
-        Icons.person,
-        color: AppColors.warmGray400,
-        size: size * 0.5,
-      ),
     );
   }
 }
@@ -118,10 +82,9 @@ class AvatarStack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayCount = avatarUrls.length > maxDisplay 
-        ? maxDisplay 
-        : avatarUrls.length;
-    
+    final displayCount =
+        avatarUrls.length > maxDisplay ? maxDisplay : avatarUrls.length;
+
     return SizedBox(
       width: size + (displayCount - 1) * (size - overlap),
       height: size,
@@ -135,37 +98,9 @@ class AvatarStack extends StatelessWidget {
                 height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.white,
-                    width: 1.5,
-                  ),
+                  border: Border.all(color: AppColors.white, width: 1.5),
                 ),
-                child: ClipOval(
-                  child: _isValidUrl(avatarUrls[i])
-                      ? CachedNetworkImage(
-                          imageUrl: avatarUrls[i],
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: AppColors.warmGray300,
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: AppColors.warmGray300,
-                            child: Icon(
-                              Icons.person,
-                              color: AppColors.warmGray400,
-                              size: size * 0.5,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          color: AppColors.warmGray300,
-                          child: Icon(
-                            Icons.person,
-                            color: AppColors.warmGray400,
-                            size: size * 0.5,
-                          ),
-                        ),
-                ),
+                child: ImageUtils.buildAvatar(url: avatarUrls[i], size: size),
               ),
             ),
         ],

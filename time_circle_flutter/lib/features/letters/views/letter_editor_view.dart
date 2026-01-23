@@ -42,8 +42,7 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
     super.initState();
     final letter = ref.read(letterByIdProvider(widget.letterId));
     _contentController = TextEditingController(
-      text: letter?.content ??
-          "亲爱的${letter?.recipient ?? '你'}：\n\n",
+      text: letter?.content ?? "亲爱的${letter?.recipient ?? '你'}：\n\n",
     );
   }
 
@@ -104,9 +103,9 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
         body: Center(
           child: Text(
             '信件不存在',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppColors.warmGray500,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: AppColors.warmGray500),
           ),
         ),
       );
@@ -125,10 +124,7 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    AppColors.timeBeigeWarm,
-                    AppColors.timeBeige,
-                  ],
+                  colors: [AppColors.timeBeigeWarm, AppColors.timeBeige],
                 ),
               ),
             ),
@@ -150,20 +146,19 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 1000),
                     curve: Curves.easeInOut,
-                    transform: _isSealing
-                        ? (Matrix4.translationValues(0.0, 120.0, 0.0)
-                          ..setEntry(0, 0, 0.9)
-                          ..setEntry(1, 1, 0.9))
-                        : Matrix4.identity(),
+                    transform:
+                        _isSealing
+                            ? (Matrix4.translationValues(0.0, 120.0, 0.0)
+                              ..setEntry(0, 0, 0.9)
+                              ..setEntry(1, 1, 0.9))
+                            : Matrix4.identity(),
                     child: AnimatedOpacity(
                       opacity: _isSealing ? 0 : 1,
                       duration: const Duration(milliseconds: 800),
                       child: SingleChildScrollView(
                         controller: _scrollController,
                         physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           children: [
                             const SizedBox(height: 24),
@@ -175,10 +170,9 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
                             // 标题
                             Text(
                               '写给 ${childInfo.shortAgeLabel} 的${childInfo.name}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(
+                              style: Theme.of(
+                                context,
+                              ).textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.warmGray800,
                               ),
@@ -189,10 +183,9 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
                             // 副标题
                             Text(
                               '没有固定的格式，只写你想留下的。',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
                                 color: AppColors.warmGray400,
                                 fontWeight: FontWeight.w300,
                               ),
@@ -299,31 +292,34 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
 
   Widget _buildYearBadge(BuildContext context, int year) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.warmGray100,
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Iconsax.calendar_1, size: 13, color: AppColors.warmGray500),
-          const SizedBox(width: 6),
-          Text(
-            '$year 年',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.warmGray500,
-              fontWeight: FontWeight.w500,
-              fontSize: 12,
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.warmGray100,
+            borderRadius: BorderRadius.circular(AppRadius.full),
           ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 300.ms).scale(
-      begin: const Offset(0.95, 0.95),
-      end: const Offset(1, 1),
-      curve: Curves.easeOut,
-    );
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Iconsax.calendar_1, size: 13, color: AppColors.warmGray500),
+              const SizedBox(width: 6),
+              Text(
+                '$year 年',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.warmGray500,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        )
+        .animate()
+        .fadeIn(duration: 300.ms)
+        .scale(
+          begin: const Offset(0.95, 0.95),
+          end: const Offset(1, 1),
+          curve: Curves.easeOut,
+        );
   }
 
   Widget _buildInspirationChips(BuildContext context) {
@@ -359,37 +355,39 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
           const SizedBox(width: 10),
 
           // 灵感按钮列表
-          ..._inspirations.map((text) => Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () => _insertInspiration(text),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                  border: Border.all(color: AppColors.warmGray200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.warmGray200.withValues(alpha: 0.5),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+          ..._inspirations.map(
+            (text) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => _insertInspiration(text),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    border: Border.all(color: AppColors.warmGray200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.warmGray200.withValues(alpha: 0.5),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    text,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.warmGray500,
+                      fontSize: 12,
                     ),
-                  ],
-                ),
-                child: Text(
-                  text,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.warmGray500,
-                    fontSize: 12,
                   ),
                 ),
               ),
             ),
-          )),
+          ),
         ],
       ),
     ).animate().fadeIn(duration: 400.ms, delay: 200.ms);
@@ -494,92 +492,102 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
   Widget _buildSealingToast(BuildContext context) {
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.warmGray800.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          boxShadow: AppShadows.elevated,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: AppColors.softGreen.withValues(alpha: 0.25),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Iconsax.tick_circle5,
-                size: 16,
-                color: AppColors.softGreenDeep,
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.warmGray800.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(AppRadius.full),
+              boxShadow: AppShadows.elevated,
             ),
-            const SizedBox(width: 12),
-            Text(
-              '这一刻，已经被你留住了。',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.white,
-                letterSpacing: 0.3,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.softGreen.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Iconsax.tick_circle5,
+                    size: 16,
+                    color: AppColors.softGreenDeep,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '这一刻，已经被你留住了。',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.white,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ).animate().fadeIn(duration: 400.ms).scale(
-        begin: const Offset(0.9, 0.9),
-        end: const Offset(1, 1),
-        curve: Curves.easeOut,
-      ),
+          )
+          .animate()
+          .fadeIn(duration: 400.ms)
+          .scale(
+            begin: const Offset(0.9, 0.9),
+            end: const Offset(1, 1),
+            curve: Curves.easeOut,
+          ),
     );
   }
 
   void _showExitDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-        content: Text(
-          '要把这一刻带走，还是留下来？',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            height: 1.4,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.pop();
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.warmGray500,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('带走'),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warmGray800,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.full),
+            contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            content: Text(
+              '要把这一刻带走，还是留下来？',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                height: 1.4,
               ),
-              elevation: 0,
+              textAlign: TextAlign.center,
             ),
-            child: const Text('留下'),
+            actionsAlignment: MainAxisAlignment.center,
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  context.pop();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.warmGray500,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text('带走'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warmGray800,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text('留下'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }

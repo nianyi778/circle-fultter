@@ -9,18 +9,13 @@ import '../../core/models/comment.dart';
 import '../../core/models/user.dart';
 import '../../core/models/moment.dart';
 import '../../core/providers/app_providers.dart';
-import 'app_text_field.dart';
 
 /// 抖音风格评论抽屉
 class CommentDrawer extends ConsumerStatefulWidget {
   final Moment moment;
   final VoidCallback onClose;
 
-  const CommentDrawer({
-    super.key,
-    required this.moment,
-    required this.onClose,
-  });
+  const CommentDrawer({super.key, required this.moment, required this.onClose});
 
   @override
   ConsumerState<CommentDrawer> createState() => _CommentDrawerState();
@@ -46,10 +41,9 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
@@ -139,9 +133,10 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
 
                     // 评论列表
                     Expanded(
-                      child: comments.isEmpty
-                          ? _buildEmptyState()
-                          : _buildCommentList(comments),
+                      child:
+                          comments.isEmpty
+                              ? _buildEmptyState()
+                              : _buildCommentList(comments),
                     ),
 
                     // 底部输入区
@@ -161,10 +156,7 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.warmGray100,
-            width: 1,
-          ),
+          bottom: BorderSide(color: AppColors.warmGray100, width: 1),
         ),
       ),
       child: Row(
@@ -174,9 +166,9 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
             child: Text(
               count > 0 ? '$count 条评论' : '评论',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           GestureDetector(
@@ -216,16 +208,16 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
           const SizedBox(height: 12),
           Text(
             '暂时还没有评论',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.warmGray400,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.warmGray400),
           ),
           const SizedBox(height: 4),
           Text(
             '说点什么吧',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.warmGray300,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: AppColors.warmGray300),
           ),
           const SizedBox(height: 80), // 给底部留空间
         ],
@@ -245,9 +237,9 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
             child: Center(
               child: Text(
                 '没有更多评论了',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.warmGray300,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: AppColors.warmGray300),
               ),
             ),
           );
@@ -269,38 +261,92 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
       padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
       decoration: BoxDecoration(
         color: AppColors.white,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.warmGray100,
-            width: 1,
-          ),
-        ),
+        border: Border(top: BorderSide(color: AppColors.warmGray50, width: 1)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.warmGray900.withValues(alpha: 0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
         ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 输入框（使用统一组件）
+          // 灰色圆角输入框
           Expanded(
-            child: AppTextField(
-              controller: _textController,
-              focusNode: _focusNode,
-              hintText: _replyTarget != null ? '' : '有什么想法，展开说说',
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => _handleSubmit(),
-              onChanged: (_) => setState(() {}),
-              prefix: _replyTarget != null
-                  ? ReplyTargetTag(
-                      name: _replyTarget!.name,
-                      onCancel: _cancelReplyTarget,
-                    )
-                  : null,
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppColors.warmGray100,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Row(
+                children: [
+                  // 回复标签
+                  if (_replyTarget != null) ...[
+                    Text(
+                      '回复 ${_replyTarget!.name}:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.warmGray500,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: _cancelReplyTarget,
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: AppColors.warmGray200,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.close,
+                          size: 10,
+                          color: AppColors.warmGray500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+
+                  // 文本输入
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      focusNode: _focusNode,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _handleSubmit(),
+                      onChanged: (_) => setState(() {}),
+                      cursorColor: AppColors.warmGray600,
+                      cursorWidth: 1.5,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.warmGray800,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: _replyTarget != null ? '' : '有什么想法，展开说说',
+                        hintStyle: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.warmGray400,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
+                        filled: false,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -311,45 +357,49 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
             onTap: () {
               // TODO: 打开 @ 用户选择器
             },
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(
-                '@',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.warmGray800,
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: Center(
+                child: Icon(
+                  Icons.alternate_email_rounded,
+                  size: 24,
+                  color: AppColors.warmGray700,
                 ),
               ),
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
 
-          // 发送/表情按钮
+          // 表情/发送按钮
           GestureDetector(
             onTap: hasText ? _handleSubmit : null,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: hasText
-                  ? Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.heart,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Iconsax.send_15,
-                        size: 16,
-                        color: AppColors.white,
-                      ),
-                    )
-                  : Icon(
-                      Iconsax.emoji_happy,
-                      size: 24,
-                      color: AppColors.warmGray800,
-                    ),
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: Center(
+                child:
+                    hasText
+                        ? Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: AppColors.heart,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.send_rounded,
+                            size: 16,
+                            color: AppColors.white,
+                          ),
+                        )
+                        : Icon(
+                          Icons.sentiment_satisfied_alt_outlined,
+                          size: 26,
+                          color: AppColors.warmGray700,
+                        ),
+              ),
             ),
           ),
         ],
@@ -363,10 +413,7 @@ class _CommentItem extends StatelessWidget {
   final Comment comment;
   final VoidCallback onReply;
 
-  const _CommentItem({
-    required this.comment,
-    required this.onReply,
-  });
+  const _CommentItem({required this.comment, required this.onReply});
 
   @override
   Widget build(BuildContext context) {
@@ -381,14 +428,9 @@ class _CommentItem extends StatelessWidget {
             height: 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.warmGray100,
-                width: 1,
-              ),
+              border: Border.all(color: AppColors.warmGray100, width: 1),
             ),
-            child: ClipOval(
-              child: _buildAvatar(comment.author.avatar),
-            ),
+            child: ClipOval(child: _buildAvatar(comment.author.avatar)),
           ),
           const SizedBox(width: 12),
 
@@ -401,9 +443,9 @@ class _CommentItem extends StatelessWidget {
                 Text(
                   comment.author.name,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.warmGray500,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: AppColors.warmGray500,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 4),
 
@@ -419,9 +461,9 @@ class _CommentItem extends StatelessWidget {
                     Text(
                       comment.relativeTime,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppColors.warmGray400,
-                            fontSize: 10,
-                          ),
+                        color: AppColors.warmGray400,
+                        fontSize: 10,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     // 回复按钮
@@ -430,9 +472,9 @@ class _CommentItem extends StatelessWidget {
                       child: Text(
                         '回复',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppColors.warmGray500,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: AppColors.warmGray500,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -460,9 +502,9 @@ class _CommentItem extends StatelessWidget {
               Text(
                 comment.likes > 0 ? '${comment.likes}' : '0',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.warmGray400,
-                      fontSize: 10,
-                    ),
+                  color: AppColors.warmGray400,
+                  fontSize: 10,
+                ),
               ),
             ],
           ),
@@ -476,9 +518,9 @@ class _CommentItem extends StatelessWidget {
       return RichText(
         text: TextSpan(
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.warmGray800,
-                height: 1.5,
-              ),
+            color: AppColors.warmGray800,
+            height: 1.5,
+          ),
           children: [
             TextSpan(
               text: '回复 ',
@@ -500,9 +542,9 @@ class _CommentItem extends StatelessWidget {
     return Text(
       comment.content,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.warmGray800,
-            height: 1.5,
-          ),
+        color: AppColors.warmGray800,
+        height: 1.5,
+      ),
     );
   }
 
@@ -510,11 +552,7 @@ class _CommentItem extends StatelessWidget {
     if (avatar.isEmpty) {
       return Container(
         color: AppColors.warmGray200,
-        child: Icon(
-          Iconsax.user,
-          size: 16,
-          color: AppColors.warmGray400,
-        ),
+        child: Icon(Iconsax.user, size: 16, color: AppColors.warmGray400),
       );
     }
 
@@ -523,18 +561,14 @@ class _CommentItem extends StatelessWidget {
         imageUrl: avatar,
         fit: BoxFit.cover,
         placeholder: (context, url) => Container(color: AppColors.warmGray200),
-        errorWidget: (context, url, error) =>
-            Container(color: AppColors.warmGray200),
+        errorWidget:
+            (context, url, error) => Container(color: AppColors.warmGray200),
       );
     }
 
     return Container(
       color: AppColors.warmGray200,
-      child: Icon(
-        Iconsax.user,
-        size: 16,
-        color: AppColors.warmGray400,
-      ),
+      child: Icon(Iconsax.user, size: 16, color: AppColors.warmGray400),
     );
   }
 }

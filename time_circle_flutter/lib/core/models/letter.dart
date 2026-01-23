@@ -94,21 +94,21 @@ class Letter {
     if (unlockDate == null) return null;
     final now = DateTime.now();
     final diff = unlockDate!.difference(now);
-    
+
     if (diff.isNegative) {
       return '可以解锁了';
     }
-    
+
     final years = diff.inDays ~/ 365;
     if (years > 0) {
       return '$years年后解锁';
     }
-    
+
     final months = diff.inDays ~/ 30;
     if (months > 0) {
       return '$months个月后解锁';
     }
-    
+
     return '${diff.inDays}天后解锁';
   }
 }

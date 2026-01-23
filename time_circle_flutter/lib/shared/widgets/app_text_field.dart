@@ -11,7 +11,7 @@ enum AppTextFieldStyle {
 }
 
 /// 统一的单行输入框组件
-/// 
+///
 /// 参考 Web 版本设计：
 /// - 灰色背景 (stone-100)
 /// - 大圆角 (rounded-2xl = 16px)
@@ -28,10 +28,10 @@ class AppTextField extends StatelessWidget {
   final bool enabled;
   final int? maxLength;
   final AppTextFieldStyle style;
-  
+
   /// 前缀组件（如回复标签）
   final Widget? prefix;
-  
+
   /// 后缀组件（如发送按钮）
   final Widget? suffix;
 
@@ -56,21 +56,20 @@ class AppTextField extends StatelessWidget {
     final isFilled = style == AppTextFieldStyle.filled;
 
     return Container(
-      padding: isFilled
-          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
-          : EdgeInsets.zero,
-      decoration: isFilled
-          ? BoxDecoration(
-              color: AppColors.warmGray100,
-              borderRadius: BorderRadius.circular(20),
-            )
-          : null,
+      padding:
+          isFilled
+              ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
+              : EdgeInsets.zero,
+      decoration:
+          isFilled
+              ? BoxDecoration(
+                color: AppColors.warmGray100,
+                borderRadius: BorderRadius.circular(20),
+              )
+              : null,
       child: Row(
         children: [
-          if (prefix != null) ...[
-            prefix!,
-            const SizedBox(width: 8),
-          ],
+          if (prefix != null) ...[prefix!, const SizedBox(width: 8)],
           Expanded(
             child: TextField(
               controller: controller,
@@ -81,14 +80,14 @@ class AppTextField extends StatelessWidget {
               textInputAction: textInputAction,
               onChanged: onChanged,
               onSubmitted: onSubmitted,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.warmGray800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.warmGray800),
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.warmGray400,
-                    ),
+                hintStyle: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.warmGray400),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -98,10 +97,7 @@ class AppTextField extends StatelessWidget {
               ),
             ),
           ),
-          if (suffix != null) ...[
-            const SizedBox(width: 8),
-            suffix!,
-          ],
+          if (suffix != null) ...[const SizedBox(width: 8), suffix!],
         ],
       ),
     );
@@ -109,7 +105,7 @@ class AppTextField extends StatelessWidget {
 }
 
 /// 统一的多行文本区域组件
-/// 
+///
 /// 用于发布内容、信件编辑等场景
 /// 默认透明背景，大字体，书写感强
 class AppTextArea extends StatelessWidget {
@@ -123,10 +119,10 @@ class AppTextArea extends StatelessWidget {
   final int maxLines;
   final int? maxLength;
   final AppTextFieldStyle style;
-  
+
   /// 字体大小（默认 18）
   final double fontSize;
-  
+
   /// 行高（默认 1.8）
   final double lineHeight;
 
@@ -151,15 +147,14 @@ class AppTextArea extends StatelessWidget {
     final isFilled = style == AppTextFieldStyle.filled;
 
     return Container(
-      padding: isFilled
-          ? const EdgeInsets.all(16)
-          : EdgeInsets.zero,
-      decoration: isFilled
-          ? BoxDecoration(
-              color: AppColors.warmGray100,
-              borderRadius: BorderRadius.circular(16),
-            )
-          : null,
+      padding: isFilled ? const EdgeInsets.all(16) : EdgeInsets.zero,
+      decoration:
+          isFilled
+              ? BoxDecoration(
+                color: AppColors.warmGray100,
+                borderRadius: BorderRadius.circular(16),
+              )
+              : null,
       child: TextField(
         controller: controller,
         focusNode: focusNode,
@@ -170,19 +165,19 @@ class AppTextArea extends StatelessWidget {
         maxLines: maxLines,
         onChanged: onChanged,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontSize: fontSize,
-              height: lineHeight,
-              color: AppColors.warmGray800,
-              letterSpacing: 0.3,
-            ),
+          fontSize: fontSize,
+          height: lineHeight,
+          color: AppColors.warmGray800,
+          letterSpacing: 0.3,
+        ),
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontSize: fontSize,
-                height: lineHeight,
-                color: AppColors.warmGray300,
-                letterSpacing: 0.3,
-              ),
+            fontSize: fontSize,
+            height: lineHeight,
+            color: AppColors.warmGray300,
+            letterSpacing: 0.3,
+          ),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
@@ -196,17 +191,13 @@ class AppTextArea extends StatelessWidget {
 }
 
 /// 回复目标标签组件
-/// 
+///
 /// 用于评论输入框中显示 "回复 xxx" 标签
 class ReplyTargetTag extends StatelessWidget {
   final String name;
   final VoidCallback onCancel;
 
-  const ReplyTargetTag({
-    super.key,
-    required this.name,
-    required this.onCancel,
-  });
+  const ReplyTargetTag({super.key, required this.name, required this.onCancel});
 
   @override
   Widget build(BuildContext context) {
@@ -224,16 +215,12 @@ class ReplyTargetTag extends StatelessWidget {
             Text(
               '回复 $name',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.warmGray600,
-                    fontWeight: FontWeight.w500,
-                  ),
+                color: AppColors.warmGray600,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(width: 4),
-            Icon(
-              Icons.close,
-              size: 14,
-              color: AppColors.warmGray400,
-            ),
+            Icon(Icons.close, size: 14, color: AppColors.warmGray400),
           ],
         ),
       ),
@@ -242,7 +229,7 @@ class ReplyTargetTag extends StatelessWidget {
 }
 
 /// 发送按钮组件
-/// 
+///
 /// 有内容时显示红色圆形发送按钮，否则显示 @ 或表情按钮
 class SendButton extends StatelessWidget {
   final bool hasContent;
@@ -268,11 +255,7 @@ class SendButton extends StatelessWidget {
             color: AppColors.warmPeach,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.send_rounded,
-            size: 16,
-            color: Colors.white,
-          ),
+          child: const Icon(Icons.send_rounded, size: 16, color: Colors.white),
         ),
       );
     }

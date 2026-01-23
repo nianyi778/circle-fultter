@@ -7,11 +7,7 @@ class FutureMessageCard extends StatelessWidget {
   final String message;
   final EdgeInsetsGeometry? margin;
 
-  const FutureMessageCard({
-    super.key,
-    required this.message,
-    this.margin,
-  });
+  const FutureMessageCard({super.key, required this.message, this.margin});
 
   @override
   Widget build(BuildContext context) {

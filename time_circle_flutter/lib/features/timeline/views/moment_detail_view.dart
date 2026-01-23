@@ -34,9 +34,10 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _likeScale = Tween<double>(begin: 1.0, end: 1.2).animate(
-      CurvedAnimation(parent: _likeController, curve: Curves.easeOut),
-    );
+    _likeScale = Tween<double>(
+      begin: 1.0,
+      end: 1.2,
+    ).animate(CurvedAnimation(parent: _likeController, curve: Curves.easeOut));
     _likeController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _likeController.reverse();
@@ -87,9 +88,9 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
               const SizedBox(height: 16),
               Text(
                 '这一刻，可能已经被你带走了。',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.warmGray500,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: AppColors.warmGray500),
               ),
             ],
           ),
@@ -111,59 +112,52 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
               // 时间叙事区
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.pagePadding,
-                    8,
-                    AppSpacing.pagePadding,
-                    24,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        moment.timeNarrative,
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  height: 1.5,
-                                  color: AppColors.warmGray700,
-                                ),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.pagePadding,
+                        8,
+                        AppSpacing.pagePadding,
+                        24,
                       ),
-                      const SizedBox(height: 8),
-                      Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _formatDate(moment.timestamp),
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
-                                ?.copyWith(
-                                  color: AppColors.warmGray400,
-                                ),
-                          ),
-                          const SizedBox(width: 12),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: const BoxDecoration(
-                              color: AppColors.warmGray300,
-                              shape: BoxShape.circle,
+                            moment.timeNarrative,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.headlineSmall?.copyWith(
+                              height: 1.5,
+                              color: AppColors.warmGray700,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            moment.author.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
-                                ?.copyWith(
-                                  color: AppColors.warmGray400,
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text(
+                                _formatDate(moment.timestamp),
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(color: AppColors.warmGray400),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                width: 4,
+                                height: 4,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.warmGray300,
+                                  shape: BoxShape.circle,
                                 ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                moment.author.name,
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(color: AppColors.warmGray400),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                )
+                    )
                     .animate()
                     .fadeIn(duration: 500.ms)
                     .slideY(begin: 0.05, end: 0),
@@ -173,13 +167,13 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.pagePadding),
+                    horizontal: AppSpacing.pagePadding,
+                  ),
                   child: Text(
                     moment.content,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          height: 1.8,
-                          fontSize: 17,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(height: 1.8, fontSize: 17),
                   ),
                 ).animate().fadeIn(duration: 600.ms, delay: 100.ms),
               ),
@@ -188,12 +182,12 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
               if (moment.mediaUrl != null && moment.mediaUrl!.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.pagePadding),
-                    child: MediaViewer(
-                      mediaType: moment.mediaType,
-                      mediaUrl: moment.mediaUrl,
-                    ),
-                  )
+                        padding: const EdgeInsets.all(AppSpacing.pagePadding),
+                        child: MediaViewer(
+                          mediaType: moment.mediaType,
+                          mediaUrl: moment.mediaUrl,
+                        ),
+                      )
                       .animate()
                       .fadeIn(duration: 600.ms, delay: 150.ms)
                       .slideY(begin: 0.03, end: 0),
@@ -204,7 +198,8 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.pagePadding),
+                      horizontal: AppSpacing.pagePadding,
+                    ),
                     child: ContextTagsView(tags: moment.contextTags),
                   ).animate().fadeIn(duration: 600.ms, delay: 200.ms),
                 ),
@@ -218,162 +213,77 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                   ).animate().fadeIn(duration: 700.ms, delay: 250.ms),
                 ),
 
-              // 操作栏（共鸣 + 回复）
+              // 互动栏（极简克制）
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
                     AppSpacing.pagePadding,
-                    16,
+                    24,
                     AppSpacing.pagePadding,
                     8,
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // 左侧按钮组
-                      Row(
-                        children: [
-                          // 共鸣胶囊按钮
-                          GestureDetector(
-                            onTap: _handleLike,
-                            child: AnimatedBuilder(
-                              animation: _likeScale,
-                              builder: (context, child) {
-                                return Transform.scale(
-                                  scale: _likeScale.value,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: moment.isFavorite
-                                          ? AppColors.heart
-                                              .withValues(alpha: 0.1)
-                                          : AppColors.white,
-                                      borderRadius:
-                                          BorderRadius.circular(AppRadius.full),
-                                      border: Border.all(
-                                        color: moment.isFavorite
-                                            ? AppColors.heart
-                                                .withValues(alpha: 0.3)
-                                            : AppColors.warmGray200,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          moment.isFavorite
-                                              ? Iconsax.heart5
-                                              : Iconsax.heart,
-                                          size: 18,
-                                          color: moment.isFavorite
-                                              ? AppColors.heart
-                                              : AppColors.warmGray500,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          moment.isFavorite ? '已共鸣' : '共鸣',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                color: moment.isFavorite
-                                                    ? AppColors.heart
-                                                    : AppColors.warmGray500,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-
-                          const SizedBox(width: 12),
-
-                          // 回复按钮
-                          GestureDetector(
-                            onTap: _openCommentDrawer,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
+                      // 共鸣（小心形图标）
+                      GestureDetector(
+                        onTap: _handleLike,
+                        behavior: HitTestBehavior.opaque,
+                        child: AnimatedBuilder(
+                          animation: _likeScale,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: _likeScale.value,
+                              child: Icon(
+                                moment.isFavorite
+                                    ? Iconsax.heart5
+                                    : Iconsax.heart,
+                                size: 20,
+                                color:
+                                    moment.isFavorite
+                                        ? AppColors.heart
+                                        : AppColors.warmGray400,
                               ),
-                              decoration: BoxDecoration(
-                                color: AppColors.white,
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.full),
-                                border: Border.all(
-                                  color: AppColors.warmGray200,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Transform.flip(
-                                    flipX: true,
-                                    child: Icon(
-                                      Iconsax.message,
-                                      size: 18,
-                                      color: AppColors.warmGray500,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '回复',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: AppColors.warmGray500,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                  ),
-                                  if (comments.isNotEmpty) ...[
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.warmGray100,
-                                        borderRadius: BorderRadius.circular(
-                                            AppRadius.full),
-                                      ),
-                                      child: Text(
-                                        '${comments.length}',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                              color: AppColors.warmGray500,
-                                              fontSize: 10,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                            );
+                          },
+                        ),
                       ),
 
-                      // 时间显示
+                      const SizedBox(width: 20),
+
+                      // 回复（图标 + 数字）
+                      GestureDetector(
+                        onTap: _openCommentDrawer,
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          children: [
+                            Transform.flip(
+                              flipX: true,
+                              child: Icon(
+                                Iconsax.message,
+                                size: 20,
+                                color: AppColors.warmGray400,
+                              ),
+                            ),
+                            if (comments.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '${comments.length}',
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: AppColors.warmGray400),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      const Spacer(),
+
+                      // 时间
                       Text(
                         _formatTime(moment.timestamp),
-                        style:
-                            Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppColors.warmGray300,
-                                  fontStyle: FontStyle.italic,
-                                ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.warmGray300,
+                        ),
                       ),
                     ],
                   ),

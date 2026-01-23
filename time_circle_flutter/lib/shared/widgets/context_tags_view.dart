@@ -30,10 +30,7 @@ class ContextTagsView extends StatelessWidget {
     );
 
     if (!showContainer) {
-      return Padding(
-        padding: padding ?? EdgeInsets.zero,
-        child: content,
-      );
+      return Padding(padding: padding ?? EdgeInsets.zero, child: content);
     }
 
     return Padding(
@@ -56,16 +53,13 @@ class _ContextTagChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(AppRadius.full),
-        border: Border.all(
-          color: AppColors.warmGray200,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.warmGray200, width: 1),
       ),
       child: Text(
         tag.display,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppColors.warmGray600,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: AppColors.warmGray600),
       ),
     );
   }

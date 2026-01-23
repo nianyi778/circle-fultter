@@ -3,20 +3,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/user.dart';
 import '../../../core/models/moment.dart';
+import '../../../core/utils/image_utils.dart';
 import '../../../shared/widgets/comment_drawer.dart';
 import '../widgets/feed_card.dart';
-
-/// 检查是否为有效的网络 URL
-bool _isValidNetworkUrl(String url) {
-  if (url.isEmpty) return false;
-  return url.startsWith('http://') || url.startsWith('https://');
-}
 
 class TimelineView extends ConsumerStatefulWidget {
   const TimelineView({super.key});
@@ -109,8 +103,8 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                                 ),
                                 child: Center(
                                   child: Text(
-                                    childInfo.name.length > 2 
-                                        ? childInfo.name.substring(0, 2) 
+                                    childInfo.name.length > 2
+                                        ? childInfo.name.substring(0, 2)
                                         : childInfo.name,
                                     style: TextStyle(
                                       fontSize: 12,
@@ -130,7 +124,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: AppColors.warmGray800,
-                                    borderRadius: BorderRadius.circular(AppRadius.full),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.full,
+                                    ),
                                     border: Border.all(
                                       color: AppColors.white,
                                       width: 1.5,
@@ -149,7 +145,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                             ],
                           ),
                           const SizedBox(width: 12),
-                          
+
                           // 圈子名称和成员
                           Expanded(
                             child: Column(
@@ -158,25 +154,28 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                               children: [
                                 Text(
                                   '${childInfo.name}的回忆圈',
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 4),
                                 // 成员头像叠放
                                 Row(
                                   children: [
-                                    _buildMiniAvatar('https://picsum.photos/seed/dad/100/100'),
+                                    _buildMiniAvatar(
+                                      'https://picsum.photos/seed/dad/100/100',
+                                    ),
                                     Transform.translate(
                                       offset: const Offset(-6, 0),
-                                      child: _buildMiniAvatar('https://picsum.photos/seed/mom/100/100'),
+                                      child: _buildMiniAvatar(
+                                        'https://picsum.photos/seed/mom/100/100',
+                                      ),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
                           ),
-                          
+
                           // 筛选按钮
                           GestureDetector(
                             onTap: () {
@@ -186,17 +185,19 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                               duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: filter.isFiltering || _isFilterOpen
-                                    ? AppColors.warmGray800
-                                    : Colors.transparent,
+                                color:
+                                    filter.isFiltering || _isFilterOpen
+                                        ? AppColors.warmGray800
+                                        : Colors.transparent,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Iconsax.filter,
                                 size: 20,
-                                color: filter.isFiltering || _isFilterOpen
-                                    ? AppColors.white
-                                    : AppColors.warmGray500,
+                                color:
+                                    filter.isFiltering || _isFilterOpen
+                                        ? AppColors.white
+                                        : AppColors.warmGray500,
                               ),
                             ),
                           ),
@@ -248,9 +249,8 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                             children: [
                               Text(
                                 '筛选中: ',
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppColors.warmGray400,
-                                ),
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: AppColors.warmGray400),
                               ),
                               _buildFilterChips(filter, years, authors),
                               const SizedBox(width: 8),
@@ -277,29 +277,35 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                     0,
                   ),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final moment = moments[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.cardGap),
-                          child: FeedCard(
-                            moment: moment,
-                            onTap: () => context.push('/moment/${moment.id}'),
-                            onDelete: (id) => _showDeleteConfirm(context, ref, id),
-                            onShareToWorld: (id) => _showShareToWorld(context, ref, id),
-                            onReply: () => _openCommentDrawer(moment),
-                          ),
-                        ).animate().fadeIn(
-                          duration: 400.ms,
-                          delay: Duration(milliseconds: 50 * (index.clamp(0, 5))),
-                          curve: Curves.easeOut,
-                        ).slideY(begin: 0.05, end: 0);
-                      },
-                      childCount: moments.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final moment = moments[index];
+                      return Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.cardGap,
+                            ),
+                            child: FeedCard(
+                              moment: moment,
+                              onTap: () => context.push('/moment/${moment.id}'),
+                              onDelete:
+                                  (id) => _showDeleteConfirm(context, ref, id),
+                              onShareToWorld:
+                                  (id) => _showShareToWorld(context, ref, id),
+                              onReply: () => _openCommentDrawer(moment),
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(
+                            duration: 400.ms,
+                            delay: Duration(
+                              milliseconds: 50 * (index.clamp(0, 5)),
+                            ),
+                            curve: Curves.easeOut,
+                          )
+                          .slideY(begin: 0.05, end: 0);
+                    }, childCount: moments.length),
                   ),
                 ),
-                
+
                 // 底部提示
                 SliverToBoxAdapter(
                   child: Padding(
@@ -308,7 +314,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                       children: [
                         Text(
                           '到底了',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelSmall?.copyWith(
                             color: AppColors.warmGray400,
                             letterSpacing: 2,
                           ),
@@ -316,9 +324,8 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                         const SizedBox(height: 4),
                         Text(
                           '暂时就这么多。',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.warmGray300,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.warmGray300),
                         ),
                       ],
                     ),
@@ -332,9 +339,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                 ),
 
               // 底部安全区域
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 100),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
 
@@ -376,9 +381,13 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     );
   }
 
-  Widget _buildFilterChips(TimelineFilterState filter, List<String> years, List<User> authors) {
+  Widget _buildFilterChips(
+    TimelineFilterState filter,
+    List<String> years,
+    List<User> authors,
+  ) {
     final chips = <String>[];
-    
+
     if (filter.filterYear != 'ALL') {
       chips.add('${filter.filterYear}年');
     }
@@ -395,11 +404,11 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     if (filter.sortOrder == SortOrder.asc) {
       chips.add('最早优先');
     }
-    
+
     if (chips.isEmpty) {
       chips.add('排序');
     }
-    
+
     return Text(
       chips.join(' · '),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -411,59 +420,66 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
   String _getTypeLabel(String type) {
     switch (type) {
-      case 'VIDEO': return '视频';
-      case 'AUDIO': return '音频';
-      case 'IMAGE': return '图片';
-      case 'TEXT': return '纯文字';
-      default: return '全部';
+      case 'VIDEO':
+        return '视频';
+      case 'AUDIO':
+        return '音频';
+      case 'IMAGE':
+        return '图片';
+      case 'TEXT':
+        return '纯文字';
+      default:
+        return '全部';
     }
   }
 
   void _showDeleteConfirm(BuildContext context, WidgetRef ref, String id) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text('删除这条记录？'),
-        content: const Text('删除后无法恢复，确定要继续吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              '取消',
-              style: TextStyle(color: AppColors.warmGray500),
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ref.read(momentsProvider.notifier).deleteMoment(id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Row(
-                    children: [
-                      Icon(Icons.check_circle, color: AppColors.white, size: 18),
-                      SizedBox(width: 8),
-                      Text('已删除'),
-                    ],
-                  ),
-                  backgroundColor: AppColors.warmGray800,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
+            title: const Text('删除这条记录？'),
+            content: const Text('删除后无法恢复，确定要继续吗？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(
+                  '取消',
+                  style: TextStyle(color: AppColors.warmGray500),
                 ),
-              );
-            },
-            child: const Text(
-              '删除',
-              style: TextStyle(color: Colors.red),
-            ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ref.read(momentsProvider.notifier).deleteMoment(id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: AppColors.white,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text('已删除'),
+                        ],
+                      ),
+                      backgroundColor: AppColors.warmGray800,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('删除', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -480,9 +496,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
         ),
         backgroundColor: AppColors.warmGray800,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
     );
   }
@@ -493,24 +507,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       height: 16,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: AppColors.white,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.white, width: 1),
       ),
-      child: ClipOval(
-        child: _isValidNetworkUrl(url)
-            ? CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Container(
-                  color: AppColors.warmGray300,
-                ),
-              )
-            : Container(
-                color: AppColors.warmGray300,
-              ),
-      ),
+      child: ImageUtils.buildAvatar(url: url, size: 16),
     );
   }
 }
@@ -565,7 +564,9 @@ class _FilterDropdown extends ConsumerWidget {
                     icon: Iconsax.arrow_down,
                     isSelected: filter.sortOrder == SortOrder.desc,
                     onTap: () {
-                      ref.read(timelineFilterProvider.notifier).setSortOrder(SortOrder.desc);
+                      ref
+                          .read(timelineFilterProvider.notifier)
+                          .setSortOrder(SortOrder.desc);
                     },
                   ),
                   _FilterOption(
@@ -573,7 +574,9 @@ class _FilterDropdown extends ConsumerWidget {
                     icon: Iconsax.arrow_up,
                     isSelected: filter.sortOrder == SortOrder.asc,
                     onTap: () {
-                      ref.read(timelineFilterProvider.notifier).setSortOrder(SortOrder.asc);
+                      ref
+                          .read(timelineFilterProvider.notifier)
+                          .setSortOrder(SortOrder.asc);
                     },
                   ),
                   _Divider(),
@@ -584,13 +587,15 @@ class _FilterDropdown extends ConsumerWidget {
                       ref.read(timelineFilterProvider.notifier).setYear('ALL');
                     },
                   ),
-                  ...years.map((year) => _FilterOption(
-                    label: '$year年',
-                    isSelected: filter.filterYear == year,
-                    onTap: () {
-                      ref.read(timelineFilterProvider.notifier).setYear(year);
-                    },
-                  )),
+                  ...years.map(
+                    (year) => _FilterOption(
+                      label: '$year年',
+                      isSelected: filter.filterYear == year,
+                      onTap: () {
+                        ref.read(timelineFilterProvider.notifier).setYear(year);
+                      },
+                    ),
+                  ),
 
                   // 发帖人
                   _SectionHeader(icon: Iconsax.user, label: '发帖人'),
@@ -598,17 +603,23 @@ class _FilterDropdown extends ConsumerWidget {
                     label: '所有人',
                     isSelected: filter.filterAuthor == 'ALL',
                     onTap: () {
-                      ref.read(timelineFilterProvider.notifier).setAuthor('ALL');
+                      ref
+                          .read(timelineFilterProvider.notifier)
+                          .setAuthor('ALL');
                     },
                   ),
-                  ...authors.map((author) => _FilterOption(
-                    label: author.name,
-                    avatar: author.avatar,
-                    isSelected: filter.filterAuthor == author.id,
-                    onTap: () {
-                      ref.read(timelineFilterProvider.notifier).setAuthor(author.id);
-                    },
-                  )),
+                  ...authors.map(
+                    (author) => _FilterOption(
+                      label: author.name,
+                      avatar: author.avatar,
+                      isSelected: filter.filterAuthor == author.id,
+                      onTap: () {
+                        ref
+                            .read(timelineFilterProvider.notifier)
+                            .setAuthor(author.id);
+                      },
+                    ),
+                  ),
 
                   // 类型
                   _SectionHeader(icon: Iconsax.document, label: '类型'),
@@ -624,7 +635,9 @@ class _FilterDropdown extends ConsumerWidget {
                     icon: Iconsax.video,
                     isSelected: filter.filterType == 'VIDEO',
                     onTap: () {
-                      ref.read(timelineFilterProvider.notifier).setType('VIDEO');
+                      ref
+                          .read(timelineFilterProvider.notifier)
+                          .setType('VIDEO');
                     },
                   ),
                   _FilterOption(
@@ -632,7 +645,9 @@ class _FilterDropdown extends ConsumerWidget {
                     icon: Iconsax.microphone_2,
                     isSelected: filter.filterType == 'AUDIO',
                     onTap: () {
-                      ref.read(timelineFilterProvider.notifier).setType('AUDIO');
+                      ref
+                          .read(timelineFilterProvider.notifier)
+                          .setType('AUDIO');
                     },
                   ),
                   _FilterOption(
@@ -640,7 +655,9 @@ class _FilterDropdown extends ConsumerWidget {
                     icon: Iconsax.image,
                     isSelected: filter.filterType == 'IMAGE',
                     onTap: () {
-                      ref.read(timelineFilterProvider.notifier).setType('IMAGE');
+                      ref
+                          .read(timelineFilterProvider.notifier)
+                          .setType('IMAGE');
                     },
                   ),
                   _FilterOption(
@@ -660,9 +677,7 @@ class _FilterDropdown extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: AppColors.warmGray100),
-              ),
+              border: Border(top: BorderSide(color: AppColors.warmGray100)),
               color: AppColors.warmGray50,
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(16),
@@ -763,32 +778,23 @@ class _FilterOption extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: isSelected ? AppColors.warmOrange.withValues(alpha: 0.3) : Colors.transparent,
+        color:
+            isSelected
+                ? AppColors.warmOrange.withValues(alpha: 0.3)
+                : Colors.transparent,
         child: Row(
           children: [
             if (avatar != null) ...[
-              Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.warmGray200,
-                ),
-                child: ClipOval(
-                  child: _isValidNetworkUrl(avatar!)
-                      ? CachedNetworkImage(
-                          imageUrl: avatar!,
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-              ),
+              ImageUtils.buildAvatar(url: avatar!, size: 16),
               const SizedBox(width: 12),
             ] else if (icon != null) ...[
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? AppColors.warmOrangeDark : AppColors.warmGray400,
+                color:
+                    isSelected
+                        ? AppColors.warmOrangeDark
+                        : AppColors.warmGray400,
               ),
               const SizedBox(width: 12),
             ],
@@ -796,7 +802,10 @@ class _FilterOption extends StatelessWidget {
               child: Text(
                 label,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isSelected ? AppColors.warmGray900 : AppColors.warmGray600,
+                  color:
+                      isSelected
+                          ? AppColors.warmGray900
+                          : AppColors.warmGray600,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -865,18 +874,19 @@ class _EmptyTimeline extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Consumer(
-                builder: (context, ref, _) => GestureDetector(
-                  onTap: () {
-                    ref.read(timelineFilterProvider.notifier).reset();
-                  },
-                  child: Text(
-                    '清除所有筛选',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.warmGray400,
-                      decoration: TextDecoration.underline,
+                builder:
+                    (context, ref, _) => GestureDetector(
+                      onTap: () {
+                        ref.read(timelineFilterProvider.notifier).reset();
+                      },
+                      child: Text(
+                        '清除所有筛选',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.warmGray400,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
               ),
             ] else ...[
               Text(
@@ -890,9 +900,9 @@ class _EmptyTimeline extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 '不必着急，时间一直在发生。',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.warmGray400,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.warmGray400),
               ),
             ],
           ],

@@ -8,10 +8,10 @@ import 'core/services/database_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // 初始化数据库
   await DatabaseService().database;
-  
+
   // 设置系统UI样式 - 温柔的沉浸式体验
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -21,7 +21,7 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  
+
   runApp(const ProviderScope(child: TimeCircleApp()));
 }
 
@@ -31,7 +31,7 @@ class TimeCircleApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
-    
+
     return MaterialApp.router(
       title: 'TimeCircle',
       debugShowCheckedModeBanner: false,
@@ -39,9 +39,9 @@ class TimeCircleApp extends ConsumerWidget {
       routerConfig: router,
       builder: (context, child) {
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: const TextScaler.linear(1.0),
-          ),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.0)),
           child: child!,
         );
       },

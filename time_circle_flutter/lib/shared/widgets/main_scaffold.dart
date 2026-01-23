@@ -51,7 +51,7 @@ class MainScaffold extends ConsumerWidget {
                     context.go('/home');
                   },
                 ),
-                
+
                 // 时间线
                 _NavItem(
                   icon: Iconsax.clock,
@@ -63,12 +63,10 @@ class MainScaffold extends ConsumerWidget {
                     context.go('/timeline');
                   },
                 ),
-                
+
                 // 中央发布按钮
-                _ComposeButton(
-                  onTap: () => _showCreateModal(context),
-                ),
-                
+                _ComposeButton(onTap: () => _showCreateModal(context)),
+
                 // 信
                 _NavItem(
                   icon: Iconsax.sms,
@@ -80,7 +78,7 @@ class MainScaffold extends ConsumerWidget {
                     context.go('/letters');
                   },
                 ),
-                
+
                 // 世界
                 _NavItem(
                   icon: Iconsax.global,
@@ -146,9 +144,7 @@ class _NavItem extends StatelessWidget {
                 isActive ? activeIcon : icon,
                 key: ValueKey(isActive),
                 size: 24,
-                color: isActive 
-                    ? AppColors.warmGray800 
-                    : AppColors.warmGray400,
+                color: isActive ? AppColors.warmGray800 : AppColors.warmGray400,
               ),
             ),
             const SizedBox(height: 4),
@@ -157,9 +153,7 @@ class _NavItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                color: isActive 
-                    ? AppColors.warmGray800 
-                    : AppColors.warmGray500,
+                color: isActive ? AppColors.warmGray800 : AppColors.warmGray500,
               ),
             ),
           ],
@@ -179,7 +173,7 @@ class _ComposeButton extends StatefulWidget {
   State<_ComposeButton> createState() => _ComposeButtonState();
 }
 
-class _ComposeButtonState extends State<_ComposeButton> 
+class _ComposeButtonState extends State<_ComposeButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -187,13 +181,11 @@ class _ComposeButtonState extends State<_ComposeButton>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: AppDurations.fast,
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
-      CurvedAnimation(parent: _controller, curve: AppCurves.standard),
-    );
+    _controller = AnimationController(duration: AppDurations.fast, vsync: this);
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.92,
+    ).animate(CurvedAnimation(parent: _controller, curve: AppCurves.standard));
   }
 
   @override
@@ -214,10 +206,7 @@ class _ComposeButtonState extends State<_ComposeButton>
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
+          return Transform.scale(scale: _scaleAnimation.value, child: child);
         },
         child: Container(
           width: 56,
@@ -234,11 +223,7 @@ class _ComposeButtonState extends State<_ComposeButton>
               ),
             ],
           ),
-          child: const Icon(
-            Iconsax.add,
-            color: AppColors.white,
-            size: 28,
-          ),
+          child: const Icon(Iconsax.add, color: AppColors.white, size: 28),
         ),
       ),
     );

@@ -13,6 +13,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/moment.dart';
 import '../../../core/models/user.dart';
+import '../../../core/utils/ui_utils.dart';
 
 AssetPickerConfig _buildAssetPickerConfig(
   int maxAssets, {
@@ -39,11 +40,11 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
 
   final Set<ContextTag> _selectedMyMoods = {};
   final Set<ContextTag> _selectedAtmospheres = {};
-  
+
   // 发布到世界
   bool _shareToWorld = false;
   String _worldTopic = '生活碎片';
-  
+
   // 世界话题选项
   static const List<String> _worldTopicOptions = [
     '生活碎片',
@@ -86,7 +87,8 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
     // 使用同步 provider，确保数据可用
     final childInfo = ref.watch(childInfoProvider);
     final currentUser = ref.watch(currentUserSyncProvider);
-    final hasContent = _textController.text.isNotEmpty || _selectedMedia.isNotEmpty;
+    final hasContent =
+        _textController.text.isNotEmpty || _selectedMedia.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -137,12 +139,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
   }
 
   /// 顶部导航栏
-  Widget _buildHeader(
-    BuildContext context,
-    bool hasContent,
-    user,
-    childInfo,
-  ) {
+  Widget _buildHeader(BuildContext context, bool hasContent, user, childInfo) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -183,14 +180,16 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
 
           // 提交按钮
           GestureDetector(
-            onTap: hasContent
-                ? () => _submitMoment(context, user, childInfo)
-                : null,
+            onTap:
+                hasContent
+                    ? () => _submitMoment(context, user, childInfo)
+                    : null,
             child: AnimatedContainer(
               duration: AppDurations.fast,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                color: hasContent ? AppColors.warmGray800 : AppColors.warmGray100,
+                color:
+                    hasContent ? AppColors.warmGray800 : AppColors.warmGray100,
                 borderRadius: BorderRadius.circular(AppRadius.full),
               ),
               child: Text(
@@ -250,7 +249,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
     final isAudio = _mediaType == MediaType.audio;
     final isAlbumActive = isImage || isVideo;
     final isAlbumDisabled = hasMedia && isAudio;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -259,7 +258,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
           _buildMediaPreview(context),
           const SizedBox(height: 12),
         ],
-        
+
         // 媒体选择按钮（根据已选类型显示不同状态）
         Row(
           children: [
@@ -282,7 +281,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
             ),
           ],
         ),
-        
+
         // 提示文字
         if (hasMedia)
           Padding(
@@ -342,59 +341,60 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildMediaTypeOption(
-              context: ctx,
-              icon: Iconsax.image,
-              label: '照片',
-              hint: '最多 9 张',
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickImages();
-              },
+      builder:
+          (ctx) => Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            const Divider(height: 1),
-            _buildMediaTypeOption(
-              context: ctx,
-              icon: Iconsax.video,
-              label: '视频',
-              hint: '时长 1 分钟内',
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickVideo();
-              },
-            ),
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () => Navigator.pop(ctx),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.warmGray100,
-                  borderRadius: BorderRadius.circular(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildMediaTypeOption(
+                  context: ctx,
+                  icon: Iconsax.image,
+                  label: '照片',
+                  hint: '最多 9 张',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImages();
+                  },
                 ),
-                child: Text(
-                  '取消',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.warmGray600,
+                const Divider(height: 1),
+                _buildMediaTypeOption(
+                  context: ctx,
+                  icon: Iconsax.video,
+                  label: '视频',
+                  hint: '时长 1 分钟内',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickVideo();
+                  },
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.warmGray100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '取消',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.warmGray600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ),
+                SizedBox(height: MediaQuery.of(ctx).padding.bottom),
+              ],
             ),
-            SizedBox(height: MediaQuery.of(ctx).padding.bottom),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -444,7 +444,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
   /// 已选择媒体预览 - 仿微信朋友圈风格
   Widget _buildMediaPreview(BuildContext context) {
     final isVideo = _mediaType == MediaType.video;
-    
+
     // 视频只显示一个
     if (isVideo) {
       return _buildVideoPreview(context, _selectedMedia.first);
@@ -453,7 +453,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
     // 计算网格布局
     final screenWidth = MediaQuery.of(context).size.width - 40; // 减去左右边距
     final maxGridWidth = screenWidth * 0.75; // 最大宽度为屏幕的 75%
-    
+
     return _WechatStyleImageGrid(
       images: _selectedMedia,
       maxWidth: maxGridWidth,
@@ -537,9 +537,10 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
       }
 
       // 计算还能选多少张
-      final currentCount = _mediaType == MediaType.image ? _selectedMedia.length : 0;
+      final currentCount =
+          _mediaType == MediaType.image ? _selectedMedia.length : 0;
       final remaining = 9 - currentCount;
-      
+
       if (remaining <= 0) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -553,7 +554,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
       }
 
       if (!mounted) return;
-      
+
       final assets = await AssetPicker.pickAssets(
         context,
         pickerConfig: _buildAssetPickerConfig(remaining),
@@ -699,22 +700,23 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _myMoodOptions.map((tag) {
-            final isSelected = _selectedMyMoods.contains(tag);
-            return _ContextChip(
-              tag: tag,
-              isSelected: isSelected,
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedMyMoods.remove(tag);
-                  } else {
-                    _selectedMyMoods.add(tag);
-                  }
-                });
-              },
-            );
-          }).toList(),
+          children:
+              _myMoodOptions.map((tag) {
+                final isSelected = _selectedMyMoods.contains(tag);
+                return _ContextChip(
+                  tag: tag,
+                  isSelected: isSelected,
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedMyMoods.remove(tag);
+                      } else {
+                        _selectedMyMoods.add(tag);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
         ),
 
         const SizedBox(height: 20),
@@ -725,22 +727,23 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _atmosphereOptions.map((tag) {
-            final isSelected = _selectedAtmospheres.contains(tag);
-            return _ContextChip(
-              tag: tag,
-              isSelected: isSelected,
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedAtmospheres.remove(tag);
-                  } else {
-                    _selectedAtmospheres.add(tag);
-                  }
-                });
-              },
-            );
-          }).toList(),
+          children:
+              _atmosphereOptions.map((tag) {
+                final isSelected = _selectedAtmospheres.contains(tag);
+                return _ContextChip(
+                  tag: tag,
+                  isSelected: isSelected,
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedAtmospheres.remove(tag);
+                      } else {
+                        _selectedAtmospheres.add(tag);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
         ),
       ],
     ).animate().fadeIn(duration: 300.ms, delay: 300.ms);
@@ -763,14 +766,16 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _shareToWorld 
-            ? AppColors.warmOrange.withValues(alpha: 0.15)
-            : AppColors.white,
+        color:
+            _shareToWorld
+                ? AppColors.warmOrange.withValues(alpha: 0.15)
+                : AppColors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _shareToWorld 
-              ? AppColors.warmOrangeDeep.withValues(alpha: 0.2)
-              : AppColors.warmGray200.withValues(alpha: 0.5),
+          color:
+              _shareToWorld
+                  ? AppColors.warmOrangeDeep.withValues(alpha: 0.2)
+                  : AppColors.warmGray200.withValues(alpha: 0.5),
           width: 1,
         ),
         boxShadow: [
@@ -793,17 +798,19 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
                   Icon(
                     Iconsax.global,
                     size: 16,
-                    color: _shareToWorld 
-                        ? AppColors.warmOrangeDeep 
-                        : AppColors.warmGray400,
+                    color:
+                        _shareToWorld
+                            ? AppColors.warmOrangeDeep
+                            : AppColors.warmGray400,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     '发布到世界',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: _shareToWorld 
-                          ? AppColors.warmGray800 
-                          : AppColors.warmGray500,
+                      color:
+                          _shareToWorld
+                              ? AppColors.warmGray800
+                              : AppColors.warmGray500,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -822,16 +829,18 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
                   height: 24,
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: _shareToWorld
-                        ? AppColors.warmOrangeDeep
-                        : AppColors.warmGray300,
+                    color:
+                        _shareToWorld
+                            ? AppColors.warmOrangeDeep
+                            : AppColors.warmGray300,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: AnimatedAlign(
                     duration: AppDurations.fast,
-                    alignment: _shareToWorld
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
+                    alignment:
+                        _shareToWorld
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                     child: Container(
                       width: 20,
                       height: 20,
@@ -860,10 +869,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
               padding: const EdgeInsets.only(top: 12),
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(
-                    color: AppColors.warmGray100,
-                    width: 1,
-                  ),
+                  top: BorderSide(color: AppColors.warmGray100, width: 1),
                 ),
               ),
               child: Column(
@@ -880,44 +886,57 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _worldTopicOptions.map((topic) {
-                      final isSelected = _worldTopic == topic;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _worldTopic = topic;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected 
-                                ? AppColors.warmOrange.withValues(alpha: 0.3)
-                                : AppColors.warmGray50,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSelected 
-                                  ? AppColors.warmOrangeDeep.withValues(alpha: 0.3)
-                                  : AppColors.warmGray100,
-                              width: 1,
+                    children:
+                        _worldTopicOptions.map((topic) {
+                          final isSelected = _worldTopic == topic;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _worldTopic = topic;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isSelected
+                                        ? AppColors.warmOrange.withValues(
+                                          alpha: 0.3,
+                                        )
+                                        : AppColors.warmGray50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color:
+                                      isSelected
+                                          ? AppColors.warmOrangeDeep.withValues(
+                                            alpha: 0.3,
+                                          )
+                                          : AppColors.warmGray100,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                '#$topic',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelSmall?.copyWith(
+                                  color:
+                                      isSelected
+                                          ? AppColors.warmOrangeDark
+                                          : AppColors.warmGray500,
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            '#$topic',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: isSelected 
-                                  ? AppColors.warmOrangeDark 
-                                  : AppColors.warmGray500,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                          );
+                        }).toList(),
                   ),
                 ],
               ),
@@ -936,57 +955,65 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-        content: Text(
-          '要把这一刻带走，还是留下来？',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            height: 1.4,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.pop();
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.warmGray500,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('带走'),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warmGray800,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.full),
+            contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            content: Text(
+              '要把这一刻带走，还是留下来？',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                height: 1.4,
               ),
-              elevation: 0,
+              textAlign: TextAlign.center,
             ),
-            child: const Text('留下'),
+            actionsAlignment: MainAxisAlignment.center,
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  context.pop();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.warmGray500,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text('带走'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warmGray800,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text('留下'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _submitMoment(BuildContext context, User user, CircleInfo circleInfo) {
     // 取第一个媒体路径（当前模型只支持单个）
-    final mediaUrl = _selectedMedia.isNotEmpty ? _selectedMedia.first.path : null;
-    
+    final mediaUrl =
+        _selectedMedia.isNotEmpty ? _selectedMedia.first.path : null;
+
     final moment = Moment(
       id: const Uuid().v4(),
       author: user,
@@ -995,10 +1022,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
       mediaUrl: mediaUrl,
       timestamp: DateTime.now(),
       timeLabel: circleInfo.ageLabel,
-      contextTags: [
-        ..._selectedMyMoods,
-        ..._selectedAtmospheres,
-      ],
+      contextTags: [..._selectedMyMoods, ..._selectedAtmospheres],
       isSharedToWorld: _shareToWorld,
       worldTopic: _shareToWorld ? _worldTopic : null,
     );
@@ -1032,9 +1056,7 @@ class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
         ),
         backgroundColor: AppColors.warmGray800,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 2),
         elevation: 8,
@@ -1063,19 +1085,22 @@ class _MediaButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = isDisabled 
-        ? AppColors.warmGray200 
-        : isActive 
-            ? AppColors.calmBlue 
+    final effectiveColor =
+        isDisabled
+            ? AppColors.warmGray200
+            : isActive
+            ? AppColors.calmBlue
             : AppColors.warmGray400;
-    final bgColor = isDisabled 
-        ? AppColors.warmGray100.withValues(alpha: 0.5)
-        : isActive 
+    final bgColor =
+        isDisabled
+            ? AppColors.warmGray100.withValues(alpha: 0.5)
+            : isActive
             ? AppColors.calmBlue.withValues(alpha: 0.08)
             : AppColors.warmGray50;
-    final borderColor = isDisabled
-        ? AppColors.warmGray100
-        : isActive
+    final borderColor =
+        isDisabled
+            ? AppColors.warmGray100
+            : isActive
             ? AppColors.calmBlue.withValues(alpha: 0.3)
             : AppColors.warmGray200;
 
@@ -1091,7 +1116,7 @@ class _MediaButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           child: CustomPaint(
-            painter: _DashedBorderPainter(
+            painter: DashedBorderPainter(
               color: borderColor,
               strokeWidth: 1.5,
               radius: 16,
@@ -1099,11 +1124,7 @@ class _MediaButton extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  icon,
-                  color: effectiveColor,
-                  size: 26,
-                ),
+                Icon(icon, color: effectiveColor, size: 26),
                 const SizedBox(height: 8),
                 Text(
                   label,
@@ -1120,57 +1141,6 @@ class _MediaButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// 虚线边框绘制器
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double radius;
-  final double dashWidth;
-  final double dashSpace;
-
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1.5,
-    this.radius = 16,
-    // ignore: unused_element_parameter
-    this.dashWidth = 6,
-    // ignore: unused_element_parameter
-    this.dashSpace = 4,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(radius),
-      ));
-
-    // 绘制虚线
-    final dashPath = Path();
-    for (final metric in path.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        dashPath.addPath(
-          metric.extractPath(distance, distance + dashWidth),
-          Offset.zero,
-        );
-        distance += dashWidth + dashSpace;
-      }
-    }
-
-    canvas.drawPath(dashPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// 语境标签 Chip
@@ -1193,23 +1163,17 @@ class _ContextChip extends StatelessWidget {
         duration: AppDurations.fast,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.warmGray100
-              : AppColors.white,
+          color: isSelected ? AppColors.warmGray100 : AppColors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected
-                ? AppColors.warmGray300
-                : AppColors.warmGray200,
+            color: isSelected ? AppColors.warmGray300 : AppColors.warmGray200,
             width: 1,
           ),
         ),
         child: Text(
           '${tag.emoji} ${tag.label}',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: isSelected
-                ? AppColors.warmGray800
-                : AppColors.warmGray600,
+            color: isSelected ? AppColors.warmGray800 : AppColors.warmGray600,
             fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
             fontSize: 13,
           ),
@@ -1232,11 +1196,11 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
   final Set<ContextTag> _selectedMyMoods = {};
   final Set<ContextTag> _selectedAtmospheres = {};
-  
+
   // 发布到世界
   bool _shareToWorld = false;
   String _worldTopic = '生活碎片';
-  
+
   // 世界话题选项
   static const List<String> _worldTopicOptions = [
     '生活碎片',
@@ -1248,10 +1212,10 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
   final List<XFile> _selectedMedia = [];
   MediaType _mediaType = MediaType.text;
-  
+
   // 位置信息
   String? _locationName;
-  
+
   // 拖拽删除状态
   bool _isDragging = false;
   bool _isOverDeleteZone = false;
@@ -1278,7 +1242,8 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     super.dispose();
   }
 
-  bool get _hasContent => _textController.text.isNotEmpty || _selectedMedia.isNotEmpty;
+  bool get _hasContent =>
+      _textController.text.isNotEmpty || _selectedMedia.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -1301,7 +1266,10 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1322,7 +1290,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
             ],
           ),
         ),
-        
+
         // 拖拽删除区域（底部）
         if (_isDragging) _buildDeleteZone(context),
       ],
@@ -1337,63 +1305,69 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   /// 拖拽删除区域
   Widget _buildDeleteZone(BuildContext context) {
     return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: DragTarget<int>(
-        onWillAcceptWithDetails: (details) {
-          if (!_isOverDeleteZone) {
-            setState(() => _isOverDeleteZone = true);
-          }
-          return true;
-        },
-        onLeave: (data) {
-          if (_isOverDeleteZone) {
-            setState(() => _isOverDeleteZone = false);
-          }
-        },
-        onAcceptWithDetails: (details) {
-          final index = details.data;
-          setState(() {
-            _selectedMedia.removeAt(index);
-            if (_selectedMedia.isEmpty) _mediaType = MediaType.text;
-            _isDragging = false;
-            _isOverDeleteZone = false;
-          });
-        },
-        builder: (context, candidateData, rejectedData) {
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            height: _isOverDeleteZone ? 80 : 60,
-            decoration: BoxDecoration(
-              color: _isOverDeleteZone 
-                  ? const Color(0xFFE53935)  // 红色高亮
-                  : const Color(0xFFEF5350).withValues(alpha: 0.9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _isOverDeleteZone ? Iconsax.trash : Iconsax.trash,
-                  color: AppColors.white,
-                  size: _isOverDeleteZone ? 28 : 24,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _isOverDeleteZone ? '松手删除' : '拖动到此处删除',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: DragTarget<int>(
+            onWillAcceptWithDetails: (details) {
+              if (!_isOverDeleteZone) {
+                setState(() => _isOverDeleteZone = true);
+              }
+              return true;
+            },
+            onLeave: (data) {
+              if (_isOverDeleteZone) {
+                setState(() => _isOverDeleteZone = false);
+              }
+            },
+            onAcceptWithDetails: (details) {
+              final index = details.data;
+              setState(() {
+                _selectedMedia.removeAt(index);
+                if (_selectedMedia.isEmpty) _mediaType = MediaType.text;
+                _isDragging = false;
+                _isOverDeleteZone = false;
+              });
+            },
+            builder: (context, candidateData, rejectedData) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: _isOverDeleteZone ? 80 : 60,
+                decoration: BoxDecoration(
+                  color:
+                      _isOverDeleteZone
+                          ? const Color(0xFFE53935) // 红色高亮
+                          : const Color(0xFFEF5350).withValues(alpha: 0.9),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
                   ),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
-    ).animate().fadeIn(duration: 200.ms).slideY(begin: 1, end: 0, duration: 200.ms);
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _isOverDeleteZone ? Iconsax.trash : Iconsax.trash,
+                      color: AppColors.white,
+                      size: _isOverDeleteZone ? 28 : 24,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _isOverDeleteZone ? '松手删除' : '拖动到此处删除',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        )
+        .animate()
+        .fadeIn(duration: 200.ms)
+        .slideY(begin: 1, end: 0, duration: 200.ms);
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -1412,11 +1386,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
           // 关闭按钮
           GestureDetector(
             onTap: () => _showExitDialog(context),
-            child: Icon(
-              Icons.close,
-              color: AppColors.warmGray400,
-              size: 24,
-            ),
+            child: Icon(Icons.close, color: AppColors.warmGray400, size: 24),
           ),
 
           // 标题
@@ -1439,7 +1409,8 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
               duration: AppDurations.fast,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: _hasContent ? AppColors.warmGray800 : AppColors.warmGray200,
+                color:
+                    _hasContent ? AppColors.warmGray800 : AppColors.warmGray200,
                 borderRadius: BorderRadius.circular(AppRadius.full),
               ),
               child: Text(
@@ -1489,7 +1460,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     final isImage = _mediaType == MediaType.image;
     final isVideo = _mediaType == MediaType.video;
     final canAddMore = isImage && _selectedMedia.length < 9;
-    
+
     // 没有选择任何媒体时，显示添加按钮
     if (_selectedMedia.isEmpty) {
       return GestureDetector(
@@ -1519,16 +1490,17 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
         ),
       );
     }
-    
+
     // 视频预览
     if (isVideo) {
       return _buildVideoPreviewWechat(context, itemSize);
     }
-    
+
     // 图片网格（微信风格）
-    final totalItems = canAddMore ? _selectedMedia.length + 1 : _selectedMedia.length;
+    final totalItems =
+        canAddMore ? _selectedMedia.length + 1 : _selectedMedia.length;
     final rows = (totalItems / 3).ceil();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1559,12 +1531,16 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                       _mediaType = MediaType.text;
                     });
                   },
-                  child: Icon(Icons.close, size: 16, color: AppColors.warmGray500),
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    color: AppColors.warmGray500,
+                  ),
                 ),
               ],
             ),
           ),
-        
+
         // 图片网格
         SizedBox(
           height: rows * (itemSize + 4) - 4,
@@ -1609,7 +1585,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   /// 图片项（可拖拽删除）
   Widget _buildImageItem(BuildContext context, int index, double size) {
     final file = _selectedMedia[index];
-    
+
     final imageWidget = ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: Image.file(
@@ -1619,7 +1595,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
         fit: BoxFit.cover,
       ),
     );
-    
+
     return LongPressDraggable<int>(
       data: index,
       onDragStarted: () {
@@ -1670,7 +1646,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   /// 微信风格视频预览（带播放按钮，可拖拽删除）
   Widget _buildVideoPreviewWechat(BuildContext context, double size) {
     final videoFile = _selectedMedia.first;
-    
+
     final videoWidget = Stack(
       children: [
         // 视频预览区域
@@ -1689,7 +1665,11 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                 return Container(
                   color: AppColors.warmGray800,
                   child: const Center(
-                    child: Icon(Iconsax.video, color: AppColors.white, size: 40),
+                    child: Icon(
+                      Iconsax.video,
+                      color: AppColors.white,
+                      size: 40,
+                    ),
                   ),
                 );
               },
@@ -1705,7 +1685,10 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
               decoration: BoxDecoration(
                 color: AppColors.warmGray900.withValues(alpha: 0.5),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.white.withValues(alpha: 0.8), width: 2),
+                border: Border.all(
+                  color: AppColors.white.withValues(alpha: 0.8),
+                  width: 2,
+                ),
               ),
               child: const Icon(
                 Icons.play_arrow,
@@ -1717,7 +1700,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
         ),
       ],
     );
-    
+
     return LongPressDraggable<int>(
       data: 0,
       onDragStarted: () {
@@ -1797,70 +1780,71 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildMediaTypeOption(
-              context: ctx,
-              icon: Iconsax.image,
-              label: '照片',
-              hint: '最多 9 张',
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickImages();
-              },
+      builder:
+          (ctx) => Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            const Divider(height: 1),
-            _buildMediaTypeOption(
-              context: ctx,
-              icon: Iconsax.video,
-              label: '视频',
-              hint: '时长 1 分钟内',
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickVideo();
-              },
-            ),
-            const Divider(height: 1),
-            _buildMediaTypeOption(
-              context: ctx,
-              icon: Iconsax.microphone,
-              label: '音频',
-              hint: '时长 30 分钟内',
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickAudio();
-              },
-            ),
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () => Navigator.pop(ctx),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.warmGray100,
-                  borderRadius: BorderRadius.circular(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildMediaTypeOption(
+                  context: ctx,
+                  icon: Iconsax.image,
+                  label: '照片',
+                  hint: '最多 9 张',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImages();
+                  },
                 ),
-                child: Text(
-                  '取消',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.warmGray600,
+                const Divider(height: 1),
+                _buildMediaTypeOption(
+                  context: ctx,
+                  icon: Iconsax.video,
+                  label: '视频',
+                  hint: '时长 1 分钟内',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickVideo();
+                  },
+                ),
+                const Divider(height: 1),
+                _buildMediaTypeOption(
+                  context: ctx,
+                  icon: Iconsax.microphone,
+                  label: '音频',
+                  hint: '时长 30 分钟内',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickAudio();
+                  },
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.warmGray100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '取消',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.warmGray600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ),
+                SizedBox(height: MediaQuery.of(ctx).padding.bottom),
+              ],
             ),
-            SizedBox(height: MediaQuery.of(ctx).padding.bottom),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -1913,7 +1897,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     final hasLocation = _locationName != null;
     // 微信风格的绿色
     const wechatGreen = Color(0xFF07C160);
-    
+
     return Column(
       children: [
         Divider(height: 1, color: AppColors.warmGray100.withValues(alpha: 0.5)),
@@ -1940,7 +1924,11 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                     ),
                   ),
                 ),
-                Icon(Icons.chevron_right, color: AppColors.warmGray200, size: 18),
+                Icon(
+                  Icons.chevron_right,
+                  color: AppColors.warmGray200,
+                  size: 18,
+                ),
               ],
             ),
           ),
@@ -1953,11 +1941,9 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   /// 选择位置 - 全屏页面（微信风格）
   Future<void> _selectLocation() async {
     final result = await Navigator.of(context).push<String?>(
-      MaterialPageRoute(
-        builder: (context) => const _LocationPickerPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const _LocationPickerPage()),
     );
-    
+
     if (result != null) {
       setState(() {
         _locationName = result.isEmpty ? null : result;
@@ -1974,22 +1960,23 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _myMoodOptions.map((tag) {
-            final isSelected = _selectedMyMoods.contains(tag);
-            return _ContextChip(
-              tag: tag,
-              isSelected: isSelected,
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedMyMoods.remove(tag);
-                  } else {
-                    _selectedMyMoods.add(tag);
-                  }
-                });
-              },
-            );
-          }).toList(),
+          children:
+              _myMoodOptions.map((tag) {
+                final isSelected = _selectedMyMoods.contains(tag);
+                return _ContextChip(
+                  tag: tag,
+                  isSelected: isSelected,
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedMyMoods.remove(tag);
+                      } else {
+                        _selectedMyMoods.add(tag);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
         ),
         const SizedBox(height: 20),
         _buildContextLabel(context, '当时的氛围'),
@@ -1997,22 +1984,23 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _atmosphereOptions.map((tag) {
-            final isSelected = _selectedAtmospheres.contains(tag);
-            return _ContextChip(
-              tag: tag,
-              isSelected: isSelected,
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedAtmospheres.remove(tag);
-                  } else {
-                    _selectedAtmospheres.add(tag);
-                  }
-                });
-              },
-            );
-          }).toList(),
+          children:
+              _atmosphereOptions.map((tag) {
+                final isSelected = _selectedAtmospheres.contains(tag);
+                return _ContextChip(
+                  tag: tag,
+                  isSelected: isSelected,
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedAtmospheres.remove(tag);
+                      } else {
+                        _selectedAtmospheres.add(tag);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
         ),
       ],
     );
@@ -2034,14 +2022,16 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _shareToWorld 
-            ? AppColors.warmOrange.withValues(alpha: 0.15)
-            : AppColors.white,
+        color:
+            _shareToWorld
+                ? AppColors.warmOrange.withValues(alpha: 0.15)
+                : AppColors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _shareToWorld 
-              ? AppColors.warmOrangeDeep.withValues(alpha: 0.2)
-              : AppColors.warmGray200.withValues(alpha: 0.5),
+          color:
+              _shareToWorld
+                  ? AppColors.warmOrangeDeep.withValues(alpha: 0.2)
+                  : AppColors.warmGray200.withValues(alpha: 0.5),
           width: 1,
         ),
         boxShadow: [
@@ -2064,17 +2054,19 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                   Icon(
                     Iconsax.global,
                     size: 16,
-                    color: _shareToWorld 
-                        ? AppColors.warmOrangeDeep 
-                        : AppColors.warmGray400,
+                    color:
+                        _shareToWorld
+                            ? AppColors.warmOrangeDeep
+                            : AppColors.warmGray400,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     '发布到世界',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: _shareToWorld 
-                          ? AppColors.warmGray800 
-                          : AppColors.warmGray500,
+                      color:
+                          _shareToWorld
+                              ? AppColors.warmGray800
+                              : AppColors.warmGray500,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -2093,16 +2085,18 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                   height: 24,
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: _shareToWorld
-                        ? AppColors.warmOrangeDeep
-                        : AppColors.warmGray300,
+                    color:
+                        _shareToWorld
+                            ? AppColors.warmOrangeDeep
+                            : AppColors.warmGray300,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: AnimatedAlign(
                     duration: AppDurations.fast,
-                    alignment: _shareToWorld
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
+                    alignment:
+                        _shareToWorld
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                     child: Container(
                       width: 20,
                       height: 20,
@@ -2131,10 +2125,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
               padding: const EdgeInsets.only(top: 12),
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(
-                    color: AppColors.warmGray100,
-                    width: 1,
-                  ),
+                  top: BorderSide(color: AppColors.warmGray100, width: 1),
                 ),
               ),
               child: Column(
@@ -2151,44 +2142,57 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _worldTopicOptions.map((topic) {
-                      final isSelected = _worldTopic == topic;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _worldTopic = topic;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected 
-                                ? AppColors.warmOrange.withValues(alpha: 0.3)
-                                : AppColors.warmGray50,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSelected 
-                                  ? AppColors.warmOrangeDeep.withValues(alpha: 0.3)
-                                  : AppColors.warmGray100,
-                              width: 1,
+                    children:
+                        _worldTopicOptions.map((topic) {
+                          final isSelected = _worldTopic == topic;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _worldTopic = topic;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isSelected
+                                        ? AppColors.warmOrange.withValues(
+                                          alpha: 0.3,
+                                        )
+                                        : AppColors.warmGray50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color:
+                                      isSelected
+                                          ? AppColors.warmOrangeDeep.withValues(
+                                            alpha: 0.3,
+                                          )
+                                          : AppColors.warmGray100,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                '#$topic',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelSmall?.copyWith(
+                                  color:
+                                      isSelected
+                                          ? AppColors.warmOrangeDark
+                                          : AppColors.warmGray500,
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            '#$topic',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: isSelected 
-                                  ? AppColors.warmOrangeDark 
-                                  : AppColors.warmGray500,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                          );
+                        }).toList(),
                   ),
                 ],
               ),
@@ -2220,9 +2224,10 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       if (!mounted) return;
 
       // 计算还能选多少张
-      final currentCount = _mediaType == MediaType.image ? _selectedMedia.length : 0;
+      final currentCount =
+          _mediaType == MediaType.image ? _selectedMedia.length : 0;
       final remaining = 9 - currentCount;
-      
+
       if (remaining <= 0) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -2271,7 +2276,10 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('选择照片失败: $e'), backgroundColor: AppColors.warmGray800),
+          SnackBar(
+            content: Text('选择照片失败: $e'),
+            backgroundColor: AppColors.warmGray800,
+          ),
         );
       }
     }
@@ -2343,7 +2351,10 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('选择视频失败: $e'), backgroundColor: AppColors.warmGray800),
+          SnackBar(
+            content: Text('选择视频失败: $e'),
+            backgroundColor: AppColors.warmGray800,
+          ),
         );
       }
     }
@@ -2371,53 +2382,65 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-        content: Text(
-          '要把这一刻带走，还是留下来？',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            height: 1.4,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.warmGray500,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('带走'),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warmGray800,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.full)),
-              elevation: 0,
+            contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            content: Text(
+              '要把这一刻带走，还是留下来？',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
             ),
-            child: const Text('留下'),
+            actionsAlignment: MainAxisAlignment.center,
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).pop();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.warmGray500,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text('带走'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warmGray800,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text('留下'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _submitMoment(BuildContext context) {
     final circleInfo = ref.read(childInfoProvider);
     final currentUser = ref.read(currentUserSyncProvider);
-    final mediaUrl = _selectedMedia.isNotEmpty ? _selectedMedia.first.path : null;
+    final mediaUrl =
+        _selectedMedia.isNotEmpty ? _selectedMedia.first.path : null;
 
     final moment = Moment(
       id: const Uuid().v4(),
@@ -2489,7 +2512,7 @@ class _WechatStyleImageGrid extends StatelessWidget {
     if (count == 0) return const SizedBox.shrink();
 
     final spacing = 4.0;
-    
+
     // 根据图片数量计算布局
     if (count == 1) {
       return _buildSingleImage(context);
@@ -2569,7 +2592,7 @@ class _WechatStyleImageGrid extends StatelessWidget {
   Widget _buildGridImages(BuildContext context, double spacing) {
     final itemSize = (maxWidth - spacing * 2) / 3;
     final rows = <Widget>[];
-    
+
     for (var i = 0; i < images.length; i += 3) {
       final rowItems = <Widget>[];
       for (var j = i; j < i + 3 && j < images.length; j++) {
@@ -2578,26 +2601,29 @@ class _WechatStyleImageGrid extends StatelessWidget {
         }
         rowItems.add(_buildImageItem(context, j, itemSize, itemSize));
       }
-      
+
       if (rows.isNotEmpty) {
         rows.add(SizedBox(height: spacing));
       }
       rows.add(Row(mainAxisSize: MainAxisSize.min, children: rowItems));
     }
-    
+
     return Column(mainAxisSize: MainAxisSize.min, children: rows);
   }
 
   /// 单个图片项（带删除按钮）
-  Widget _buildImageItem(BuildContext context, int index, double width, double height) {
+  Widget _buildImageItem(
+    BuildContext context,
+    int index,
+    double width,
+    double height,
+  ) {
     return Stack(
       children: [
         Container(
           width: width,
           height: height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
           clipBehavior: Clip.antiAlias,
           child: Image.file(
             File(images[index].path),
@@ -2619,11 +2645,7 @@ class _WechatStyleImageGrid extends StatelessWidget {
                 color: AppColors.warmGray900.withValues(alpha: 0.65),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.close,
-                color: AppColors.white,
-                size: 14,
-              ),
+              child: const Icon(Icons.close, color: AppColors.white, size: 14),
             ),
           ),
         ),
@@ -2644,7 +2666,7 @@ class _LocationPickerPageState extends State<_LocationPickerPage> {
   final _searchController = TextEditingController();
   String? _selectedLocation;
   final bool _isLoading = false;
-  
+
   // 模拟附近地点（实际应接入高德/百度地图 SDK）
   final List<_LocationItem> _nearbyLocations = [
     _LocationItem(name: '家', address: '100m内 | 北京市朝阳区建国路88号'),
@@ -2666,14 +2688,18 @@ class _LocationPickerPageState extends State<_LocationPickerPage> {
   @override
   Widget build(BuildContext context) {
     const wechatGreen = Color(0xFF07C160);
-    
+
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.warmGray800, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios,
+            color: AppColors.warmGray800,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -2686,7 +2712,11 @@ class _LocationPickerPageState extends State<_LocationPickerPage> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Iconsax.search_normal, color: AppColors.warmGray800, size: 22),
+            icon: const Icon(
+              Iconsax.search_normal,
+              color: AppColors.warmGray800,
+              size: 22,
+            ),
             onPressed: () {
               // TODO: 实现搜索功能
             },
@@ -2739,66 +2769,82 @@ class _LocationPickerPageState extends State<_LocationPickerPage> {
               ),
             ),
           ),
-          
+
           // 附近地点列表
           Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: wechatGreen),
-                  )
-                : ListView.builder(
-                    itemCount: _nearbyLocations.length,
-                    itemBuilder: (context, index) {
-                      final location = _nearbyLocations[index];
-                      final isSelected = _selectedLocation == location.name;
-                      
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() => _selectedLocation = location.name);
-                          Navigator.pop(context, location.name);
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: AppColors.warmGray50, width: 1),
+            child:
+                _isLoading
+                    ? const Center(
+                      child: CircularProgressIndicator(color: wechatGreen),
+                    )
+                    : ListView.builder(
+                      itemCount: _nearbyLocations.length,
+                      itemBuilder: (context, index) {
+                        final location = _nearbyLocations[index];
+                        final isSelected = _selectedLocation == location.name;
+
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() => _selectedLocation = location.name);
+                            Navigator.pop(context, location.name);
+                          },
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      location.name,
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: AppColors.warmGray900,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      location.address,
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: AppColors.warmGray400,
-                                        fontSize: 12,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: AppColors.warmGray50,
+                                  width: 1,
                                 ),
                               ),
-                              if (isSelected)
-                                const Icon(Icons.check, color: wechatGreen, size: 20),
-                            ],
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        location.name,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium?.copyWith(
+                                          color: AppColors.warmGray900,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        location.address,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.copyWith(
+                                          color: AppColors.warmGray400,
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check,
+                                    color: wechatGreen,
+                                    size: 20,
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
           ),
         ],
       ),

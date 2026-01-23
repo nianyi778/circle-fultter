@@ -34,10 +34,7 @@ class SettingsView extends ConsumerWidget {
                   color: AppColors.warmGray700,
                 ),
               ),
-              title: Text(
-                '设置',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              title: Text('设置', style: Theme.of(context).textTheme.titleLarge),
               centerTitle: true,
             ),
 
@@ -62,7 +59,9 @@ class SettingsView extends ConsumerWidget {
             // 用户信息卡片
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                ),
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -83,8 +82,11 @@ class SettingsView extends ConsumerWidget {
                           child: Image.network(
                             currentUser.avatar,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => 
-                                const Icon(Iconsax.user, color: AppColors.warmGray400),
+                            errorBuilder:
+                                (context, error, stackTrace) => const Icon(
+                                  Iconsax.user,
+                                  color: AppColors.warmGray400,
+                                ),
                           ),
                         ),
                       ),
@@ -100,9 +102,8 @@ class SettingsView extends ConsumerWidget {
                             const SizedBox(height: 4),
                             Text(
                               childInfo.name,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.warmGray500,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: AppColors.warmGray500),
                             ),
                           ],
                         ),
@@ -123,7 +124,9 @@ class SettingsView extends ConsumerWidget {
             // 设置分组
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -145,7 +148,7 @@ class SettingsView extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 24),
 
                     _buildSettingsGroup(
@@ -297,25 +300,26 @@ class SettingsView extends ConsumerWidget {
             boxShadow: AppShadows.subtle,
           ),
           child: Column(
-            children: items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final isLast = index == items.length - 1;
+            children:
+                items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  final isLast = index == items.length - 1;
 
-              return Column(
-                children: [
-                  _buildSettingsItem(context, item),
-                  if (!isLast)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 56),
-                      child: Container(
-                        height: 1,
-                        color: AppColors.warmGray100,
-                      ),
-                    ),
-                ],
-              );
-            }).toList(),
+                  return Column(
+                    children: [
+                      _buildSettingsItem(context, item),
+                      if (!isLast)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 56),
+                          child: Container(
+                            height: 1,
+                            color: AppColors.warmGray100,
+                          ),
+                        ),
+                    ],
+                  );
+                }).toList(),
           ),
         ),
       ],
@@ -337,11 +341,7 @@ class SettingsView extends ConsumerWidget {
                 color: AppColors.warmGray100,
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: Icon(
-                item.icon,
-                size: 18,
-                color: AppColors.warmGray600,
-              ),
+              child: Icon(item.icon, size: 18, color: AppColors.warmGray600),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -364,11 +364,12 @@ class SettingsView extends ConsumerWidget {
                 ],
               ),
             ),
-            item.trailing ?? const Icon(
-              Iconsax.arrow_right_3,
-              size: 18,
-              color: AppColors.warmGray300,
-            ),
+            item.trailing ??
+                const Icon(
+                  Iconsax.arrow_right_3,
+                  size: 18,
+                  color: AppColors.warmGray300,
+                ),
           ],
         ),
       ),

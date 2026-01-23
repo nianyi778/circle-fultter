@@ -4,7 +4,7 @@ import 'user.dart';
 enum MediaType { text, image, video, audio }
 
 /// 语境标签类型
-/// 
+///
 /// 泛化设计：
 /// - myMood: 我当时的心情
 /// - atmosphere: 当时的氛围/TA的状态
@@ -116,7 +116,7 @@ class Moment {
   String get relativeTime {
     final now = DateTime.now();
     final diff = now.difference(timestamp);
-    
+
     if (diff.inMinutes < 1) {
       return '刚刚';
     } else if (diff.inHours < 1) {

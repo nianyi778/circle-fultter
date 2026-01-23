@@ -154,7 +154,8 @@ class DatabaseService {
     // 默认圈子信息
     await db.insert('child_info', {
       'name': '我们的圈子',
-      'birth_date': DateTime.now().subtract(const Duration(days: 365)).toIso8601String(),
+      'birth_date':
+          DateTime.now().subtract(const Duration(days: 365)).toIso8601String(),
     });
 
     // 默认世界频道
@@ -166,10 +167,7 @@ class DatabaseService {
     ];
 
     for (final channel in channels) {
-      await db.insert('world_channels', {
-        ...channel,
-        'post_count': 0,
-      });
+      await db.insert('world_channels', {...channel, 'post_count': 0});
     }
 
     // 默认世界帖子
@@ -180,7 +178,8 @@ class DatabaseService {
         'tag': '今天很累',
         'resonance_count': 128,
         'bg_gradient': 'orange',
-        'timestamp': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
         'has_resonated': 0,
       },
       {
@@ -189,7 +188,8 @@ class DatabaseService {
         'tag': '今天很累',
         'resonance_count': 256,
         'bg_gradient': 'blue',
-        'timestamp': DateTime.now().subtract(const Duration(hours: 8)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(hours: 8)).toIso8601String(),
         'has_resonated': 0,
       },
       {
@@ -198,7 +198,8 @@ class DatabaseService {
         'tag': '写给未来',
         'resonance_count': 512,
         'bg_gradient': 'violet',
-        'timestamp': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
         'has_resonated': 0,
       },
       {
@@ -207,7 +208,8 @@ class DatabaseService {
         'tag': '第一次',
         'resonance_count': 89,
         'bg_gradient': 'green',
-        'timestamp': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
         'has_resonated': 0,
       },
       {
@@ -216,7 +218,8 @@ class DatabaseService {
         'tag': '只是爱',
         'resonance_count': 342,
         'bg_gradient': 'peach',
-        'timestamp': DateTime.now().subtract(const Duration(days: 3)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(days: 3)).toIso8601String(),
         'has_resonated': 0,
       },
       {
@@ -225,7 +228,8 @@ class DatabaseService {
         'tag': '今天很累',
         'resonance_count': 178,
         'bg_gradient': 'blue',
-        'timestamp': DateTime.now().subtract(const Duration(days: 4)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(days: 4)).toIso8601String(),
         'has_resonated': 0,
       },
       {
@@ -234,7 +238,8 @@ class DatabaseService {
         'tag': '写给未来',
         'resonance_count': 421,
         'bg_gradient': 'violet',
-        'timestamp': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
         'has_resonated': 0,
       },
       {
@@ -243,7 +248,8 @@ class DatabaseService {
         'tag': '第一次',
         'resonance_count': 267,
         'bg_gradient': 'green',
-        'timestamp': DateTime.now().subtract(const Duration(days: 6)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(days: 6)).toIso8601String(),
         'has_resonated': 0,
       },
       {
@@ -252,7 +258,8 @@ class DatabaseService {
         'tag': '只是爱',
         'resonance_count': 589,
         'bg_gradient': 'peach',
-        'timestamp': DateTime.now().subtract(const Duration(days: 7)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(days: 7)).toIso8601String(),
         'has_resonated': 0,
       },
       {
@@ -261,7 +268,8 @@ class DatabaseService {
         'tag': '今天很累',
         'resonance_count': 445,
         'bg_gradient': 'orange',
-        'timestamp': DateTime.now().subtract(const Duration(days: 8)).toIso8601String(),
+        'timestamp':
+            DateTime.now().subtract(const Duration(days: 8)).toIso8601String(),
         'has_resonated': 0,
       },
     ];
@@ -290,20 +298,24 @@ class DatabaseService {
         )
       ''');
     }
-    
+
     // 版本 2 -> 3: 添加 comments 表缺失字段 + moments 表世界分享字段
     if (oldVersion < 3) {
       // 添加 comments 表新字段
       try {
-        await db.execute('ALTER TABLE comments ADD COLUMN likes INTEGER DEFAULT 0');
+        await db.execute(
+          'ALTER TABLE comments ADD COLUMN likes INTEGER DEFAULT 0',
+        );
       } catch (_) {} // 字段可能已存在
       try {
         await db.execute('ALTER TABLE comments ADD COLUMN reply_to_id TEXT');
       } catch (_) {}
-      
+
       // 添加 moments 表世界分享字段
       try {
-        await db.execute('ALTER TABLE moments ADD COLUMN is_shared_to_world INTEGER DEFAULT 0');
+        await db.execute(
+          'ALTER TABLE moments ADD COLUMN is_shared_to_world INTEGER DEFAULT 0',
+        );
       } catch (_) {}
       try {
         await db.execute('ALTER TABLE moments ADD COLUMN world_topic TEXT');
@@ -329,8 +341,11 @@ class DatabaseService {
   /// 插入用户
   Future<void> insertUser(User user) async {
     final db = await database;
-    await db.insert('users', _userToMap(user),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'users',
+      _userToMap(user),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   /// 更新用户
@@ -349,7 +364,9 @@ class DatabaseService {
   /// 获取圈子信息
   Future<CircleInfo> getCircleInfo() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('child_info'); // 保持表名兼容
+    final List<Map<String, dynamic>> maps = await db.query(
+      'child_info',
+    ); // 保持表名兼容
     if (maps.isNotEmpty) {
       return CircleInfo(
         name: maps.first['name'] as String,
@@ -371,7 +388,9 @@ class DatabaseService {
     await db.delete('child_info'); // 保持表名兼容
     await db.insert('child_info', {
       'name': circleInfo.name,
-      'birth_date': circleInfo.startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      'birth_date':
+          circleInfo.startDate?.toIso8601String() ??
+          DateTime.now().toIso8601String(),
     });
   }
 
@@ -387,10 +406,10 @@ class DatabaseService {
       'moments',
       orderBy: 'timestamp DESC',
     );
-    
+
     final users = await getUsers();
     final userMap = {for (var u in users) u.id: u};
-    
+
     return maps.map((map) => _mapToMoment(map, userMap)).toList();
   }
 
@@ -402,20 +421,23 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
-    
+
     if (maps.isEmpty) return null;
-    
+
     final users = await getUsers();
     final userMap = {for (var u in users) u.id: u};
-    
+
     return _mapToMoment(maps.first, userMap);
   }
 
   /// 插入时刻
   Future<void> insertMoment(Moment moment) async {
     final db = await database;
-    await db.insert('moments', _momentToMap(moment),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'moments',
+      _momentToMap(moment),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   /// 更新时刻
@@ -462,8 +484,11 @@ class DatabaseService {
   /// 插入信件
   Future<void> insertLetter(Letter letter) async {
     final db = await database;
-    await db.insert('letters', _letterToMap(letter),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'letters',
+      _letterToMap(letter),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   /// 更新信件
@@ -498,8 +523,11 @@ class DatabaseService {
   /// 插入世界帖子
   Future<void> insertWorldPost(WorldPost post) async {
     final db = await database;
-    await db.insert('world_posts', _worldPostToMap(post),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'world_posts',
+      _worldPostToMap(post),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   /// 更新世界帖子
@@ -534,8 +562,11 @@ class DatabaseService {
   /// 插入留言
   Future<void> insertComment(Comment comment) async {
     final db = await database;
-    await db.insert('comments', _commentToMap(comment),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'comments',
+      _commentToMap(comment),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   /// 删除留言
@@ -556,21 +587,21 @@ class DatabaseService {
   Future<List<WorldChannel>> getWorldChannels() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('world_channels');
-    return maps.map((map) => WorldChannel(
-      id: map['id'] as String,
-      name: map['name'] as String,
-      description: map['description'] as String,
-      postCount: map['post_count'] as int? ?? 0,
-    )).toList();
+    return maps
+        .map(
+          (map) => WorldChannel(
+            id: map['id'] as String,
+            name: map['name'] as String,
+            description: map['description'] as String,
+            postCount: map['post_count'] as int? ?? 0,
+          ),
+        )
+        .toList();
   }
 
   // ============== 工具方法 ==============
 
-  User _defaultUser() => const User(
-    id: 'u1',
-    name: '我',
-    avatar: '',
-  );
+  User _defaultUser() => const User(id: 'u1', name: '我', avatar: '');
 
   Map<String, dynamic> _userToMap(User user) => {
     'id': user.id,
@@ -583,7 +614,10 @@ class DatabaseService {
     id: map['id'] as String,
     name: map['name'] as String,
     avatar: map['avatar'] as String? ?? '',
-    roleLabel: (map['role'] as String?)?.isNotEmpty == true ? map['role'] as String : null,
+    roleLabel:
+        (map['role'] as String?)?.isNotEmpty == true
+            ? map['role'] as String
+            : null,
   );
 
   Map<String, dynamic> _momentToMap(Moment moment) => {
@@ -594,11 +628,11 @@ class DatabaseService {
     'media_url': moment.mediaUrl,
     'timestamp': moment.timestamp.toIso8601String(),
     'child_age_label': moment.timeLabel, // 保持数据库字段名兼容
-    'context_tags': jsonEncode(moment.contextTags.map((t) => {
-      'type': t.type.name,
-      'label': t.label,
-      'emoji': t.emoji,
-    }).toList()),
+    'context_tags': jsonEncode(
+      moment.contextTags
+          .map((t) => {'type': t.type.name, 'label': t.label, 'emoji': t.emoji})
+          .toList(),
+    ),
     'location': moment.location,
     'is_favorite': moment.isFavorite ? 1 : 0,
     'future_message': moment.futureMessage,
@@ -609,25 +643,26 @@ class DatabaseService {
   Moment _mapToMoment(Map<String, dynamic> map, Map<String, User> userMap) {
     final authorId = map['author_id'] as String;
     final author = userMap[authorId] ?? _defaultUser();
-    
+
     List<ContextTag> contextTags = [];
     if (map['context_tags'] != null) {
       final tagsJson = jsonDecode(map['context_tags'] as String) as List;
-      contextTags = tagsJson.map((t) {
-        // 兼容旧数据：将 parentMood 映射为 myMood，childState 映射为 atmosphere
-        var typeName = t['type'] as String;
-        if (typeName == 'parentMood') typeName = 'myMood';
-        if (typeName == 'childState') typeName = 'atmosphere';
-        
-        return ContextTag(
-          type: ContextTagType.values.firstWhere(
-            (ct) => ct.name == typeName,
-            orElse: () => ContextTagType.myMood,
-          ),
-          label: t['label'] as String,
-          emoji: t['emoji'] as String,
-        );
-      }).toList();
+      contextTags =
+          tagsJson.map((t) {
+            // 兼容旧数据：将 parentMood 映射为 myMood，childState 映射为 atmosphere
+            var typeName = t['type'] as String;
+            if (typeName == 'parentMood') typeName = 'myMood';
+            if (typeName == 'childState') typeName = 'atmosphere';
+
+            return ContextTag(
+              type: ContextTagType.values.firstWhere(
+                (ct) => ct.name == typeName,
+                orElse: () => ContextTagType.myMood,
+              ),
+              label: t['label'] as String,
+              emoji: t['emoji'] as String,
+            );
+          }).toList();
     }
 
     return Moment(
@@ -671,21 +706,24 @@ class DatabaseService {
       (s) => s.name == map['status'],
       orElse: () => LetterStatus.draft,
     ),
-    unlockDate: map['unlock_date'] != null
-        ? DateTime.parse(map['unlock_date'] as String)
-        : null,
+    unlockDate:
+        map['unlock_date'] != null
+            ? DateTime.parse(map['unlock_date'] as String)
+            : null,
     recipient: map['recipient'] as String,
     type: LetterType.values.firstWhere(
       (t) => t.name == map['type'],
       orElse: () => LetterType.annual,
     ),
     content: map['content'] as String?,
-    createdAt: map['created_at'] != null
-        ? DateTime.parse(map['created_at'] as String)
-        : null,
-    sealedAt: map['sealed_at'] != null
-        ? DateTime.parse(map['sealed_at'] as String)
-        : null,
+    createdAt:
+        map['created_at'] != null
+            ? DateTime.parse(map['created_at'] as String)
+            : null,
+    sealedAt:
+        map['sealed_at'] != null
+            ? DateTime.parse(map['sealed_at'] as String)
+            : null,
   );
 
   Map<String, dynamic> _worldPostToMap(WorldPost post) => {
@@ -721,7 +759,7 @@ class DatabaseService {
   Comment _mapToComment(Map<String, dynamic> map, Map<String, User> userMap) {
     final authorId = map['author_id'] as String;
     final author = userMap[authorId] ?? _defaultUser();
-    
+
     final replyToId = map['reply_to_id'] as String?;
     final replyTo = replyToId != null ? userMap[replyToId] : null;
 

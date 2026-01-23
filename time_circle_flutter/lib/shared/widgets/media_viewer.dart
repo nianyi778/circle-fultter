@@ -1,24 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:math' as math;
 
 import '../../core/theme/app_theme.dart';
 import '../../core/models/moment.dart';
-
-/// 检查是否为有效的网络 URL
-bool _isNetworkUrl(String url) {
-  if (url.isEmpty) return false;
-  return url.startsWith('http://') || url.startsWith('https://');
-}
-
-/// 检查是否为本地文件路径
-bool _isLocalFile(String path) {
-  if (path.isEmpty) return false;
-  return path.startsWith('/') || path.startsWith('file://');
-}
+import '../../core/utils/image_utils.dart';
 
 /// 媒体内容统一渲染组件
 /// 支持图片、视频、音频的展示
@@ -40,7 +26,6 @@ class MediaViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 检查媒体 URL 是否有效
     if (mediaType == MediaType.text || mediaUrl == null || mediaUrl!.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -50,15 +35,11 @@ class MediaViewer extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: switch (mediaType) {
-        MediaType.image => _ImageViewer(
-            url: mediaUrl!,
-            borderRadius: radius,
-          ),
+        MediaType.image => _ImageViewer(url: mediaUrl!, borderRadius: radius),
         MediaType.video => _VideoViewer(
-            url: mediaUrl!,
-            borderRadius: radius,
-            aspectRatio: aspectRatio ?? 16 / 9,
-          ),
+          borderRadius: radius,
+          aspectRatio: aspectRatio ?? 16 / 9,
+        ),
         MediaType.audio => const _AudioViewer(),
         MediaType.text => const SizedBox.shrink(),
       },
@@ -71,73 +52,25 @@ class _ImageViewer extends StatelessWidget {
   final String url;
   final BorderRadius borderRadius;
 
-  const _ImageViewer({
-    required this.url,
-    required this.borderRadius,
-  });
+  const _ImageViewer({required this.url, required this.borderRadius});
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return ImageUtils.buildImage(
+      url: url,
       borderRadius: borderRadius,
-      child: _isLocalFile(url)
-          ? Image.file(
-              File(url),
-              fit: BoxFit.cover,
-              width: double.infinity,
-              errorBuilder: (context, error, stackTrace) => _buildErrorWidget(),
-            )
-          : _isNetworkUrl(url)
-              ? CachedNetworkImage(
-                  imageUrl: url,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  placeholder: (context, url) => _buildLoadingWidget(),
-                  errorWidget: (context, url, error) => _buildErrorWidget(),
-                )
-              : _buildErrorWidget(),
-    );
-  }
-
-  Widget _buildLoadingWidget() {
-    return Container(
-      height: 200,
-      color: AppColors.warmGray100,
-      child: const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: AppColors.warmGray300,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorWidget() {
-    return Container(
-      height: 200,
-      color: AppColors.warmGray100,
-      child: const Center(
-        child: Icon(
-          Iconsax.image,
-          color: AppColors.warmGray300,
-          size: 48,
-        ),
-      ),
+      width: double.infinity,
+      memCacheWidth: 800,
     );
   }
 }
 
 /// 视频查看器
 class _VideoViewer extends StatelessWidget {
-  final String url;
   final BorderRadius borderRadius;
   final double aspectRatio;
 
-  const _VideoViewer({
-    required this.url,
-    required this.borderRadius,
-    required this.aspectRatio,
-  });
+  const _VideoViewer({required this.borderRadius, required this.aspectRatio});
 
   @override
   Widget build(BuildContext context) {
@@ -153,11 +86,7 @@ class _VideoViewer extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // 视频缩略图背景（本地文件显示纯色背景）
-              Container(
-                width: double.infinity,
-                color: AppColors.warmGray800,
-              ),
+              Container(width: double.infinity, color: AppColors.warmGray800),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -223,7 +152,6 @@ class _AudioViewer extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          // 波形
           const AudioWaveform(),
           const SizedBox(height: 16),
           Text(
@@ -261,7 +189,9 @@ class AudioWaveform extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: List.generate(barCount, (index) {
-          final height = minHeight + (math.Random(index).nextDouble() * (maxHeight - minHeight));
+          final height =
+              minHeight +
+              (math.Random(index).nextDouble() * (maxHeight - minHeight));
           return Container(
             width: 4,
             height: height,

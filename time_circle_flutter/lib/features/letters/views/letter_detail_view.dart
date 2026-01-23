@@ -33,9 +33,9 @@ class LetterDetailView extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 '这封信，可能已经被你带走了。',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.warmGray500,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: AppColors.warmGray500),
               ),
             ],
           ),
@@ -56,10 +56,7 @@ class LetterDetailView extends ConsumerWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    AppColors.timeBeigeWarm,
-                    AppColors.timeBeige,
-                  ],
+                  colors: [AppColors.timeBeigeWarm, AppColors.timeBeige],
                 ),
               ),
             ),
@@ -129,7 +126,9 @@ class LetterDetailView extends ConsumerWidget {
                       // 标题
                       Text(
                         letter.title,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           height: 1.3,
                         ),
@@ -150,13 +149,16 @@ class LetterDetailView extends ConsumerWidget {
 
                       // 分隔线
                       Container(
-                        width: 48,
-                        height: 1,
-                        color: AppColors.warmGray300,
-                      ).animate().fadeIn(duration: 400.ms, delay: 200.ms).scale(
-                        begin: const Offset(0, 1),
-                        end: const Offset(1, 1),
-                      ),
+                            width: 48,
+                            height: 1,
+                            color: AppColors.warmGray300,
+                          )
+                          .animate()
+                          .fadeIn(duration: 400.ms, delay: 200.ms)
+                          .scale(
+                            begin: const Offset(0, 1),
+                            end: const Offset(1, 1),
+                          ),
 
                       const SizedBox(height: 40),
                     ],
@@ -170,23 +172,23 @@ class LetterDetailView extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.pagePadding,
                   ),
-                  child: isLocked
-                      ? _buildLockedContent(context, letter)
-                      : _buildUnlockedContent(context, letter),
+                  child:
+                      isLocked
+                          ? _buildLockedContent(context, letter)
+                          : _buildUnlockedContent(context, letter),
                 ),
               ),
 
               // 底部签名装饰
               if (!isLocked)
                 SliverToBoxAdapter(
-                  child: _buildSignature(context).animate()
-                      .fadeIn(duration: 600.ms, delay: 500.ms),
+                  child: _buildSignature(
+                    context,
+                  ).animate().fadeIn(duration: 600.ms, delay: 500.ms),
                 ),
 
               // 底部留白
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 100),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
 
@@ -218,37 +220,40 @@ class LetterDetailView extends ConsumerWidget {
 
   Widget _buildStatusBadge(BuildContext context, Letter letter, bool isLocked) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.warmGray100,
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isLocked ? Iconsax.lock : Iconsax.calendar_1,
-            size: 12,
-            color: AppColors.warmGray500,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.warmGray100,
+            borderRadius: BorderRadius.circular(AppRadius.full),
           ),
-          const SizedBox(width: 6),
-          Text(
-            isLocked
-                ? '解锁日期: ${_formatUnlockDate(letter.unlockDate)}'
-                : '已解锁',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.warmGray500,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.5,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isLocked ? Iconsax.lock : Iconsax.calendar_1,
+                size: 12,
+                color: AppColors.warmGray500,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                isLocked
+                    ? '解锁日期: ${_formatUnlockDate(letter.unlockDate)}'
+                    : '已解锁',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.warmGray500,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 400.ms).scale(
-      begin: const Offset(0.9, 0.9),
-      end: const Offset(1, 1),
-      curve: Curves.easeOut,
-    );
+        )
+        .animate()
+        .fadeIn(duration: 400.ms)
+        .scale(
+          begin: const Offset(0.9, 0.9),
+          end: const Offset(1, 1),
+          curve: Curves.easeOut,
+        );
   }
 
   Widget _buildLockedContent(BuildContext context, Letter letter) {
@@ -264,11 +269,7 @@ class LetterDetailView extends ConsumerWidget {
               color: AppColors.warmGray100,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Iconsax.lock5,
-              size: 36,
-              color: AppColors.warmGray400,
-            ),
+            child: Icon(Iconsax.lock5, size: 36, color: AppColors.warmGray400),
           ),
           const SizedBox(height: 24),
 
@@ -284,9 +285,9 @@ class LetterDetailView extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             '美好的事物值得等待。',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.warmGray400,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.warmGray400),
             textAlign: TextAlign.center,
           ),
         ],

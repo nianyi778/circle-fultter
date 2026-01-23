@@ -27,53 +27,58 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/home',
             name: 'home',
-            pageBuilder: (context, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const HomeView(),
-              transitionsBuilder: _fadeTransition,
-            ),
+            pageBuilder:
+                (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const HomeView(),
+                  transitionsBuilder: _fadeTransition,
+                ),
           ),
           GoRoute(
             path: '/timeline',
             name: 'timeline',
-            pageBuilder: (context, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const TimelineView(),
-              transitionsBuilder: _fadeTransition,
-            ),
+            pageBuilder:
+                (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const TimelineView(),
+                  transitionsBuilder: _fadeTransition,
+                ),
           ),
           GoRoute(
             path: '/letters',
             name: 'letters',
-            pageBuilder: (context, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const LettersView(),
-              transitionsBuilder: _fadeTransition,
-            ),
+            pageBuilder:
+                (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const LettersView(),
+                  transitionsBuilder: _fadeTransition,
+                ),
           ),
           GoRoute(
             path: '/world',
             name: 'world',
-            pageBuilder: (context, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const WorldView(),
-              transitionsBuilder: _fadeTransition,
-            ),
+            pageBuilder:
+                (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const WorldView(),
+                  transitionsBuilder: _fadeTransition,
+                ),
           ),
         ],
       ),
-      
+
       // 独立页面路由（无底部导航）
       GoRoute(
         path: '/create',
         name: 'create',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const CreateMomentView(),
-          transitionsBuilder: _slideUpTransition,
-        ),
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const CreateMomentView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
       ),
-      
+
       GoRoute(
         path: '/moment/:id',
         name: 'momentDetail',
@@ -86,7 +91,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      
+
       GoRoute(
         path: '/letter/:id',
         name: 'letterDetail',
@@ -99,7 +104,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      
+
       GoRoute(
         path: '/letter/:id/edit',
         name: 'letterEditor',
@@ -112,15 +117,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      
+
       GoRoute(
         path: '/settings',
         name: 'settings',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const SettingsView(),
-          transitionsBuilder: _slideUpTransition,
-        ),
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const SettingsView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
       ),
     ],
   );
@@ -134,10 +140,7 @@ Widget _fadeTransition(
   Widget child,
 ) {
   return FadeTransition(
-    opacity: CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-    ),
+    opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
     child: child,
   );
 }
@@ -152,21 +155,15 @@ Widget _slideUpTransition(
   final slideAnimation = Tween<Offset>(
     begin: const Offset(0, 0.1),
     end: Offset.zero,
-  ).animate(CurvedAnimation(
-    parent: animation,
-    curve: Curves.easeOutCubic,
-  ));
-  
+  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+
   final fadeAnimation = CurvedAnimation(
     parent: animation,
     curve: Curves.easeOut,
   );
-  
+
   return SlideTransition(
     position: slideAnimation,
-    child: FadeTransition(
-      opacity: fadeAnimation,
-      child: child,
-    ),
+    child: FadeTransition(opacity: fadeAnimation, child: child),
   );
 }

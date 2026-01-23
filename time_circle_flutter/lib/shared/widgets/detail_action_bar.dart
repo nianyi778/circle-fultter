@@ -39,11 +39,7 @@ class DetailActionBar extends StatelessWidget {
             onTap: onBookmarkTap,
           ),
           const SizedBox(width: 32),
-          _ActionButton(
-            icon: Iconsax.more,
-            label: '更多',
-            onTap: onMoreTap,
-          ),
+          _ActionButton(icon: Iconsax.more, label: '更多', onTap: onMoreTap),
         ],
       ),
     );
@@ -67,9 +63,10 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive
-        ? (activeColor ?? AppColors.warmGray800)
-        : AppColors.warmGray400;
+    final color =
+        isActive
+            ? (activeColor ?? AppColors.warmGray800)
+            : AppColors.warmGray400;
 
     return GestureDetector(
       onTap: onTap,
@@ -81,9 +78,9 @@ class _ActionButton extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: color),
           ),
         ],
       ),

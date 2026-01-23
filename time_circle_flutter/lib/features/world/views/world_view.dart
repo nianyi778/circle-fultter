@@ -7,13 +7,28 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/world_post.dart';
 
+/// 当前选中的频道
+final selectedChannelProvider = StateProvider<String?>((ref) => null);
+
+/// 根据频道筛选的帖子
+final filteredWorldPostsProvider = Provider<List<WorldPost>>((ref) {
+  final posts = ref.watch(worldPostsProvider);
+  final selectedChannel = ref.watch(selectedChannelProvider);
+
+  if (selectedChannel == null) {
+    return posts;
+  }
+  return posts.where((p) => p.tag == selectedChannel).toList();
+});
+
 class WorldView extends ConsumerWidget {
   const WorldView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final posts = ref.watch(worldPostsProvider);
+    final posts = ref.watch(filteredWorldPostsProvider);
     final channels = ref.watch(worldChannelsSyncProvider);
+    final selectedChannel = ref.watch(selectedChannelProvider);
 
     return Scaffold(
       backgroundColor: AppColors.warmGray100,
@@ -27,7 +42,7 @@ class WorldView extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.pagePadding,
-                  AppSpacing.xxl,
+                  AppSpacing.xl,
                   AppSpacing.pagePadding,
                   0,
                 ),
@@ -46,24 +61,15 @@ class WorldView extends ConsumerWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '这里，是一些被允许看见的片段。',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.warmGray400,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
                   ],
                 ),
               ).animate().fadeIn(duration: 400.ms),
             ),
 
-            // 频道标签
+            // 频道标签（可滚动，有选中态）
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.only(top: 24),
+                padding: const EdgeInsets.only(top: 20, bottom: 8),
                 child: SizedBox(
                   height: 36,
                   child: ListView.separated(
@@ -71,30 +77,32 @@ class WorldView extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.pagePadding,
                     ),
-                    itemCount: channels.length,
-                    separatorBuilder: (context, index) => const SizedBox(width: 8),
+                    itemCount: channels.length + 1, // +1 for "全部"
+                    separatorBuilder:
+                        (context, index) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
-                      final channel = channels[index];
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                          border: Border.all(
-                            color: AppColors.warmGray200,
-                            width: 1,
-                          ),
-                          boxShadow: AppShadows.subtle,
-                        ),
-                        child: Text(
-                          '# ${channel.name}',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppColors.warmGray600,
-                          ),
-                        ),
+                      // 第一个是"全部"
+                      if (index == 0) {
+                        final isSelected = selectedChannel == null;
+                        return _ChannelChip(
+                          label: '全部',
+                          isSelected: isSelected,
+                          onTap: () {
+                            ref.read(selectedChannelProvider.notifier).state =
+                                null;
+                          },
+                        );
+                      }
+
+                      final channel = channels[index - 1];
+                      final isSelected = selectedChannel == channel.name;
+                      return _ChannelChip(
+                        label: channel.name,
+                        isSelected: isSelected,
+                        onTap: () {
+                          ref.read(selectedChannelProvider.notifier).state =
+                              channel.name;
+                        },
                       );
                     },
                   ),
@@ -103,30 +111,94 @@ class WorldView extends ConsumerWidget {
             ),
 
             // 帖子列表
-            SliverPadding(
-              padding: const EdgeInsets.all(AppSpacing.pagePadding),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
+            if (posts.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Iconsax.message_text,
+                        size: 48,
+                        color: AppColors.warmGray300,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '这个话题还没有回声',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.warmGray400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                  vertical: 8,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
                     final post = posts[index];
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _WorldPostCard(post: post),
-                    ).animate().fadeIn(
-                      duration: 500.ms,
-                      delay: Duration(milliseconds: 150 + (index * 50)),
-                      curve: Curves.easeOut,
-                    ).slideY(begin: 0.03, end: 0);
-                  },
-                  childCount: posts.length,
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _WorldPostCard(post: post),
+                        )
+                        .animate()
+                        .fadeIn(
+                          duration: 400.ms,
+                          delay: Duration(milliseconds: 100 + (index * 40)),
+                          curve: Curves.easeOut,
+                        )
+                        .slideY(begin: 0.02, end: 0);
+                  }, childCount: posts.length),
                 ),
               ),
-            ),
 
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 100),
-            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 频道标签 Chip
+class _ChannelChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ChannelChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppDurations.fast,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.warmGray800 : AppColors.white,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: Border.all(
+            color: isSelected ? AppColors.warmGray800 : AppColors.warmGray200,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: isSelected ? AppColors.white : AppColors.warmGray600,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
         ),
       ),
     );
@@ -144,7 +216,7 @@ class _WorldPostCard extends ConsumerWidget {
     final gradient = _getGradient(post.bgGradient);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: gradient,
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -152,115 +224,73 @@ class _WorldPostCard extends ConsumerWidget {
           color: AppColors.white.withValues(alpha: 0.5),
           width: 1,
         ),
-        boxShadow: AppShadows.subtle,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 标签
+          // 标签（小巧低调）
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: AppColors.white.withValues(alpha: 0.6),
+              color: AppColors.white.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Text(
-              post.tag.toUpperCase(),
+              post.tag,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: AppColors.warmGray600,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1,
+                fontSize: 10,
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // 内容
           Text(
             '"${post.content}"',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              height: 1.6,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              height: 1.7,
               fontStyle: FontStyle.italic,
+              color: AppColors.warmGray800,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
-          // 底部操作
+          // 底部：共鸣数 + 心形
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              // 假头像
-              Row(
-                children: [
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.warmGray100,
-                        width: 1,
-                      ),
-                    ),
+              // 共鸣数（如果有）
+              if (post.resonanceCount > 0) ...[
+                Text(
+                  '${post.resonanceCount}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color:
+                        post.hasResonated
+                            ? AppColors.heart
+                            : AppColors.warmGray500,
                   ),
-                  Transform.translate(
-                    offset: const Offset(-6, 0),
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: AppColors.warmGray100,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.warmGray100,
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 4),
+              ],
 
-              // 共鸣按钮
+              // 心形图标
               GestureDetector(
                 onTap: () {
-                  ref.read(worldPostsProvider.notifier).toggleResonance(post.id);
+                  ref
+                      .read(worldPostsProvider.notifier)
+                      .toggleResonance(post.id);
                 },
-                child: AnimatedContainer(
-                  duration: AppDurations.fast,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: post.hasResonated 
-                        ? AppColors.heart.withValues(alpha: 0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        post.hasResonated ? Iconsax.heart5 : Iconsax.heart,
-                        size: 18,
-                        color: post.hasResonated 
-                            ? AppColors.heart 
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    post.hasResonated ? Iconsax.heart5 : Iconsax.heart,
+                    size: 18,
+                    color:
+                        post.hasResonated
+                            ? AppColors.heart
                             : AppColors.warmGray500,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '共鸣',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: post.hasResonated 
-                              ? AppColors.heart 
-                              : AppColors.warmGray500,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -278,8 +308,8 @@ class _WorldPostCard extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.warmOrange,
-            AppColors.warmPeach,
+            AppColors.warmOrange.withValues(alpha: 0.8),
+            AppColors.warmPeach.withValues(alpha: 0.6),
           ],
         );
       case 'blue':
@@ -287,8 +317,8 @@ class _WorldPostCard extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.calmBlue,
-            AppColors.calmBlue.withValues(alpha: 0.6),
+            AppColors.calmBlue.withValues(alpha: 0.7),
+            AppColors.calmBlue.withValues(alpha: 0.4),
           ],
         );
       case 'violet':
@@ -296,8 +326,8 @@ class _WorldPostCard extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.mutedViolet,
-            AppColors.mutedViolet.withValues(alpha: 0.6),
+            AppColors.mutedViolet.withValues(alpha: 0.7),
+            AppColors.mutedViolet.withValues(alpha: 0.4),
           ],
         );
       case 'green':
@@ -305,8 +335,8 @@ class _WorldPostCard extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.softGreen,
-            AppColors.softGreen.withValues(alpha: 0.6),
+            AppColors.softGreen.withValues(alpha: 0.7),
+            AppColors.softGreen.withValues(alpha: 0.4),
           ],
         );
       case 'peach':
@@ -314,18 +344,15 @@ class _WorldPostCard extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.warmPeach,
-            AppColors.warmPeach.withValues(alpha: 0.6),
+            AppColors.warmPeach.withValues(alpha: 0.8),
+            AppColors.warmPeach.withValues(alpha: 0.5),
           ],
         );
       default:
         return LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.warmGray100,
-            AppColors.warmGray200,
-          ],
+          colors: [AppColors.warmGray100, AppColors.warmGray200],
         );
     }
   }
