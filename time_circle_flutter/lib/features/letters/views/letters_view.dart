@@ -58,15 +58,18 @@ class LettersView extends ConsumerWidget {
                       ),
                       child: IconButton(
                         onPressed: () {
-                          // 检查是否有草稿
-                          final draft = letters.firstWhere(
-                            (l) => l.status == LetterStatus.draft,
-                            orElse: () => letters.first,
-                          );
-                          if (draft.status == LetterStatus.draft) {
+                          // 优先查找草稿
+                          final draft =
+                              letters
+                                  .where((l) => l.status == LetterStatus.draft)
+                                  .firstOrNull;
+
+                          if (draft != null) {
+                            // 有草稿，编辑草稿
                             context.push('/letter/${draft.id}/edit');
                           } else {
-                            // TODO: 创建新信件
+                            // 没有草稿，创建新信件
+                            _createNewLetter(context, ref);
                           }
                         },
                         icon: const Icon(

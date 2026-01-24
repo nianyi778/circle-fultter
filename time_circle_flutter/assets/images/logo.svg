@@ -1,0 +1,42 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 念念 Logo: 心形圆环 -->
+  <!-- 设计理念：优雅的开口圆环，顶部融入心形曲线 -->
+  <!-- 象征在时间流转中珍藏温暖的记忆 -->
+  
+  <defs>
+    <!-- 暖橙到柔绿的渐变 -->
+    <linearGradient id="warmGradient" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#E8A87C"/>
+      <stop offset="100%" stop-color="#7DB07A"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 心形圆环 -->
+  <!-- 使用两条对称的曲线，顶部形成心形的双瓣，底部开口 -->
+  
+  <!-- 左半边：从底部向上，形成左心瓣，到达心尖 -->
+  <path 
+    d="M145 405
+       Q45 330 55 200
+       Q65 90 165 65
+       Q230 50 256 130"
+    fill="none"
+    stroke="url(#warmGradient)"
+    stroke-width="44"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  
+  <!-- 右半边：从心尖出发，形成右心瓣，到底部 -->
+  <path 
+    d="M256 130
+       Q282 50 347 65
+       Q447 90 457 200
+       Q467 330 367 405"
+    fill="none"
+    stroke="url(#warmGradient)"
+    stroke-width="44"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

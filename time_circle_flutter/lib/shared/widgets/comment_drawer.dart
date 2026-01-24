@@ -10,7 +10,7 @@ import '../../core/models/user.dart';
 import '../../core/models/moment.dart';
 import '../../core/providers/app_providers.dart';
 
-/// 抖音风格评论抽屉
+/// 评论抽屉 - 温柔、克制的交互体验
 class CommentDrawer extends ConsumerStatefulWidget {
   final Moment moment;
   final VoidCallback onClose;
@@ -35,17 +35,17 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: AppDurations.pageTransition,
       vsync: this,
     );
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
     ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _animationController, curve: AppCurves.enter),
     );
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _animationController, curve: AppCurves.standard),
     );
 
     _animationController.forward();
@@ -121,10 +121,13 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Container(
-                height: MediaQuery.of(context).size.height * 0.75,
-                decoration: const BoxDecoration(
+                height: MediaQuery.of(context).size.height * 0.7,
+                decoration: BoxDecoration(
                   color: AppColors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.xl),
+                  ),
+                  boxShadow: AppShadows.elevated,
                 ),
                 child: Column(
                   children: [
@@ -153,10 +156,13 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
 
   Widget _buildHeader(int count) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppColors.warmGray100, width: 1),
+          bottom: BorderSide(
+            color: AppColors.warmGray200.withValues(alpha: 0.5),
+            width: 0.5,
+          ),
         ),
       ),
       child: Row(
@@ -164,22 +170,16 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
           const SizedBox(width: 32), // 平衡右侧关闭按钮
           Expanded(
             child: Text(
-              count > 0 ? '$count 条评论' : '评论',
+              count > 0 ? '$count 条回应' : '回应',
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: AppTypography.subtitle(context).copyWith(fontSize: 15),
             ),
           ),
           GestureDetector(
             onTap: _handleClose,
             child: Container(
               padding: const EdgeInsets.all(4),
-              child: Icon(
-                Iconsax.close_circle,
-                size: 24,
-                color: AppColors.warmGray400,
-              ),
+              child: Icon(Icons.close, size: 22, color: AppColors.warmGray400),
             ),
           ),
         ],
@@ -193,31 +193,31 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               color: AppColors.warmGray100,
               shape: BoxShape.circle,
             ),
             child: Icon(
               Iconsax.message,
-              size: 24,
+              size: 28,
               color: AppColors.warmGray300,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
-            '暂时还没有评论',
-            style: Theme.of(
+            '还没有人回应',
+            style: AppTypography.body(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.warmGray400),
+            ).copyWith(color: AppColors.warmGray400),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
-            '说点什么吧',
-            style: Theme.of(
+            '留下你的想法吧',
+            style: AppTypography.caption(
               context,
-            ).textTheme.labelSmall?.copyWith(color: AppColors.warmGray300),
+            ).copyWith(color: AppColors.warmGray300),
           ),
           const SizedBox(height: 80), // 给底部留空间
         ],
@@ -227,19 +227,19 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
 
   Widget _buildCommentList(List<Comment> comments) {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       itemCount: comments.length + 1, // +1 for footer
       itemBuilder: (context, index) {
         if (index == comments.length) {
           // Footer
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
+            padding: const EdgeInsets.symmetric(vertical: 28),
             child: Center(
               child: Text(
-                '没有更多评论了',
-                style: Theme.of(
+                '— 到底了 —',
+                style: AppTypography.micro(
                   context,
-                ).textTheme.labelSmall?.copyWith(color: AppColors.warmGray300),
+                ).copyWith(color: AppColors.warmGray300, letterSpacing: 2),
               ),
             ),
           );
@@ -258,38 +258,36 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
     final hasText = _textController.text.trim().isNotEmpty;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottomPadding),
       decoration: BoxDecoration(
         color: AppColors.white,
-        border: Border(top: BorderSide(color: AppColors.warmGray50, width: 1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
+        border: Border(
+          top: BorderSide(
+            color: AppColors.warmGray200.withValues(alpha: 0.3),
+            width: 0.5,
           ),
-        ],
+        ),
+        boxShadow: AppShadows.subtle,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 灰色圆角输入框
+          // 圆角输入框
           Expanded(
             child: Container(
               height: 44,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: AppColors.warmGray100,
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(AppRadius.full),
               ),
               child: Row(
                 children: [
                   // 回复标签
                   if (_replyTarget != null) ...[
                     Text(
-                      '回复 ${_replyTarget!.name}:',
-                      style: TextStyle(
-                        fontSize: 12,
+                      '回复 ${_replyTarget!.name}',
+                      style: AppTypography.caption(context).copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppColors.warmGray500,
                       ),
@@ -324,16 +322,16 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
                       onChanged: (_) => setState(() {}),
                       cursorColor: AppColors.warmGray600,
                       cursorWidth: 1.5,
-                      style: TextStyle(
+                      style: AppTypography.body(context).copyWith(
                         fontSize: 14,
+                        height: 1.4,
                         color: AppColors.warmGray800,
                       ),
                       decoration: InputDecoration(
-                        hintText: _replyTarget != null ? '' : '有什么想法，展开说说',
-                        hintStyle: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.warmGray400,
-                        ),
+                        hintText: _replyTarget != null ? '' : '有什么想法，说说看',
+                        hintStyle: AppTypography.body(
+                          context,
+                        ).copyWith(fontSize: 14, color: AppColors.warmGray400),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -352,53 +350,21 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
 
           const SizedBox(width: 12),
 
-          // @ 按钮
-          GestureDetector(
-            onTap: () {
-              // TODO: 打开 @ 用户选择器
-            },
-            child: SizedBox(
-              width: 32,
-              height: 32,
-              child: Center(
-                child: Icon(
-                  Icons.alternate_email_rounded,
-                  size: 24,
-                  color: AppColors.warmGray700,
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(width: 8),
-
-          // 表情/发送按钮
+          // 发送按钮
           GestureDetector(
             onTap: hasText ? _handleSubmit : null,
-            child: SizedBox(
-              width: 32,
-              height: 32,
-              child: Center(
-                child:
-                    hasText
-                        ? Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: AppColors.heart,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.send_rounded,
-                            size: 16,
-                            color: AppColors.white,
-                          ),
-                        )
-                        : Icon(
-                          Icons.sentiment_satisfied_alt_outlined,
-                          size: 26,
-                          color: AppColors.warmGray700,
-                        ),
+            child: AnimatedContainer(
+              duration: AppDurations.fast,
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: hasText ? AppColors.warmGray800 : AppColors.warmGray200,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Iconsax.send_15,
+                size: 18,
+                color: hasText ? AppColors.white : AppColors.warmGray400,
               ),
             ),
           ),
@@ -418,17 +384,20 @@ class _CommentItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 头像
           Container(
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.warmGray100, width: 1),
+              border: Border.all(
+                color: AppColors.warmGray200.withValues(alpha: 0.5),
+                width: 1,
+              ),
             ),
             child: ClipOval(child: _buildAvatar(comment.author.avatar)),
           ),
@@ -442,17 +411,17 @@ class _CommentItem extends StatelessWidget {
                 // 用户名
                 Text(
                   comment.author.name,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  style: AppTypography.caption(context).copyWith(
                     color: AppColors.warmGray500,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
 
                 // 评论内容（含回复标记）
                 _buildContent(context),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
 
                 // 底部信息
                 Row(
@@ -460,18 +429,17 @@ class _CommentItem extends StatelessWidget {
                     // 时间
                     Text(
                       comment.relativeTime,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.warmGray400,
-                        fontSize: 10,
-                      ),
+                      style: AppTypography.micro(
+                        context,
+                      ).copyWith(color: AppColors.warmGray400),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 20),
                     // 回复按钮
                     GestureDetector(
                       onTap: onReply,
                       child: Text(
                         '回复',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        style: AppTypography.micro(context).copyWith(
                           color: AppColors.warmGray500,
                           fontWeight: FontWeight.w600,
                         ),
@@ -498,14 +466,15 @@ class _CommentItem extends StatelessWidget {
                   color: AppColors.warmGray300,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                comment.likes > 0 ? '${comment.likes}' : '0',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.warmGray400,
-                  fontSize: 10,
+              if (comment.likes > 0) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '${comment.likes}',
+                  style: AppTypography.micro(
+                    context,
+                  ).copyWith(color: AppColors.warmGray400),
                 ),
-              ),
+              ],
             ],
           ),
         ],
@@ -517,23 +486,22 @@ class _CommentItem extends StatelessWidget {
     if (comment.replyTo != null) {
       return RichText(
         text: TextSpan(
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.warmGray800,
-            height: 1.5,
-          ),
+          style: AppTypography.body(
+            context,
+          ).copyWith(fontSize: 14, height: 1.6, color: AppColors.warmGray700),
           children: [
             TextSpan(
               text: '回复 ',
-              style: TextStyle(color: AppColors.warmGray500),
+              style: TextStyle(color: AppColors.warmGray400),
             ),
             TextSpan(
               text: '@${comment.replyTo!.name}',
               style: TextStyle(
-                color: AppColors.calmBlue,
+                color: AppColors.calmBlueDeep,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            TextSpan(text: ' : ${comment.content}'),
+            TextSpan(text: ' ${comment.content}'),
           ],
         ),
       );
@@ -541,18 +509,17 @@ class _CommentItem extends StatelessWidget {
 
     return Text(
       comment.content,
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        color: AppColors.warmGray800,
-        height: 1.5,
-      ),
+      style: AppTypography.body(
+        context,
+      ).copyWith(fontSize: 14, height: 1.6, color: AppColors.warmGray700),
     );
   }
 
   Widget _buildAvatar(String avatar) {
     if (avatar.isEmpty) {
       return Container(
-        color: AppColors.warmGray200,
-        child: Icon(Iconsax.user, size: 16, color: AppColors.warmGray400),
+        color: AppColors.warmGray100,
+        child: Icon(Iconsax.user, size: 18, color: AppColors.warmGray300),
       );
     }
 
@@ -560,15 +527,15 @@ class _CommentItem extends StatelessWidget {
       return CachedNetworkImage(
         imageUrl: avatar,
         fit: BoxFit.cover,
-        placeholder: (context, url) => Container(color: AppColors.warmGray200),
+        placeholder: (context, url) => Container(color: AppColors.warmGray100),
         errorWidget:
-            (context, url, error) => Container(color: AppColors.warmGray200),
+            (context, url, error) => Container(color: AppColors.warmGray100),
       );
     }
 
     return Container(
-      color: AppColors.warmGray200,
-      child: Icon(Iconsax.user, size: 16, color: AppColors.warmGray400),
+      color: AppColors.warmGray100,
+      child: Icon(Iconsax.user, size: 18, color: AppColors.warmGray300),
     );
   }
 }

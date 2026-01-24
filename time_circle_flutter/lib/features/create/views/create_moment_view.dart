@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
@@ -12,8 +11,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/moment.dart';
-import '../../../core/models/user.dart';
-import '../../../core/utils/ui_utils.dart';
+import '../../../shared/widgets/app_snackbar.dart';
 
 AssetPickerConfig _buildAssetPickerConfig(
   int maxAssets, {
@@ -27,1165 +25,11 @@ AssetPickerConfig _buildAssetPickerConfig(
   );
 }
 
-/// 发布页（「留下」）- 参考 Web 版优化设计
-class CreateMomentView extends ConsumerStatefulWidget {
-  const CreateMomentView({super.key});
-
-  @override
-  ConsumerState<CreateMomentView> createState() => _CreateMomentViewState();
-}
-
-class _CreateMomentViewState extends ConsumerState<CreateMomentView> {
-  final _textController = TextEditingController();
-
-  final Set<ContextTag> _selectedMyMoods = {};
-  final Set<ContextTag> _selectedAtmospheres = {};
-
-  // 发布到世界
-  bool _shareToWorld = false;
-  String _worldTopic = '生活碎片';
-
-  // 世界话题选项
-  static const List<String> _worldTopicOptions = [
-    '生活碎片',
-    '今天很累',
-    '写给未来',
-    '小确幸',
-    '想分享',
-  ];
-
-  // 已选择的媒体文件
-  final List<XFile> _selectedMedia = [];
-  MediaType _mediaType = MediaType.text;
-
-  // 我的心情选项
-  static const List<ContextTag> _myMoodOptions = [
-    ContextTag(type: ContextTagType.myMood, emoji: '😌', label: '平静'),
-    ContextTag(type: ContextTagType.myMood, emoji: '😊', label: '开心'),
-    ContextTag(type: ContextTagType.myMood, emoji: '😵‍💫', label: '累'),
-    ContextTag(type: ContextTagType.myMood, emoji: '🥹', label: '想哭'),
-    ContextTag(type: ContextTagType.myMood, emoji: '😟', label: '担心'),
-  ];
-
-  // 当时的氛围选项
-  static const List<ContextTag> _atmosphereOptions = [
-    ContextTag(type: ContextTagType.atmosphere, emoji: '🫂', label: '温馨'),
-    ContextTag(type: ContextTagType.atmosphere, emoji: '⚡️', label: '热闹'),
-    ContextTag(type: ContextTagType.atmosphere, emoji: '🤫', label: '安静'),
-    ContextTag(type: ContextTagType.atmosphere, emoji: '☕️', label: '日常'),
-    ContextTag(type: ContextTagType.atmosphere, emoji: '✨', label: '特别'),
-  ];
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // 使用同步 provider，确保数据可用
-    final childInfo = ref.watch(childInfoProvider);
-    final currentUser = ref.watch(currentUserSyncProvider);
-    final hasContent =
-        _textController.text.isNotEmpty || _selectedMedia.isNotEmpty;
-
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 顶部导航 - 简洁风格
-            _buildHeader(context, hasContent, currentUser, childInfo),
-
-            // 内容区域
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 文字输入区
-                    _buildTextInput(context),
-
-                    const SizedBox(height: 24),
-
-                    // 媒体按钮
-                    _buildMediaButtons(context),
-
-                    const SizedBox(height: 32),
-
-                    // 语境标注区
-                    _buildContextSection(context),
-
-                    const SizedBox(height: 24),
-
-                    // 对未来说一句
-                    _buildFutureMessageSection(context),
-
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 顶部导航栏
-  Widget _buildHeader(BuildContext context, bool hasContent, user, childInfo) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.warmGray200.withValues(alpha: 0.3),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          // 关闭按钮
-          GestureDetector(
-            onTap: () => _showExitDialog(context),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(Icons.close, size: 24, color: AppColors.warmGray400),
-            ),
-          ),
-
-          // 标题
-          Expanded(
-            child: Text(
-              '留下此刻',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.warmGray600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          // 提交按钮
-          GestureDetector(
-            onTap:
-                hasContent
-                    ? () => _submitMoment(context, user, childInfo)
-                    : null,
-            child: AnimatedContainer(
-              duration: AppDurations.fast,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color:
-                    hasContent ? AppColors.warmGray800 : AppColors.warmGray100,
-                borderRadius: BorderRadius.circular(AppRadius.full),
-              ),
-              child: Text(
-                '留下',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: hasContent ? AppColors.white : AppColors.warmGray400,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 250.ms);
-  }
-
-  /// 文字输入区域 - 参考 Web 版简洁风格
-  Widget _buildTextInput(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 主输入框 - 完全透明，无边框
-        TextField(
-          controller: _textController,
-          maxLines: 6,
-          minLines: 4,
-          autofocus: true,
-          onChanged: (value) => setState(() {}),
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontSize: 18,
-            height: 1.8,
-            color: AppColors.warmGray800,
-            letterSpacing: 0.3,
-          ),
-          decoration: InputDecoration(
-            hintText: '这一刻，你想留下些什么？',
-            hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontSize: 18,
-              color: AppColors.warmGray300,
-              height: 1.8,
-              letterSpacing: 0.3,
-            ),
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.zero,
-            isDense: true,
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 100.ms);
-  }
-
-  /// 媒体按钮区域 - 虚线边框风格
-  Widget _buildMediaButtons(BuildContext context) {
-    final hasMedia = _selectedMedia.isNotEmpty;
-    final isImage = _mediaType == MediaType.image;
-    final isVideo = _mediaType == MediaType.video;
-    final isAudio = _mediaType == MediaType.audio;
-    final isAlbumActive = isImage || isVideo;
-    final isAlbumDisabled = hasMedia && isAudio;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 已选择的媒体预览
-        if (_selectedMedia.isNotEmpty) ...[
-          _buildMediaPreview(context),
-          const SizedBox(height: 12),
-        ],
-
-        // 媒体选择按钮（根据已选类型显示不同状态）
-        Row(
-          children: [
-            // 相册按钮（照片/视频）
-            _MediaButton(
-              icon: isVideo ? Iconsax.video : Iconsax.gallery,
-              label: _getAlbumButtonLabel(),
-              onTap: isAlbumDisabled ? null : _onAlbumPressed,
-              isDisabled: isAlbumDisabled,
-              isActive: isAlbumActive,
-            ),
-            const SizedBox(width: 12),
-            // 音频按钮
-            _MediaButton(
-              icon: Iconsax.microphone,
-              label: '音频',
-              onTap: hasMedia && !isAudio ? null : _pickAudio,
-              isDisabled: hasMedia && !isAudio,
-              isActive: isAudio,
-            ),
-          ],
-        ),
-
-        // 提示文字
-        if (hasMedia)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              _getMediaHint(),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.warmGray400,
-                fontSize: 11,
-              ),
-            ),
-          ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 200.ms);
-  }
-
-  /// 获取媒体提示文字
-  String _getMediaHint() {
-    switch (_mediaType) {
-      case MediaType.image:
-        return '已选 ${_selectedMedia.length} 张照片，最多 9 张';
-      case MediaType.video:
-        return '已选视频，时长限制 1 分钟';
-      case MediaType.audio:
-        return '已选音频，时长限制 30 分钟';
-      case MediaType.text:
-        return '';
-    }
-  }
-
-  String _getAlbumButtonLabel() {
-    switch (_mediaType) {
-      case MediaType.image:
-        return '${_selectedMedia.length}/9';
-      case MediaType.video:
-        return '视频';
-      case MediaType.audio:
-      case MediaType.text:
-        return '相册';
-    }
-  }
-
-  void _onAlbumPressed() {
-    if (_mediaType == MediaType.image && _selectedMedia.isNotEmpty) {
-      _pickImages();
-      return;
-    }
-    if (_mediaType == MediaType.video && _selectedMedia.isNotEmpty) {
-      _pickVideo();
-      return;
-    }
-    _showMediaTypePicker();
-  }
-
-  /// 显示媒体类型选择（照片/视频）
-  void _showMediaTypePicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder:
-          (ctx) => Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildMediaTypeOption(
-                  context: ctx,
-                  icon: Iconsax.image,
-                  label: '照片',
-                  hint: '最多 9 张',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _pickImages();
-                  },
-                ),
-                const Divider(height: 1),
-                _buildMediaTypeOption(
-                  context: ctx,
-                  icon: Iconsax.video,
-                  label: '视频',
-                  hint: '时长 1 分钟内',
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _pickVideo();
-                  },
-                ),
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.warmGray100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '取消',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.warmGray600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-                SizedBox(height: MediaQuery.of(ctx).padding.bottom),
-              ],
-            ),
-          ),
-    );
-  }
-
-  Widget _buildMediaTypeOption({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required String hint,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.warmGray600, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.warmGray800,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    hint,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.warmGray400,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 已选择媒体预览 - 仿微信朋友圈风格
-  Widget _buildMediaPreview(BuildContext context) {
-    final isVideo = _mediaType == MediaType.video;
-
-    // 视频只显示一个
-    if (isVideo) {
-      return _buildVideoPreview(context, _selectedMedia.first);
-    }
-
-    // 计算网格布局
-    final screenWidth = MediaQuery.of(context).size.width - 40; // 减去左右边距
-    final maxGridWidth = screenWidth * 0.75; // 最大宽度为屏幕的 75%
-
-    return _WechatStyleImageGrid(
-      images: _selectedMedia,
-      maxWidth: maxGridWidth,
-      onRemove: (index) {
-        setState(() {
-          _selectedMedia.removeAt(index);
-          if (_selectedMedia.isEmpty) {
-            _mediaType = MediaType.text;
-          }
-        });
-      },
-    );
-  }
-
-  /// 视频预览
-  Widget _buildVideoPreview(BuildContext context, XFile video) {
-    return Stack(
-      children: [
-        Container(
-          width: 180,
-          height: 180,
-          decoration: BoxDecoration(
-            color: AppColors.warmGray800,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Iconsax.video_play, color: AppColors.white, size: 40),
-                SizedBox(height: 8),
-                Text(
-                  '视频已选择',
-                  style: TextStyle(color: AppColors.white, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          top: 8,
-          right: 8,
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedMedia.clear();
-                _mediaType = MediaType.text;
-              });
-            },
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: AppColors.warmGray900.withValues(alpha: 0.7),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.close, color: AppColors.white, size: 14),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 选择照片（最多9张）
-  Future<void> _pickImages() async {
-    try {
-      // 请求权限
-      final ps = await PhotoManager.requestPermissionExtend();
-      if (!ps.hasAccess) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('请允许访问相册以选择照片'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
-          PhotoManager.openSetting();
-        }
-        return;
-      }
-
-      // 计算还能选多少张
-      final currentCount =
-          _mediaType == MediaType.image ? _selectedMedia.length : 0;
-      final remaining = 9 - currentCount;
-
-      if (remaining <= 0) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('最多只能选择 9 张照片'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
-        }
-        return;
-      }
-
-      if (!mounted) return;
-
-      final assets = await AssetPicker.pickAssets(
-        context,
-        pickerConfig: _buildAssetPickerConfig(remaining),
-      );
-
-      if (!mounted || assets == null || assets.isEmpty) {
-        return;
-      }
-
-      final files = await Future.wait(assets.map((asset) => asset.file));
-      final pickedFiles = files.whereType<File>().toList();
-
-      if (pickedFiles.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('读取照片失败'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
-        }
-        return;
-      }
-
-      setState(() {
-        if (_mediaType != MediaType.image) {
-          // 切换类型时清空
-          _selectedMedia.clear();
-        }
-
-        _selectedMedia.addAll(pickedFiles.map((file) => XFile(file.path)));
-        _mediaType = MediaType.image;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('选择照片失败: $e'),
-            backgroundColor: AppColors.warmGray800,
-          ),
-        );
-      }
-    }
-  }
-
-  /// 选择视频（最多1个，时长1分钟）
-  Future<void> _pickVideo() async {
-    try {
-      // 请求权限
-      final ps = await PhotoManager.requestPermissionExtend();
-      if (!ps.hasAccess) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('请允许访问相册以选择视频'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
-          PhotoManager.openSetting();
-        }
-        return;
-      }
-
-      if (!mounted) return;
-
-      final assets = await AssetPicker.pickAssets(
-        context,
-        pickerConfig: _buildAssetPickerConfig(
-          1,
-          requestType: RequestType.video,
-        ),
-      );
-
-      if (!mounted || assets == null || assets.isEmpty) {
-        return;
-      }
-
-      final asset = assets.first;
-      if (asset.duration > 60) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('视频时长需在 1 分钟以内'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
-        }
-        return;
-      }
-
-      final file = await asset.file;
-      if (file == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('读取视频失败'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
-        }
-        return;
-      }
-
-      setState(() {
-        _selectedMedia.clear();
-        _selectedMedia.add(XFile(file.path));
-        _mediaType = MediaType.video;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('选择视频失败: $e'),
-            backgroundColor: AppColors.warmGray800,
-          ),
-        );
-      }
-    }
-  }
-
-  /// 选择音频（最多1个，时长30分钟）
-  /// 注意：image_picker 不支持音频，这里暂时显示提示
-  Future<void> _pickAudio() async {
-    // TODO: 集成 file_picker 或其他音频选择库
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('音频选择功能开发中，敬请期待'),
-          backgroundColor: AppColors.warmGray800,
-        ),
-      );
-    }
-  }
-
-  /// 语境标注区
-  Widget _buildContextSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 我的心情
-        _buildContextLabel(context, '我的心情'),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children:
-              _myMoodOptions.map((tag) {
-                final isSelected = _selectedMyMoods.contains(tag);
-                return _ContextChip(
-                  tag: tag,
-                  isSelected: isSelected,
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedMyMoods.remove(tag);
-                      } else {
-                        _selectedMyMoods.add(tag);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-        ),
-
-        const SizedBox(height: 20),
-
-        // 当时的氛围
-        _buildContextLabel(context, '当时的氛围'),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children:
-              _atmosphereOptions.map((tag) {
-                final isSelected = _selectedAtmospheres.contains(tag);
-                return _ContextChip(
-                  tag: tag,
-                  isSelected: isSelected,
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedAtmospheres.remove(tag);
-                      } else {
-                        _selectedAtmospheres.add(tag);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms, delay: 300.ms);
-  }
-
-  Widget _buildContextLabel(BuildContext context, String text) {
-    return Text(
-      text,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: AppColors.warmGray300,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 1,
-        fontSize: 10,
-      ),
-    );
-  }
-
-  /// 发布到世界
-  Widget _buildFutureMessageSection(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color:
-            _shareToWorld
-                ? AppColors.warmOrange.withValues(alpha: 0.15)
-                : AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color:
-              _shareToWorld
-                  ? AppColors.warmOrangeDeep.withValues(alpha: 0.2)
-                  : AppColors.warmGray200.withValues(alpha: 0.5),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.warmGray900.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 标题行
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Iconsax.global,
-                    size: 16,
-                    color:
-                        _shareToWorld
-                            ? AppColors.warmOrangeDeep
-                            : AppColors.warmGray400,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '发布到世界',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color:
-                          _shareToWorld
-                              ? AppColors.warmGray800
-                              : AppColors.warmGray500,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              // 开关
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _shareToWorld = !_shareToWorld;
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: AppDurations.fast,
-                  width: 40,
-                  height: 24,
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color:
-                        _shareToWorld
-                            ? AppColors.warmOrangeDeep
-                            : AppColors.warmGray300,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: AnimatedAlign(
-                    duration: AppDurations.fast,
-                    alignment:
-                        _shareToWorld
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.warmGray900.withValues(alpha: 0.1),
-                            blurRadius: 2,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // 话题选择
-          if (_shareToWorld) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: AppColors.warmGray100, width: 1),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '选择话题',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.warmGray400,
-                      fontSize: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children:
-                        _worldTopicOptions.map((topic) {
-                          final isSelected = _worldTopic == topic;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _worldTopic = topic;
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    isSelected
-                                        ? AppColors.warmOrange.withValues(
-                                          alpha: 0.3,
-                                        )
-                                        : AppColors.warmGray50,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color:
-                                      isSelected
-                                          ? AppColors.warmOrangeDeep.withValues(
-                                            alpha: 0.3,
-                                          )
-                                          : AppColors.warmGray100,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                '#$topic',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.labelSmall?.copyWith(
-                                  color:
-                                      isSelected
-                                          ? AppColors.warmOrangeDark
-                                          : AppColors.warmGray500,
-                                  fontWeight:
-                                      isSelected
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    ).animate().fadeIn(duration: 300.ms, delay: 400.ms);
-  }
-
-  void _showExitDialog(BuildContext context) {
-    if (_textController.text.isEmpty && _selectedMedia.isEmpty) {
-      context.pop();
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: AppColors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-            content: Text(
-              '要把这一刻带走，还是留下来？',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            actionsAlignment: MainAxisAlignment.center,
-            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  context.pop();
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.warmGray500,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                child: const Text('带走'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.warmGray800,
-                  foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text('留下'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _submitMoment(BuildContext context, User user, CircleInfo circleInfo) {
-    // 取第一个媒体路径（当前模型只支持单个）
-    final mediaUrl =
-        _selectedMedia.isNotEmpty ? _selectedMedia.first.path : null;
-
-    final moment = Moment(
-      id: const Uuid().v4(),
-      author: user,
-      content: _textController.text,
-      mediaType: _mediaType,
-      mediaUrl: mediaUrl,
-      timestamp: DateTime.now(),
-      timeLabel: circleInfo.ageLabel,
-      contextTags: [..._selectedMyMoods, ..._selectedAtmospheres],
-      isSharedToWorld: _shareToWorld,
-      worldTopic: _shareToWorld ? _worldTopic : null,
-    );
-
-    ref.read(momentsProvider.notifier).addMoment(moment);
-
-    // 显示成功反馈
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.softGreen.withValues(alpha: 0.25),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Iconsax.tick_circle5,
-                size: 16,
-                color: AppColors.softGreenDeep,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text('这一刻，已经被你留住了。'),
-          ],
-        ),
-        backgroundColor: AppColors.warmGray800,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-        elevation: 8,
-      ),
-    );
-
-    context.pop();
-  }
-}
-
-/// 媒体按钮 - 虚线边框风格
-class _MediaButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-  final bool isDisabled;
-  final bool isActive;
-
-  const _MediaButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.isDisabled = false,
-    this.isActive = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final effectiveColor =
-        isDisabled
-            ? AppColors.warmGray200
-            : isActive
-            ? AppColors.calmBlue
-            : AppColors.warmGray400;
-    final bgColor =
-        isDisabled
-            ? AppColors.warmGray100.withValues(alpha: 0.5)
-            : isActive
-            ? AppColors.calmBlue.withValues(alpha: 0.08)
-            : AppColors.warmGray50;
-    final borderColor =
-        isDisabled
-            ? AppColors.warmGray100
-            : isActive
-            ? AppColors.calmBlue.withValues(alpha: 0.3)
-            : AppColors.warmGray200;
-
-    return GestureDetector(
-      onTap: isDisabled ? null : onTap,
-      child: Opacity(
-        opacity: isDisabled ? 0.5 : 1.0,
-        child: Container(
-          width: 88,
-          height: 88,
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: CustomPaint(
-            painter: DashedBorderPainter(
-              color: borderColor,
-              strokeWidth: 1.5,
-              radius: 16,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: effectiveColor, size: 26),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: effectiveColor,
-                    fontSize: 11,
-                    fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 语境标签 Chip
-class _ContextChip extends StatelessWidget {
-  final ContextTag tag;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ContextChip({
-    required this.tag,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: AppDurations.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.warmGray100 : AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.warmGray300 : AppColors.warmGray200,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          '${tag.emoji} ${tag.label}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: isSelected ? AppColors.warmGray800 : AppColors.warmGray600,
-            fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// 创建时刻浮层 Modal - 仿 Web 版效果
 class CreateMomentModal extends ConsumerStatefulWidget {
-  const CreateMomentModal({super.key});
+  final String? hint;
+
+  const CreateMomentModal({super.key, this.hint});
 
   @override
   ConsumerState<CreateMomentModal> createState() => _CreateMomentModalState();
@@ -1196,6 +40,10 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
   final Set<ContextTag> _selectedMyMoods = {};
   final Set<ContextTag> _selectedAtmospheres = {};
+
+  // 可折叠区域状态
+  bool _isMoodExpanded = false;
+  bool _isAtmosphereExpanded = false;
 
   // 发布到世界
   bool _shareToWorld = false;
@@ -1215,6 +63,15 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
   // 位置信息
   String? _locationName;
+
+  @override
+  void initState() {
+    super.initState();
+    // 如果有 hint，预填充到输入框
+    if (widget.hint != null) {
+      _textController.text = widget.hint!;
+    }
+  }
 
   // 拖拽删除状态
   bool _isDragging = false;
@@ -1249,56 +106,70 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return Stack(
-      children: [
-        Container(
-          height: screenHeight * 0.9,
-          decoration: const BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    return Scaffold(
+      backgroundColor: Colors.black.withValues(alpha: 0.5),
+      body: Stack(
+        children: [
+          // 点击遮罩区域关闭
+          GestureDetector(
+            onTap: () => _showExitDialog(context),
+            behavior: HitTestBehavior.opaque,
+            child: Container(color: Colors.transparent),
           ),
-          child: Column(
-            children: [
-              // 顶部 Header
-              _buildHeader(context),
 
-              // 内容区域
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTextInput(context),
-                      const SizedBox(height: 16),
-                      _buildWechatStyleMedia(context),
-                      const SizedBox(height: 20),
-                      _buildBottomOptions(context),
-                      const SizedBox(height: 20),
-                      _buildContextSection(context),
-                      const SizedBox(height: 24),
-                      _buildFutureMessageSection(context),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
+          // 底部弹出的白色卡片
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              height: screenHeight * 0.92,
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-            ],
-          ),
-        ),
+              child: Column(
+                children: [
+                  // 顶部 Header
+                  _buildHeader(context),
 
-        // 拖拽删除区域（底部）
-        if (_isDragging) _buildDeleteZone(context),
-      ],
-    ).animate().slideY(
-      begin: 0.1,
-      end: 0,
-      duration: 300.ms,
-      curve: Curves.easeOutCubic,
+                  // 内容区域
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTextInput(context),
+                          const SizedBox(height: 16),
+                          _buildWechatStyleMedia(context),
+                          const SizedBox(height: 20),
+                          _buildBottomOptions(context),
+                          const SizedBox(height: 20),
+                          _buildContextSection(context),
+                          const SizedBox(height: 24),
+                          _buildFutureMessageSection(context),
+                          const SizedBox(height: 40),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ).animate().slideY(
+              begin: 0.3,
+              end: 0,
+              duration: 350.ms,
+              curve: Curves.easeOutCubic,
+            ),
+          ),
+
+          // 拖拽删除区域（底部）
+          if (_isDragging) _buildDeleteZone(context),
+        ],
+      ),
     );
   }
 
@@ -1955,65 +826,158 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildContextLabel(context, '我的心情'),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children:
-              _myMoodOptions.map((tag) {
-                final isSelected = _selectedMyMoods.contains(tag);
-                return _ContextChip(
-                  tag: tag,
-                  isSelected: isSelected,
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedMyMoods.remove(tag);
-                      } else {
-                        _selectedMyMoods.add(tag);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
+        // 我的心情 - 可折叠
+        _buildCollapsibleTagSection(
+          context: context,
+          label: '我的心情',
+          isExpanded: _isMoodExpanded,
+          selectedTags: _selectedMyMoods,
+          allTags: _myMoodOptions,
+          onToggle: () => setState(() => _isMoodExpanded = !_isMoodExpanded),
+          onTagTap: (tag) {
+            setState(() {
+              if (_selectedMyMoods.contains(tag)) {
+                _selectedMyMoods.remove(tag);
+              } else {
+                _selectedMyMoods.add(tag);
+              }
+            });
+          },
         ),
-        const SizedBox(height: 20),
-        _buildContextLabel(context, '当时的氛围'),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children:
-              _atmosphereOptions.map((tag) {
-                final isSelected = _selectedAtmospheres.contains(tag);
-                return _ContextChip(
-                  tag: tag,
-                  isSelected: isSelected,
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedAtmospheres.remove(tag);
-                      } else {
-                        _selectedAtmospheres.add(tag);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
+
+        const SizedBox(height: 16),
+
+        // 当时的氛围 - 可折叠
+        _buildCollapsibleTagSection(
+          context: context,
+          label: '当时的氛围',
+          isExpanded: _isAtmosphereExpanded,
+          selectedTags: _selectedAtmospheres,
+          allTags: _atmosphereOptions,
+          onToggle:
+              () => setState(
+                () => _isAtmosphereExpanded = !_isAtmosphereExpanded,
+              ),
+          onTagTap: (tag) {
+            setState(() {
+              if (_selectedAtmospheres.contains(tag)) {
+                _selectedAtmospheres.remove(tag);
+              } else {
+                _selectedAtmospheres.add(tag);
+              }
+            });
+          },
         ),
       ],
     );
   }
 
-  Widget _buildContextLabel(BuildContext context, String text) {
-    return Text(
-      text,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: AppColors.warmGray400,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.5,
-        fontSize: 11,
+  /// 可折叠的标签区域
+  Widget _buildCollapsibleTagSection({
+    required BuildContext context,
+    required String label,
+    required bool isExpanded,
+    required Set<ContextTag> selectedTags,
+    required List<ContextTag> allTags,
+    required VoidCallback onToggle,
+    required Function(ContextTag) onTagTap,
+  }) {
+    final hasSelection = selectedTags.isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color:
+            isExpanded
+                ? AppColors.warmGray50.withValues(alpha: 0.5)
+                : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isExpanded ? AppColors.warmGray100 : Colors.transparent,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 标题行 - 可点击展开/折叠
+          GestureDetector(
+            onTap: onToggle,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isExpanded ? 12 : 0,
+                vertical: isExpanded ? 12 : 4,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.warmGray400,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1,
+                      fontSize: 10,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 已选标签摘要（折叠时显示）
+                  if (!isExpanded && hasSelection)
+                    Expanded(
+                      child: Text(
+                        selectedTags
+                            .map((t) => '${t.emoji}${t.label}')
+                            .join(' '),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.warmGray600,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  if (!isExpanded && !hasSelection) const Spacer(),
+                  // 展开/折叠图标
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0,
+                    duration: AppDurations.fast,
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 18,
+                      color: AppColors.warmGray300,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 标签列表（展开时显示）
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children:
+                    allTags.map((tag) {
+                      final isSelected = selectedTags.contains(tag);
+                      return _ContextChip(
+                        tag: tag,
+                        isSelected: isSelected,
+                        onTap: () => onTagTap(tag),
+                      );
+                    }).toList(),
+              ),
+            ),
+            crossFadeState:
+                isExpanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+            duration: AppDurations.fast,
+            sizeCurve: AppCurves.gentle,
+          ),
+        ],
       ),
     );
   }
@@ -2457,38 +1421,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
     ref.read(momentsProvider.notifier).addMoment(moment);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.softGreen.withValues(alpha: 0.25),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Iconsax.tick_circle5,
-                size: 16,
-                color: AppColors.softGreenDeep,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text('这一刻，已经被你留住了。'),
-          ],
-        ),
-        backgroundColor: AppColors.warmGray800,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-        elevation: 8,
-      ),
-    );
+    AppSnackBar.showMomentSaved(context);
 
     Navigator.of(context).pop();
   }
@@ -2858,4 +1791,55 @@ class _LocationItem {
   final String address;
 
   const _LocationItem({required this.name, required this.address});
+}
+
+/// 语境标签 Chip
+class _ContextChip extends StatelessWidget {
+  final ContextTag tag;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ContextChip({
+    required this.tag,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppDurations.fast,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color:
+              isSelected
+                  ? AppColors.warmGray800.withValues(alpha: 0.1)
+                  : AppColors.warmGray50,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.warmGray400 : AppColors.warmGray200,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(tag.emoji, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 4),
+            Text(
+              tag.label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color:
+                    isSelected ? AppColors.warmGray800 : AppColors.warmGray600,
+                fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

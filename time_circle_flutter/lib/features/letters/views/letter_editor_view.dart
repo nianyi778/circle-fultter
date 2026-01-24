@@ -492,7 +492,7 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
   Widget _buildSealingToast(BuildContext context) {
     return Center(
       child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
               color: AppColors.warmGray800.withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(AppRadius.full),
@@ -501,16 +501,20 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // 图标容器 - 使用 Center 确保图标完美居中
                 Container(
-                  padding: const EdgeInsets.all(4),
+                  width: 28,
+                  height: 28,
                   decoration: BoxDecoration(
-                    color: AppColors.softGreen.withValues(alpha: 0.25),
+                    color: AppColors.softGreenDeep.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Iconsax.tick_circle5,
-                    size: 16,
-                    color: AppColors.softGreenDeep,
+                  child: const Center(
+                    child: Icon(
+                      Icons.check_rounded,
+                      size: 16,
+                      color: AppColors.softGreenDeep,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),

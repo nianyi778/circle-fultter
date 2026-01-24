@@ -22,18 +22,18 @@ void main() async {
     ),
   );
 
-  runApp(const ProviderScope(child: TimeCircleApp()));
+  runApp(const ProviderScope(child: NianNianApp()));
 }
 
-class TimeCircleApp extends ConsumerWidget {
-  const TimeCircleApp({super.key});
+class NianNianApp extends ConsumerWidget {
+  const NianNianApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'TimeCircle',
+      title: '念念',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,

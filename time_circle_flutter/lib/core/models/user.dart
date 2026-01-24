@@ -112,6 +112,15 @@ class CircleInfo {
     final days = now.difference(startDate!).inDays + 1; // +1 因为当天也算
     return '第 $days 天';
   }
+
+  /// 距离起始日期的天数（整数）
+  /// 用于首页大字体显示
+  int get daysSinceBirth {
+    if (startDate == null) return 1;
+
+    final now = DateTime.now();
+    return now.difference(startDate!).inDays + 1; // +1 因为当天也算
+  }
 }
 
 /// 保持向后兼容的别名

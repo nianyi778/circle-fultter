@@ -28,7 +28,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -127,6 +127,15 @@ class DatabaseService {
         FOREIGN KEY (moment_id) REFERENCES moments (id) ON DELETE CASCADE,
         FOREIGN KEY (author_id) REFERENCES users (id),
         FOREIGN KEY (reply_to_id) REFERENCES users (id)
+      )
+    ''');
+
+    // 设置表
+    await db.execute('''
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
 
@@ -320,6 +329,35 @@ class DatabaseService {
       try {
         await db.execute('ALTER TABLE moments ADD COLUMN world_topic TEXT');
       } catch (_) {}
+    }
+
+    // 版本 3 -> 4: 添加 settings 表
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      ''');
+
+      // 插入默认设置
+      final now = DateTime.now().toIso8601String();
+      final defaultSettings = {
+        'annual_letter_reminder': 'true',
+        'face_blur_enabled': 'true',
+        'default_visibility': 'private',
+        'time_lock_duration': '365',
+      };
+      for (final entry in defaultSettings.entries) {
+        try {
+          await db.insert('settings', {
+            'key': entry.key,
+            'value': entry.value,
+            'updated_at': now,
+          });
+        } catch (_) {}
+      }
     }
   }
 
@@ -787,5 +825,112 @@ class DatabaseService {
     await db.delete('moments');
     await db.delete('letters');
     await db.delete('world_posts');
+  }
+
+  // ============== 设置相关 ==============
+
+  /// 获取所有设置
+  Future<Map<String, String>> getAllSettings() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('settings');
+    return {for (var m in maps) m['key'] as String: m['value'] as String};
+  }
+
+  /// 获取单个设置值
+  Future<String?> getSetting(String key) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: [key],
+    );
+    if (maps.isEmpty) return null;
+    return maps.first['value'] as String;
+  }
+
+  /// 获取设置值（带默认值）
+  Future<String> getSettingWithDefault(String key, String defaultValue) async {
+    final value = await getSetting(key);
+    return value ?? defaultValue;
+  }
+
+  /// 获取布尔设置
+  Future<bool> getBoolSetting(String key, {bool defaultValue = false}) async {
+    final value = await getSetting(key);
+    if (value == null) return defaultValue;
+    return value.toLowerCase() == 'true';
+  }
+
+  /// 获取整数设置
+  Future<int> getIntSetting(String key, {int defaultValue = 0}) async {
+    final value = await getSetting(key);
+    if (value == null) return defaultValue;
+    return int.tryParse(value) ?? defaultValue;
+  }
+
+  /// 保存设置
+  Future<void> saveSetting(String key, String value) async {
+    final db = await database;
+    await db.insert('settings', {
+      'key': key,
+      'value': value,
+      'updated_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  /// 保存布尔设置
+  Future<void> saveBoolSetting(String key, bool value) async {
+    await saveSetting(key, value.toString());
+  }
+
+  /// 保存整数设置
+  Future<void> saveIntSetting(String key, int value) async {
+    await saveSetting(key, value.toString());
+  }
+
+  /// 删除设置
+  Future<void> deleteSetting(String key) async {
+    final db = await database;
+    await db.delete('settings', where: 'key = ?', whereArgs: [key]);
+  }
+
+  /// 删除用户
+  Future<void> deleteUser(String id) async {
+    final db = await database;
+    await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// 获取统计信息
+  Future<Map<String, int>> getStatistics() async {
+    final db = await database;
+    final momentCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM moments'),
+        ) ??
+        0;
+    final letterCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM letters'),
+        ) ??
+        0;
+    final userCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM users'),
+        ) ??
+        0;
+
+    // 计算有记录的天数
+    final daysResult = await db.rawQuery('''
+      SELECT COUNT(DISTINCT DATE(timestamp)) as days FROM moments
+    ''');
+    final recordedDays =
+        daysResult.isNotEmpty ? (daysResult.first['days'] as int?) ?? 0 : 0;
+
+    return {
+      'momentCount': momentCount,
+      'letterCount': letterCount,
+      'userCount': userCount,
+      'recordedDays': recordedDays,
+    };
   }
 }

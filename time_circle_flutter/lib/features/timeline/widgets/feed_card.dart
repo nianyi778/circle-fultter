@@ -8,13 +8,19 @@ import '../../../core/models/moment.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/image_utils.dart';
 
-/// 时间线卡片
+/// 时间线卡片 - 重新设计
+///
+/// 设计理念：
+/// - 更大的呼吸空间
+/// - 优化的图片布局（更大、更沉浸）
+/// - 简洁的交互
+/// - 温柔的视觉层次
 class FeedCard extends ConsumerStatefulWidget {
   final Moment moment;
   final VoidCallback? onTap;
   final void Function(String id)? onDelete;
   final void Function(String id)? onShareToWorld;
-  final VoidCallback? onReply; // 打开回复抽屉
+  final VoidCallback? onReply;
 
   const FeedCard({
     super.key,
@@ -64,17 +70,14 @@ class _FeedCardState extends ConsumerState<FeedCard>
     ref.read(momentsProvider.notifier).toggleFavorite(widget.moment.id);
   }
 
-  void _openMenu() {
-    setState(() => _isMenuOpen = true);
-  }
-
-  void _closeMenu() {
-    setState(() => _isMenuOpen = false);
-  }
+  void _openMenu() => setState(() => _isMenuOpen = true);
+  void _closeMenu() => setState(() => _isMenuOpen = false);
 
   @override
   Widget build(BuildContext context) {
     final moment = widget.moment;
+    final hasMedia = moment.mediaUrl != null && moment.mediaUrl!.isNotEmpty;
+    final isImageType = moment.mediaType == MediaType.image;
 
     return Stack(
       children: [
@@ -85,250 +88,62 @@ class _FeedCardState extends ConsumerState<FeedCard>
             decoration: BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(
-                color: AppColors.warmGray200.withValues(alpha: 0.5),
-                width: 1,
-              ),
-              boxShadow: AppShadows.subtle,
+              border: Border.all(color: AppColors.warmGray150, width: 1),
+              boxShadow: AppShadows.paper,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 发布者信息区
+                // 图片在顶部（如果有图片）
+                if (hasMedia && isImageType) _buildTopImage(context),
+
+                // 发布者信息 + 内容
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
-                  child: Row(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 头像
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.warmGray100,
-                            width: 1,
-                          ),
-                        ),
-                        child: ImageUtils.buildAvatar(
-                          url: moment.author.avatar,
-                          size: 36,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
+                      // 头部：头像 + 名字 + 时间 + 更多
+                      _buildHeader(context),
 
-                      // 名字和时间
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              moment.author.name,
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              moment.childAgeLabel,
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(color: AppColors.warmGray400),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // 更多按钮
-                      GestureDetector(
-                        onTap: _openMenu,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color:
-                                _isMenuOpen
-                                    ? AppColors.warmGray100
-                                    : Colors.transparent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Iconsax.more,
-                            size: 20,
-                            color:
-                                _isMenuOpen
-                                    ? AppColors.warmGray600
-                                    : AppColors.warmGray300,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 文字内容
-                if (moment.content.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: Text(
-                      moment.content,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(height: 1.6),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-
-                // 媒体区
-                _buildMediaSection(context),
-
-                // 语境标签
-                if (moment.contextTags.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children:
-                          moment.contextTags.map((tag) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.warmGray100,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.full,
-                                ),
-                                border: Border.all(
-                                  color: AppColors.warmGray200.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    tag.emoji,
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    tag.label,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.labelSmall?.copyWith(
-                                      color: AppColors.warmGray600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                    ),
-                  ),
-
-                // 世界分享状态
-                if (moment.isSharedToWorld)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Iconsax.global,
-                          size: 12,
-                          color: AppColors.warmGray400,
-                        ),
-                        const SizedBox(width: 4),
+                      // 文字内容
+                      if (moment.content.isNotEmpty) ...[
+                        const SizedBox(height: 16),
                         Text(
-                          '已分享至世界',
-                          style: Theme.of(
+                          moment.content,
+                          style: AppTypography.body(
                             context,
-                          ).textTheme.labelSmall?.copyWith(
-                            color: AppColors.warmGray400,
-                            fontSize: 10,
-                          ),
+                          ).copyWith(height: 1.75),
+                          maxLines: 6,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                    ),
-                  ),
 
-                // 操作区（极简）
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: AppColors.warmGray100, width: 1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      // 共鸣（心形图标）
-                      GestureDetector(
-                        onTap: _handleLike,
-                        behavior: HitTestBehavior.opaque,
-                        child: AnimatedBuilder(
-                          animation: _likeScale,
-                          builder: (context, child) {
-                            return Transform.scale(
-                              scale: _likeScale.value,
-                              child: Icon(
-                                moment.isFavorite
-                                    ? Iconsax.heart5
-                                    : Iconsax.heart,
-                                size: 20,
-                                color:
-                                    moment.isFavorite
-                                        ? AppColors.heart
-                                        : AppColors.warmGray400,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 20),
+                      // 非图片媒体
+                      if (hasMedia && !isImageType) ...[
+                        const SizedBox(height: 16),
+                        _buildMediaSection(context),
+                      ],
 
-                      // 回复（图标 + 数字）
-                      GestureDetector(
-                        onTap: widget.onReply,
-                        behavior: HitTestBehavior.opaque,
-                        child: Builder(
-                          builder: (context) {
-                            final comments = ref.watch(
-                              commentsProvider(moment.id),
-                            );
-                            return Row(
-                              children: [
-                                Transform.flip(
-                                  flipX: true,
-                                  child: Icon(
-                                    Iconsax.message,
-                                    size: 20,
-                                    color: AppColors.warmGray400,
-                                  ),
-                                ),
-                                if (comments.isNotEmpty) ...[
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '${comments.length}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.labelSmall?.copyWith(
-                                      color: AppColors.warmGray400,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            );
-                          },
-                        ),
-                      ),
+                      // 语境标签
+                      if (moment.contextTags.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        _buildContextTags(context),
+                      ],
+
+                      // 世界分享状态
+                      if (moment.isSharedToWorld) ...[
+                        const SizedBox(height: 12),
+                        _buildWorldShareBadge(context),
+                      ],
                     ],
                   ),
                 ),
 
-                // 评论预览条
+                // 底部操作区
+                _buildActionBar(context),
+
+                // 评论预览
                 _buildCommentPreview(context),
               ],
             ),
@@ -347,8 +162,8 @@ class _FeedCardState extends ConsumerState<FeedCard>
         // 弹出菜单
         if (_isMenuOpen)
           Positioned(
-            top: 56,
-            right: 12,
+            top: 60,
+            right: 20,
             child: _CardMenu(
               moment: moment,
               onClose: _closeMenu,
@@ -360,123 +175,111 @@ class _FeedCardState extends ConsumerState<FeedCard>
     );
   }
 
+  /// 顶部图片（大尺寸）
+  Widget _buildTopImage(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(AppRadius.card),
+        topRight: Radius.circular(AppRadius.card),
+      ),
+      child: AspectRatio(
+        aspectRatio: 4 / 3,
+        child: ImageUtils.buildImage(
+          url: widget.moment.mediaUrl!,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  /// 头部信息
+  Widget _buildHeader(BuildContext context) {
+    final moment = widget.moment;
+
+    return Row(
+      children: [
+        // 头像
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.warmGray100, width: 1),
+          ),
+          child: ClipOval(
+            child: ImageUtils.buildAvatar(url: moment.author.avatar, size: 40),
+          ),
+        ),
+        const SizedBox(width: 12),
+
+        // 名字和时间标签
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                moment.author.displayName,
+                style: AppTypography.body(
+                  context,
+                ).copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                moment.childAgeLabel,
+                style: AppTypography.caption(
+                  context,
+                ).copyWith(color: AppColors.warmGray400),
+              ),
+            ],
+          ),
+        ),
+
+        // 更多按钮
+        GestureDetector(
+          onTap: _openMenu,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _isMenuOpen ? AppColors.warmGray100 : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Iconsax.more,
+              size: 20,
+              color:
+                  _isMenuOpen ? AppColors.warmGray600 : AppColors.warmGray300,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 媒体区（视频/音频）
   Widget _buildMediaSection(BuildContext context) {
     final moment = widget.moment;
 
     switch (moment.mediaType) {
-      case MediaType.image:
-        if (moment.mediaUrl == null || moment.mediaUrl!.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: ImageUtils.buildImage(url: moment.mediaUrl!),
-            ),
-          ),
-        );
-
       case MediaType.video:
-        if (moment.mediaUrl == null || moment.mediaUrl!.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    color: AppColors.warmGray800,
-                  ),
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Iconsax.play5,
-                      color: AppColors.white,
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-
-      case MediaType.audio:
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.warmOrange,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(
-                color: AppColors.warmOrangeDeep.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Row(
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
+                Container(width: double.infinity, color: AppColors.warmGray800),
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: AppColors.warmOrangeDeep.withValues(alpha: 0.3),
+                    color: AppColors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Iconsax.play5,
-                    color: AppColors.warmOrangeDark,
-                    size: 16,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: 24,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: List.generate(20, (index) {
-                            final height =
-                                8.0 + (math.Random(index).nextDouble() * 16);
-                            return Container(
-                              width: 3,
-                              height: height,
-                              decoration: BoxDecoration(
-                                color: AppColors.warmOrangeDeep.withValues(
-                                  alpha: 0.5,
-                                ),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '0:24 · 语音',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.warmOrangeDark,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                    color: AppColors.white,
+                    size: 24,
                   ),
                 ),
               ],
@@ -484,9 +287,215 @@ class _FeedCardState extends ConsumerState<FeedCard>
           ),
         );
 
-      case MediaType.text:
+      case MediaType.audio:
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.warmOrangeLight,
+                AppColors.warmOrange.withValues(alpha: 0.8),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.warmOrangeDeep.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Iconsax.play5,
+                  color: AppColors.warmOrangeDark,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 波形图
+                    SizedBox(
+                      height: 24,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: List.generate(20, (index) {
+                          final height =
+                              8.0 + (math.Random(index).nextDouble() * 16);
+                          return Container(
+                            width: 3,
+                            height: height,
+                            decoration: BoxDecoration(
+                              color: AppColors.warmOrangeDeep.withValues(
+                                alpha: 0.5,
+                              ),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '0:24 · 语音记录',
+                      style: AppTypography.caption(context).copyWith(
+                        color: AppColors.warmOrangeDark,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+      default:
         return const SizedBox.shrink();
     }
+  }
+
+  /// 语境标签
+  Widget _buildContextTags(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children:
+          widget.moment.contextTags.map((tag) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.warmGray100,
+                borderRadius: BorderRadius.circular(AppRadius.chip),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(tag.emoji, style: const TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
+                  Text(
+                    tag.label,
+                    style: AppTypography.caption(
+                      context,
+                    ).copyWith(color: AppColors.warmGray600),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+    );
+  }
+
+  /// 世界分享状态
+  Widget _buildWorldShareBadge(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Iconsax.global, size: 12, color: AppColors.warmGray400),
+        const SizedBox(width: 4),
+        Text(
+          '已分享至世界',
+          style: AppTypography.micro(
+            context,
+          ).copyWith(color: AppColors.warmGray400),
+        ),
+      ],
+    );
+  }
+
+  /// 底部操作区
+  Widget _buildActionBar(BuildContext context) {
+    final moment = widget.moment;
+    final comments = ref.watch(commentsProvider(moment.id));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.warmGray100, width: 1)),
+      ),
+      child: Row(
+        children: [
+          // 共鸣
+          GestureDetector(
+            onTap: _handleLike,
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedBuilder(
+              animation: _likeScale,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _likeScale.value,
+                  child: Row(
+                    children: [
+                      Icon(
+                        moment.isFavorite ? Iconsax.heart5 : Iconsax.heart,
+                        size: 20,
+                        color:
+                            moment.isFavorite
+                                ? AppColors.heart
+                                : AppColors.warmGray400,
+                      ),
+                      if (moment.isFavorite) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '共鸣',
+                          style: AppTypography.caption(
+                            context,
+                          ).copyWith(color: AppColors.heart),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 24),
+
+          // 回复
+          GestureDetector(
+            onTap: widget.onReply,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                Transform.flip(
+                  flipX: true,
+                  child: Icon(
+                    Iconsax.message,
+                    size: 20,
+                    color: AppColors.warmGray400,
+                  ),
+                ),
+                if (comments.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '${comments.length}',
+                    style: AppTypography.caption(
+                      context,
+                    ).copyWith(color: AppColors.warmGray400),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const Spacer(),
+
+          // 时间戳
+          Text(
+            widget.moment.relativeTime,
+            style: AppTypography.micro(
+              context,
+            ).copyWith(color: AppColors.warmGray300),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 评论预览条
@@ -503,17 +512,17 @@ class _FeedCardState extends ConsumerState<FeedCard>
     return GestureDetector(
       onTap: widget.onReply,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.warmGray100,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          color: AppColors.warmGray50,
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
         child: Row(
           children: [
             Text(
-              '已有 ${comments.length} 条回复',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              '${comments.length} 条回复',
+              style: AppTypography.caption(context).copyWith(
                 color: AppColors.warmGray600,
                 fontWeight: FontWeight.w600,
               ),
@@ -530,9 +539,9 @@ class _FeedCardState extends ConsumerState<FeedCard>
             Expanded(
               child: Text(
                 previewText,
-                style: Theme.of(
+                style: AppTypography.caption(
                   context,
-                ).textTheme.labelSmall?.copyWith(color: AppColors.warmGray400),
+                ).copyWith(color: AppColors.warmGray400),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -563,143 +572,78 @@ class _CardMenu extends StatelessWidget {
     final isShared = moment.isSharedToWorld;
 
     return Container(
-      width: 200,
+      width: 180,
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.warmGray100, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.warmGray900.withValues(alpha: 0.12),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadows.elevated,
       ),
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 分享到世界按钮
+            // 分享到世界
             if (onShareToWorld != null)
-              GestureDetector(
+              _MenuItem(
+                icon: isShared ? Iconsax.eye_slash : Iconsax.global,
+                label: isShared ? '从世界撤回' : '发布到世界',
                 onTap: () {
                   onClose();
                   onShareToWorld!(moment.id);
                 },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  margin: const EdgeInsets.only(bottom: 4),
-                  decoration: BoxDecoration(
-                    color: isShared ? AppColors.warmGray50 : AppColors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color:
-                          isShared
-                              ? AppColors.warmGray200
-                              : AppColors.warmGray100,
-                      width: 1,
-                    ),
-                    boxShadow:
-                        isShared
-                            ? null
-                            : [
-                              BoxShadow(
-                                color: AppColors.warmGray200.withValues(
-                                  alpha: 0.5,
-                                ),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                  ),
-                  child: Column(
-                    children: [
-                      // 图标
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color:
-                              isShared
-                                  ? AppColors.warmGray200
-                                  : AppColors.warmGray50,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isShared
-                              ? Icons.visibility_off_rounded
-                              : Icons.public_rounded,
-                          size: 20,
-                          color:
-                              isShared
-                                  ? AppColors.warmGray500
-                                  : AppColors.warmGray600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // 文字
-                      Text(
-                        isShared ? '从世界撤回' : '发布到世界',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.warmGray700,
-                        ),
-                      ),
-                      // 当前话题提示
-                      if (isShared && moment.worldTopic != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            '当前话题: ${moment.worldTopic}',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelSmall?.copyWith(
-                              color: AppColors.warmGray400,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
               ),
 
-            // 删除按钮
+            // 删除
             if (onDelete != null)
-              GestureDetector(
+              _MenuItem(
+                icon: Iconsax.trash,
+                label: '删除',
+                isDestructive: true,
                 onTap: () {
                   onClose();
                   onDelete!(moment.id);
                 },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.delete_outline_rounded,
-                        size: 18,
-                        color: Colors.red.shade400,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '删除',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.red.shade400,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 菜单项
+class _MenuItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  const _MenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDestructive ? Colors.red.shade400 : AppColors.warmGray600;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: AppTypography.body(context).copyWith(color: color),
+            ),
           ],
         ),
       ),

@@ -1,8 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../create/views/create_moment_view.dart';
+
+/// 显示创建时刻弹窗
+void _showCreateModal(BuildContext context, {String? hint}) {
+  Navigator.of(context).push(
+    PageRouteBuilder(
+      opaque: false,
+      barrierDismissible: false,
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return CreateMomentModal(hint: hint);
+      },
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.05),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: animation, curve: AppCurves.enter),
+            ),
+            child: child,
+          ),
+        );
+      },
+      transitionDuration: AppDurations.pageTransition,
+      reverseTransitionDuration: AppDurations.normal,
+    ),
+  );
+}
 
 /// 灵感胶囊 - 新用户引导标签
 ///
@@ -65,10 +94,7 @@ class _TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        // 跳转到创建页面，可以传递预设内容
-        context.push('/create', extra: {'hint': item.label});
-      },
+      onTap: () => _showCreateModal(context, hint: item.label),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(

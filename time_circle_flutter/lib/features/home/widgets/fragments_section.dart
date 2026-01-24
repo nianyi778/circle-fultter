@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/moment.dart';
 
-/// 时光碎片统计区域
+/// 时光碎片统计区域 - 重新设计
 ///
-/// 显示声音和视频的数量统计，匹配 Web 版本设计
+/// 设计理念：
+/// - 横向滑动的统计卡片
+/// - 更简洁的视觉，使用新的图标和配色
+/// - 无缝滑动体验
 class FragmentsSection extends ConsumerWidget {
   const FragmentsSection({super.key});
 
@@ -16,156 +20,176 @@ class FragmentsSection extends ConsumerWidget {
     final moments = ref.watch(momentsProvider);
 
     // 计算统计数据
+    final imageCount =
+        moments.where((m) => m.mediaType == MediaType.image).length;
     final audioCount =
         moments.where((m) => m.mediaType == MediaType.audio).length;
     final videoCount =
         moments.where((m) => m.mediaType == MediaType.video).length;
+    final textCount =
+        moments.where((m) => m.mediaType == MediaType.text).length;
+    final totalCount = moments.length;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section 标题
-          Row(
+    // 如果没有任何记录，不显示这个区块
+    if (totalCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    final stats = <_StatItem>[
+      _StatItem(
+        icon: Iconsax.gallery,
+        label: '照片',
+        count: imageCount,
+        color: AppColors.warmOrangeDark,
+        bgColor: AppColors.warmOrangeLight.withValues(alpha: 0.3),
+      ),
+      _StatItem(
+        icon: Iconsax.microphone,
+        label: '声音',
+        count: audioCount,
+        color: AppColors.warmPeachDeep,
+        bgColor: AppColors.warmPeach.withValues(alpha: 0.3),
+      ),
+      _StatItem(
+        icon: Iconsax.video,
+        label: '视频',
+        count: videoCount,
+        color: AppColors.warmGray600,
+        bgColor: AppColors.warmGray150,
+      ),
+      _StatItem(
+        icon: Iconsax.document_text,
+        label: '文字',
+        count: textCount,
+        color: AppColors.warmGray500,
+        bgColor: AppColors.warmGray100,
+      ),
+    ];
+
+    // 只显示有数据的统计项
+    final visibleStats = stats.where((s) => s.count > 0).toList();
+
+    if (visibleStats.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section 标题
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pagePadding,
+          ),
+          child: Row(
             children: [
-              Icon(
-                Icons.schedule_rounded,
-                size: 16,
-                color: AppColors.warmGray400,
+              Container(
+                width: 4,
+                height: 4,
+                decoration: const BoxDecoration(
+                  color: AppColors.warmGray300,
+                  shape: BoxShape.circle,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
                 '时光碎片',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.warmGray800,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppTypography.caption(
+                  context,
+                ).copyWith(color: AppColors.warmGray500, letterSpacing: 1),
+              ),
+              const Spacer(),
+              Text(
+                '共 $totalCount 条',
+                style: AppTypography.caption(
+                  context,
+                ).copyWith(color: AppColors.warmGray400),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+        ),
+        const SizedBox(height: 12),
 
-          // 统计卡片网格
-          Row(
-            children: [
-              // 声音统计卡片 - 橙色主题
-              Expanded(
-                child: _StatsCard(
-                  icon: Icons.mic_rounded,
-                  iconColor: const Color(0xFFEA580C), // orange-600
-                  bgColor: const Color(0xFFFFFBF6), // warm orange bg
-                  borderColor: const Color(
-                    0xFFFED7AA,
-                  ).withValues(alpha: 0.5), // orange-200
-                  label: '声音',
-                  count: audioCount,
-                  description: '段语音记录',
-                ),
-              ),
-              const SizedBox(width: 16),
-
-              // 视频统计卡片 - 灰色主题
-              Expanded(
-                child: _StatsCard(
-                  icon: Icons.videocam_rounded,
-                  iconColor: AppColors.warmGray700,
-                  bgColor: AppColors.warmGray100,
-                  borderColor: AppColors.warmGray200.withValues(alpha: 0.5),
-                  label: '视频',
-                  count: videoCount,
-                  description: '个生动瞬间',
-                ),
-              ),
-            ],
+        // 横向滑动卡片
+        SizedBox(
+          height: 88,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pagePadding,
+            ),
+            physics: const BouncingScrollPhysics(),
+            itemCount: visibleStats.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              return _FragmentCard(stat: visibleStats[index]);
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// 统计卡片组件
-class _StatsCard extends StatelessWidget {
+/// 统计项数据
+class _StatItem {
   final IconData icon;
-  final Color iconColor;
-  final Color bgColor;
-  final Color borderColor;
   final String label;
   final int count;
-  final String description;
+  final Color color;
+  final Color bgColor;
 
-  const _StatsCard({
+  const _StatItem({
     required this.icon,
-    required this.iconColor,
-    required this.bgColor,
-    required this.borderColor,
     required this.label,
     required this.count,
-    required this.description,
+    required this.color,
+    required this.bgColor,
   });
+}
+
+/// 单个碎片统计卡片
+class _FragmentCard extends StatelessWidget {
+  final _StatItem stat;
+
+  const _FragmentCard({required this.stat});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
-      padding: const EdgeInsets.all(20),
+      width: 120,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: borderColor, width: 1),
+        color: stat.bgColor,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: stat.color.withValues(alpha: 0.1), width: 1),
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 背景装饰图标
-          Positioned(
-            right: -16,
-            bottom: -16,
-            child: Transform.rotate(
-              angle: 0.2, // ~12 degrees
-              child: Icon(
-                icon,
-                size: 100,
-                color: iconColor.withValues(alpha: 0.12),
-              ),
-            ),
-          ),
+          // 图标
+          Icon(stat.icon, size: 20, color: stat.color),
 
-          // 内容
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // 底部：数字和标签
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
-              // 标签
               Text(
-                label.toUpperCase(),
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: iconColor.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                  fontSize: 10,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // 大数字
-              Text(
-                '$count',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  color: iconColor,
+                '${stat.count}',
+                style: AppTypography.title(context).copyWith(
+                  color: stat.color,
+                  fontSize: 24,
                   fontWeight: FontWeight.w400,
-                  fontSize: 36,
-                  height: 1,
                 ),
               ),
-              const SizedBox(height: 4),
-
-              // 描述文字
+              const SizedBox(width: 4),
               Text(
-                description,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: iconColor.withValues(alpha: 0.6),
-                  fontSize: 12,
-                ),
+                stat.label,
+                style: AppTypography.caption(
+                  context,
+                ).copyWith(color: stat.color.withValues(alpha: 0.7)),
               ),
             ],
           ),

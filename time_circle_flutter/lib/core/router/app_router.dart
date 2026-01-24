@@ -8,9 +8,17 @@ import '../../features/letters/views/letters_view.dart';
 import '../../features/letters/views/letter_detail_view.dart';
 import '../../features/letters/views/letter_editor_view.dart';
 import '../../features/world/views/world_view.dart';
-import '../../features/create/views/create_moment_view.dart';
 import '../../features/timeline/views/moment_detail_view.dart';
 import '../../features/settings/views/settings_view.dart';
+import '../../features/settings/views/profile_edit_view.dart';
+import '../../features/settings/views/circle_info_view.dart';
+import '../../features/settings/views/members_view.dart';
+import '../../features/settings/views/visibility_view.dart';
+import '../../features/settings/views/time_lock_view.dart';
+import '../../features/settings/views/export_view.dart';
+import '../../features/settings/views/backup_view.dart';
+import '../../features/settings/views/about_view.dart';
+import '../../features/settings/views/feedback_view.dart';
 import '../../shared/widgets/main_scaffold.dart';
 
 /// 全局路由 Provider
@@ -67,18 +75,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // 独立页面路由（无底部导航）
-      GoRoute(
-        path: '/create',
-        name: 'create',
-        pageBuilder:
-            (context, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const CreateMomentView(),
-              transitionsBuilder: _slideUpTransition,
-            ),
-      ),
-
       GoRoute(
         path: '/moment/:id',
         name: 'momentDetail',
@@ -125,6 +121,106 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             (context, state) => CustomTransitionPage(
               key: state.pageKey,
               child: const SettingsView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
+      ),
+
+      // 设置子页面路由
+      GoRoute(
+        path: '/settings/profile',
+        name: 'profileEdit',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const ProfileEditView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
+      ),
+
+      GoRoute(
+        path: '/settings/circle',
+        name: 'circleInfo',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const CircleInfoView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
+      ),
+
+      GoRoute(
+        path: '/settings/members',
+        name: 'members',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const MembersView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
+      ),
+
+      GoRoute(
+        path: '/settings/visibility',
+        name: 'visibility',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const VisibilityView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
+      ),
+
+      GoRoute(
+        path: '/settings/time-lock',
+        name: 'timeLock',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const TimeLockView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
+      ),
+
+      GoRoute(
+        path: '/settings/export',
+        name: 'export',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const ExportView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
+      ),
+
+      GoRoute(
+        path: '/settings/backup',
+        name: 'backup',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const BackupView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
+      ),
+
+      GoRoute(
+        path: '/settings/about',
+        name: 'about',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const AboutView(),
+              transitionsBuilder: _slideUpTransition,
+            ),
+      ),
+
+      GoRoute(
+        path: '/settings/feedback',
+        name: 'feedback',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const FeedbackView(),
               transitionsBuilder: _slideUpTransition,
             ),
       ),

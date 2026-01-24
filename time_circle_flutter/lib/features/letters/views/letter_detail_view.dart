@@ -7,16 +7,22 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/letter.dart';
+import '../../../shared/widgets/date_wheel_picker.dart';
 
 /// 信件详情页（阅读态）- 沉浸式回看
-class LetterDetailView extends ConsumerWidget {
+class LetterDetailView extends ConsumerStatefulWidget {
   final String letterId;
 
   const LetterDetailView({super.key, required this.letterId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final letter = ref.watch(letterByIdProvider(letterId));
+  ConsumerState<LetterDetailView> createState() => _LetterDetailViewState();
+}
+
+class _LetterDetailViewState extends ConsumerState<LetterDetailView> {
+  @override
+  Widget build(BuildContext context) {
+    final letter = ref.watch(letterByIdProvider(widget.letterId));
 
     if (letter == null) {
       return Scaffold(
@@ -90,7 +96,7 @@ class LetterDetailView extends ConsumerWidget {
                 ),
                 actions: [
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () => _showActionSheet(context, letter),
                     icon: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -332,5 +338,291 @@ class LetterDetailView extends ConsumerWidget {
   String _formatUnlockDate(DateTime? date) {
     if (date == null) return '未设置';
     return '${date.year}年${date.month}月${date.day}日';
+  }
+
+  /// 显示操作菜单
+  void _showActionSheet(BuildContext context, Letter letter) {
+    final isDraft = letter.status == LetterStatus.draft;
+    final isSealed = letter.status == LetterStatus.sealed;
+    final isUnlocked = letter.status == LetterStatus.unlocked;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
+      builder:
+          (ctx) => Container(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 主菜单卡片
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 编辑信件（仅草稿状态）
+                      if (isDraft)
+                        _ActionSheetItem(
+                          icon: Iconsax.edit_2,
+                          label: '编辑信件',
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            context.push('/letter/edit/${letter.id}');
+                          },
+                        ),
+
+                      // 修改解锁日期（草稿或封存状态）
+                      if (isDraft || isSealed)
+                        _ActionSheetItem(
+                          icon: Iconsax.calendar_edit,
+                          label: '修改解锁日期',
+                          showDivider: isDraft,
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _showDatePicker(context, letter);
+                          },
+                        ),
+
+                      // 分享信件（仅已解锁状态）
+                      if (isUnlocked)
+                        _ActionSheetItem(
+                          icon: Iconsax.share,
+                          label: '分享信件',
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _shareLetter(context, letter);
+                          },
+                        ),
+
+                      // 删除信件（所有状态）
+                      _ActionSheetItem(
+                        icon: Iconsax.trash,
+                        label: '删除信件',
+                        isDestructive: true,
+                        showDivider: false,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _showDeleteConfirmation(context, letter);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // 取消按钮
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      '取消',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: AppColors.warmGray600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: MediaQuery.of(ctx).padding.bottom),
+              ],
+            ),
+          ),
+    );
+  }
+
+  /// 显示日期选择器
+  Future<void> _showDatePicker(BuildContext context, Letter letter) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final now = DateTime.now();
+    final initialDate = letter.unlockDate ?? now.add(const Duration(days: 365));
+
+    final pickedDate = await DateWheelPicker.show(
+      context: context,
+      initialDate:
+          initialDate.isBefore(now)
+              ? now.add(const Duration(days: 1))
+              : initialDate,
+      firstDate: now.add(const Duration(days: 1)),
+      lastDate: now.add(const Duration(days: 365 * 10)),
+      title: '选择解锁日期',
+      cancelText: '取消',
+      confirmText: '确定',
+    );
+
+    if (pickedDate != null && mounted) {
+      ref
+          .read(lettersProvider.notifier)
+          .updateUnlockDate(letter.id, pickedDate);
+
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('解锁日期已更新为 ${_formatUnlockDate(pickedDate)}'),
+          backgroundColor: AppColors.warmGray800,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
+  }
+
+  /// 分享信件
+  void _shareLetter(BuildContext context, Letter letter) {
+    // TODO: 集成 share_plus 包实现分享功能
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('分享功能开发中，敬请期待'),
+        backgroundColor: AppColors.warmGray800,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  /// 显示删除确认弹窗
+  void _showDeleteConfirmation(BuildContext context, Letter letter) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: AppColors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              '确定要删除这封信吗？',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
+            content: Text(
+              letter.isLocked ? '这封信还未解锁，删除后将无法恢复。' : '删除后将无法恢复。',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.warmGray500,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.warmGray500,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text('取消'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ref.read(lettersProvider.notifier).deleteLetter(letter.id);
+                  context.pop(); // 返回上一页
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('信件已删除'),
+                      backgroundColor: AppColors.warmGray800,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      margin: const EdgeInsets.all(16),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE53935),
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text('删除'),
+              ),
+            ],
+          ),
+    );
+  }
+}
+
+/// 操作菜单项
+class _ActionSheetItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+  final bool showDivider;
+
+  const _ActionSheetItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+    this.showDivider = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        isDestructive ? const Color(0xFFE53935) : AppColors.warmGray800;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showDivider) Divider(height: 1, color: AppColors.warmGray100),
+        GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              children: [
+                Icon(icon, size: 22, color: color),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

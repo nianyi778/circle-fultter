@@ -12,6 +12,7 @@ import '../../../shared/widgets/detail_app_bar.dart';
 import '../../../shared/widgets/comment_drawer.dart';
 
 /// 记录详情页（沉浸回看 + 回复抽屉）
+/// 设计原则：温柔、安静、克制 - 让用户"感受时间"而非"阅读信息"
 class MomentDetailView extends ConsumerStatefulWidget {
   final String momentId;
 
@@ -27,17 +28,19 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
   late Animation<double> _likeScale;
   bool _showCommentDrawer = false;
 
+  // 交错动画延迟基数
+  static const _baseDelay = 80;
+
   @override
   void initState() {
     super.initState();
     _likeController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: AppDurations.normal,
       vsync: this,
     );
-    _likeScale = Tween<double>(
-      begin: 1.0,
-      end: 1.2,
-    ).animate(CurvedAnimation(parent: _likeController, curve: Curves.easeOut));
+    _likeScale = Tween<double>(begin: 1.0, end: 1.25).animate(
+      CurvedAnimation(parent: _likeController, curve: AppCurves.gentle),
+    );
     _likeController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _likeController.reverse();
@@ -80,23 +83,26 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Iconsax.document_filter,
-                size: 48,
+                size: 56,
                 color: AppColors.warmGray300,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Text(
-                '这一刻，可能已经被你带走了。',
-                style: Theme.of(
+                '这一刻，可能已经被你带走了',
+                style: AppTypography.body(
                   context,
-                ).textTheme.bodyLarge?.copyWith(color: AppColors.warmGray500),
+                ).copyWith(color: AppColors.warmGray400),
               ),
             ],
           ),
         ),
       );
     }
+
+    // 计算动态延迟索引
+    int delayIndex = 0;
 
     return Scaffold(
       backgroundColor: AppColors.timeBeige,
@@ -109,49 +115,51 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
               // 顶部导航
               const DetailAppBar(),
 
-              // 时间叙事区
+              // 时间叙事区 - 使用衬线标题字体
               SliverToBoxAdapter(
                 child: Padding(
                       padding: const EdgeInsets.fromLTRB(
                         AppSpacing.pagePadding,
-                        8,
+                        12,
                         AppSpacing.pagePadding,
-                        24,
+                        28,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // 时间叙事标题
                           Text(
                             moment.timeNarrative,
-                            style: Theme.of(
+                            style: AppTypography.title(
                               context,
-                            ).textTheme.headlineSmall?.copyWith(
-                              height: 1.5,
-                              color: AppColors.warmGray700,
-                            ),
+                            ).copyWith(fontSize: 22, height: 1.5),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
+                          // 元信息行
                           Row(
                             children: [
                               Text(
                                 _formatDate(moment.timestamp),
-                                style: Theme.of(context).textTheme.labelMedium
-                                    ?.copyWith(color: AppColors.warmGray400),
+                                style: AppTypography.caption(
+                                  context,
+                                ).copyWith(color: AppColors.warmGray400),
                               ),
-                              const SizedBox(width: 12),
                               Container(
-                                width: 4,
-                                height: 4,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                width: 3,
+                                height: 3,
                                 decoration: const BoxDecoration(
                                   color: AppColors.warmGray300,
                                   shape: BoxShape.circle,
                                 ),
                               ),
-                              const SizedBox(width: 12),
                               Text(
                                 moment.author.name,
-                                style: Theme.of(context).textTheme.labelMedium
-                                    ?.copyWith(color: AppColors.warmGray400),
+                                style: AppTypography.caption(
+                                  context,
+                                ).copyWith(color: AppColors.warmGray400),
                               ),
                             ],
                           ),
@@ -159,75 +167,139 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                       ),
                     )
                     .animate()
-                    .fadeIn(duration: 500.ms)
-                    .slideY(begin: 0.05, end: 0),
+                    .fadeIn(duration: AppDurations.slow, curve: AppCurves.enter)
+                    .slideY(begin: 0.06, end: 0, curve: AppCurves.enter),
               ),
 
-              // 文字内容
+              // 文字内容 - 使用衬线正文字体，增强沉浸感
+              if (moment.content.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.pagePadding,
+                        ),
+                        child: Text(
+                          moment.content,
+                          style: AppTypography.bodySerif(context),
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(
+                        duration: AppDurations.slow,
+                        delay: Duration(
+                          milliseconds: _baseDelay * ++delayIndex,
+                        ),
+                        curve: AppCurves.enter,
+                      )
+                      .slideY(begin: 0.04, end: 0, curve: AppCurves.enter),
+                ),
+
+              // 媒体内容 - 更大的展示空间
+              if (moment.mediaUrl != null && moment.mediaUrl!.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.pagePadding,
+                          24,
+                          AppSpacing.pagePadding,
+                          8,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.card),
+                          child: MediaViewer(
+                            mediaType: moment.mediaType,
+                            mediaUrl: moment.mediaUrl,
+                          ),
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(
+                        duration: AppDurations.slow,
+                        delay: Duration(
+                          milliseconds: _baseDelay * ++delayIndex,
+                        ),
+                        curve: AppCurves.enter,
+                      )
+                      .slideY(begin: 0.03, end: 0, curve: AppCurves.enter)
+                      .scale(
+                        begin: const Offset(0.98, 0.98),
+                        end: const Offset(1, 1),
+                        curve: AppCurves.enter,
+                      ),
+                ),
+
+              // 语境标签区
+              if (moment.contextTags.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.pagePadding,
+                      20,
+                      AppSpacing.pagePadding,
+                      0,
+                    ),
+                    child: ContextTagsView(tags: moment.contextTags),
+                  ).animate().fadeIn(
+                    duration: AppDurations.slow,
+                    delay: Duration(milliseconds: _baseDelay * ++delayIndex),
+                    curve: AppCurves.enter,
+                  ),
+                ),
+
+              // 对未来的一句话
+              if (moment.futureMessage != null)
+                SliverToBoxAdapter(
+                  child: FutureMessageCard(
+                        message: moment.futureMessage!,
+                        margin: const EdgeInsets.fromLTRB(
+                          AppSpacing.pagePadding,
+                          24,
+                          AppSpacing.pagePadding,
+                          0,
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(
+                        duration: AppDurations.ceremony,
+                        delay: Duration(
+                          milliseconds: _baseDelay * ++delayIndex,
+                        ),
+                        curve: AppCurves.enter,
+                      )
+                      .slideY(begin: 0.05, end: 0, curve: AppCurves.enter),
+                ),
+
+              // 分隔线
+              SliverToBoxAdapter(
+                child: Container(
+                      margin: const EdgeInsets.fromLTRB(
+                        AppSpacing.pagePadding,
+                        32,
+                        AppSpacing.pagePadding,
+                        20,
+                      ),
+                      height: 1,
+                      color: AppColors.warmGray200.withValues(alpha: 0.5),
+                    )
+                    .animate()
+                    .fadeIn(
+                      duration: AppDurations.normal,
+                      delay: Duration(milliseconds: _baseDelay * ++delayIndex),
+                    )
+                    .scaleX(begin: 0, end: 1, alignment: Alignment.centerLeft),
+              ),
+
+              // 互动栏（极简克制）
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.pagePadding,
                   ),
-                  child: Text(
-                    moment.content,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(height: 1.8, fontSize: 17),
-                  ),
-                ).animate().fadeIn(duration: 600.ms, delay: 100.ms),
-              ),
-
-              // 主内容区 - 使用共享 MediaViewer
-              if (moment.mediaUrl != null && moment.mediaUrl!.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.pagePadding),
-                        child: MediaViewer(
-                          mediaType: moment.mediaType,
-                          mediaUrl: moment.mediaUrl,
-                        ),
-                      )
-                      .animate()
-                      .fadeIn(duration: 600.ms, delay: 150.ms)
-                      .slideY(begin: 0.03, end: 0),
-                ),
-
-              // 语境还原区 - 使用共享 ContextTagsView
-              if (moment.contextTags.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.pagePadding,
-                    ),
-                    child: ContextTagsView(tags: moment.contextTags),
-                  ).animate().fadeIn(duration: 600.ms, delay: 200.ms),
-                ),
-
-              // 对未来的一句话 - 使用共享 FutureMessageCard
-              if (moment.futureMessage != null)
-                SliverToBoxAdapter(
-                  child: FutureMessageCard(
-                    message: moment.futureMessage!,
-                    margin: const EdgeInsets.all(AppSpacing.pagePadding),
-                  ).animate().fadeIn(duration: 700.ms, delay: 250.ms),
-                ),
-
-              // 互动栏（极简克制）
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.pagePadding,
-                    24,
-                    AppSpacing.pagePadding,
-                    8,
-                  ),
                   child: Row(
                     children: [
-                      // 共鸣（小心形图标）
-                      GestureDetector(
+                      // 共鸣（心形图标）
+                      _buildActionButton(
                         onTap: _handleLike,
-                        behavior: HitTestBehavior.opaque,
                         child: AnimatedBuilder(
                           animation: _likeScale,
                           builder: (context, child) {
@@ -237,7 +309,7 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                                 moment.isFavorite
                                     ? Iconsax.heart5
                                     : Iconsax.heart,
-                                size: 20,
+                                size: 22,
                                 color:
                                     moment.isFavorite
                                         ? AppColors.heart
@@ -248,19 +320,19 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                         ),
                       ),
 
-                      const SizedBox(width: 20),
+                      const SizedBox(width: 24),
 
                       // 回复（图标 + 数字）
-                      GestureDetector(
+                      _buildActionButton(
                         onTap: _openCommentDrawer,
-                        behavior: HitTestBehavior.opaque,
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Transform.flip(
                               flipX: true,
                               child: Icon(
                                 Iconsax.message,
-                                size: 20,
+                                size: 22,
                                 color: AppColors.warmGray400,
                               ),
                             ),
@@ -268,8 +340,10 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                               const SizedBox(width: 6),
                               Text(
                                 '${comments.length}',
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(color: AppColors.warmGray400),
+                                style: AppTypography.caption(context).copyWith(
+                                  color: AppColors.warmGray400,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ],
@@ -281,19 +355,24 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                       // 时间
                       Text(
                         _formatTime(moment.timestamp),
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        style: AppTypography.micro(context).copyWith(
                           color: AppColors.warmGray300,
+                          letterSpacing: 1,
                         ),
                       ),
                     ],
                   ),
-                ).animate().fadeIn(duration: 600.ms, delay: 300.ms),
+                ).animate().fadeIn(
+                  duration: AppDurations.slow,
+                  delay: Duration(milliseconds: _baseDelay * ++delayIndex),
+                  curve: AppCurves.enter,
+                ),
               ),
 
               // 底部安全区
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: MediaQuery.of(context).padding.bottom + 32,
+                  height: MediaQuery.of(context).padding.bottom + 48,
                 ),
               ),
             ],
@@ -308,6 +387,21 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  /// 构建交互按钮（带点击反馈）
+  Widget _buildActionButton({
+    required VoidCallback onTap,
+    required Widget child,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: child,
       ),
     );
   }

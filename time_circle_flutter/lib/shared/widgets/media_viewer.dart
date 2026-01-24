@@ -94,8 +94,12 @@ class _VideoViewer extends StatelessWidget {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.3),
+                      color: AppColors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.white.withValues(alpha: 0.4),
+                        width: 2,
+                      ),
                     ),
                     child: const Icon(
                       Iconsax.play5,
@@ -103,12 +107,12 @@ class _VideoViewer extends StatelessWidget {
                       size: 28,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Text(
-                    '那一刻，被你记录下来了。',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.white.withValues(alpha: 0.9),
-                    ),
+                    '那一刻，被你记录下来了',
+                    style: AppTypography.caption(
+                      context,
+                    ).copyWith(color: AppColors.white.withValues(alpha: 0.8)),
                   ),
                 ],
               ),
@@ -129,12 +133,13 @@ class _AudioViewer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.warmOrange,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: AppColors.warmOrangeLight,
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
-          color: AppColors.warmOrangeDeep.withValues(alpha: 0.2),
+          color: AppColors.warmOrangeDeep.withValues(alpha: 0.15),
           width: 1,
         ),
+        boxShadow: AppShadows.soft,
       ),
       child: Column(
         children: [
@@ -142,7 +147,7 @@ class _AudioViewer extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.warmOrangeDeep.withValues(alpha: 0.3),
+              color: AppColors.warmOrangeDeep.withValues(alpha: 0.25),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -156,10 +161,9 @@ class _AudioViewer extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             '0:24',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.warmOrangeDark,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTypography.subtitle(
+              context,
+            ).copyWith(color: AppColors.warmOrangeDark),
           ),
         ],
       ),

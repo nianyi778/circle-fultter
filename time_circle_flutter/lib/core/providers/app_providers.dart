@@ -187,6 +187,17 @@ class LettersNotifier extends StateNotifier<List<Letter>> {
     await _db.deleteLetter(id);
     state = state.where((l) => l.id != id).toList();
   }
+
+  Future<void> updateUnlockDate(String id, DateTime newDate) async {
+    final index = state.indexWhere((l) => l.id == id);
+    if (index == -1) return;
+
+    final letter = state[index];
+    final updated = letter.copyWith(unlockDate: newDate);
+    await _db.updateLetter(updated);
+
+    state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
+  }
 }
 
 /// 获取单个信件
