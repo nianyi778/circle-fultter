@@ -22,6 +22,7 @@ AssetPickerConfig _buildAssetPickerConfig(
     requestType: requestType,
     themeColor: AppColors.softGreenDeep,
     gridCount: 3,
+    pageSize: 60,
   );
 }
 
@@ -107,6 +108,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false, // 键盘覆盖底部内容，不顶起页面
       backgroundColor: Colors.black.withValues(alpha: 0.5),
       body: Stack(
         children: [
@@ -135,9 +137,12 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                   Expanded(
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
+                      padding: EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: 16,
+                        // 底部预留键盘高度，确保内容可滚动到可见区域
+                        bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

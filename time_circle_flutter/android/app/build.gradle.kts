@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.timecircle.time_circle"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36  // 升级到 36，满足所有插件要求
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -20,12 +20,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.timecircle.time_circle"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion  // Required for EncryptedSharedPreferences
-        targetSdk = flutter.targetSdkVersion
+        minSdk = flutter.minSdkVersion  // Android 6.0+，flutter_secure_storage 要求
+        targetSdk = 34  // 明确设置为 34，支持 Android 13+ 新权限模型
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
