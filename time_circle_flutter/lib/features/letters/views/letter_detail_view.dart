@@ -538,22 +538,37 @@ class _LetterDetailViewState extends ConsumerState<LetterDetailView> {
               ),
               const SizedBox(width: 8),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(ctx);
-                  ref.read(lettersProvider.notifier).deleteLetter(letter.id);
-                  context.pop(); // 返回上一页
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('信件已删除'),
-                      backgroundColor: AppColors.warmGray800,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      margin: const EdgeInsets.all(16),
-                    ),
-                  );
+                  try {
+                    await ref
+                        .read(lettersProvider.notifier)
+                        .deleteLetter(letter.id);
+                    if (context.mounted) {
+                      context.pop(); // 返回上一页
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('信件已删除'),
+                          backgroundColor: AppColors.warmGray800,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          margin: const EdgeInsets.all(16),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('删除失败：${e.toString()}'),
+                          backgroundColor: Colors.red.shade700,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE53935),

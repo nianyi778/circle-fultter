@@ -213,6 +213,18 @@ class MomentRepository {
     return response.data!['is_favorite'] as bool? ?? false;
   }
 
+  /// 从世界撤回时刻
+  Future<void> withdrawFromWorld(String momentId) async {
+    final response = await _api.delete<void>(ApiConfig.momentWorld(momentId));
+
+    if (!response.success) {
+      throw ApiException(
+        code: response.error?.code ?? 'UNKNOWN',
+        message: response.error?.message ?? 'Failed to withdraw from world',
+      );
+    }
+  }
+
   /// 解析时刻
   Moment _parseMoment(Map<String, dynamic> json) {
     // 解析作者

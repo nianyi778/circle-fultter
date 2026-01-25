@@ -71,7 +71,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService;
   final FlutterSecureStorage _storage;
 
-  AuthNotifier(this._authService, this._storage) : super(const AuthState());
+  AuthNotifier(this._authService, this._storage) : super(const AuthState()) {
+    // 设置 token 过期回调
+    ApiService.instance.onTokenExpired = _handleTokenExpired;
+  }
+
+  /// 处理 token 过期
+  void _handleTokenExpired() {
+    debugPrint('[Auth] Token expired, logging out...');
+    logout();
+  }
 
   /// 初始化认证状态（App 启动时调用）
   Future<void> init() async {
@@ -341,12 +350,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 // ============== Providers ==============
 
-/// 安全存储 Provider
+/// 安全存储 Provider - 使用统一配置
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
-  return const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-  );
+  return secureStorage; // 来自 api_service.dart
 });
 
 /// AuthService Provider

@@ -81,17 +81,33 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
 
     setState(() => _showToast = true);
 
-    // 封存信件 - 默认一年后解锁
-    final unlockDate = DateTime.now().add(const Duration(days: 365));
-    await ref
-        .read(lettersProvider.notifier)
-        .sealLetter(widget.letterId, unlockDate);
+    try {
+      // 封存信件 - 默认一年后解锁
+      final unlockDate = DateTime.now().add(const Duration(days: 365));
+      await ref
+          .read(lettersProvider.notifier)
+          .sealLetter(widget.letterId, unlockDate);
 
-    // 显示 toast 后关闭
-    await Future.delayed(const Duration(milliseconds: 2000));
+      // 显示 toast 后关闭
+      await Future.delayed(const Duration(milliseconds: 2000));
 
-    if (mounted) {
-      context.pop();
+      if (mounted) {
+        context.pop();
+      }
+    } catch (e) {
+      setState(() {
+        _isSealing = false;
+        _showToast = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('封存失败：${e.toString()}'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 

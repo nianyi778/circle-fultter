@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
@@ -69,6 +70,7 @@ final circleMembersProvider = FutureProvider<List<User>>((ref) async {
     final members = await repo.getMembers(selectedCircle.id!);
     return members.map((m) => m.toUser()).toList();
   } catch (e) {
+    debugPrint('[CircleMembers] Failed to load members: $e');
     return [];
   }
 });
@@ -92,7 +94,7 @@ final circleInfoAsyncProvider = FutureProvider<CircleInfo>((ref) async {
       return circles.first;
     }
   } catch (e) {
-    // 忽略错误，返回默认值
+    debugPrint('[CircleInfo] Failed to load circles: $e');
   }
 
   return CircleInfo(
@@ -162,18 +164,20 @@ final momentsProvider = StateNotifierProvider<MomentsNotifier, List<Moment>>((
   ref,
 ) {
   final repo = ref.watch(momentRepositoryProvider);
+  final worldRepo = ref.watch(worldRepositoryProvider);
   final selectedCircle = ref.watch(selectedCircleInfoProvider);
-  return MomentsNotifier(repo, selectedCircle?.id);
+  return MomentsNotifier(repo, worldRepo, selectedCircle?.id);
 });
 
 class MomentsNotifier extends StateNotifier<List<Moment>> {
   final MomentRepository _repo;
+  final WorldRepository _worldRepo;
   final String? _circleId;
   bool _initialized = false;
   bool _hasMore = true;
   int _currentPage = 1;
 
-  MomentsNotifier(this._repo, this._circleId) : super([]) {
+  MomentsNotifier(this._repo, this._worldRepo, this._circleId) : super([]) {
     _loadMoments();
   }
 
@@ -188,7 +192,7 @@ class MomentsNotifier extends StateNotifier<List<Moment>> {
       _currentPage = 1;
       _initialized = true;
     } catch (e) {
-      // 忽略错误，保持空列表
+      debugPrint('[Moments] Failed to initialize: $e');
     }
   }
 
@@ -202,7 +206,7 @@ class MomentsNotifier extends StateNotifier<List<Moment>> {
       _hasMore = result.hasMore;
       _currentPage = 1;
     } catch (e) {
-      // 忽略错误
+      debugPrint('[Moments] Failed to refresh: $e');
     }
   }
 
@@ -220,7 +224,7 @@ class MomentsNotifier extends StateNotifier<List<Moment>> {
       _hasMore = result.hasMore;
       _currentPage++;
     } catch (e) {
-      // 忽略错误
+      debugPrint('[Moments] Failed to load more: $e');
     }
   }
 
@@ -271,12 +275,60 @@ class MomentsNotifier extends StateNotifier<List<Moment>> {
   }
 
   Future<void> shareToWorld(String momentId, String topic) async {
-    // TODO: 实现分享到世界的逻辑
-    // 需要调用 WorldRepository.createPost
+    // 找到要分享的 moment
+    final moment = state.firstWhere(
+      (m) => m.id == momentId,
+      orElse: () => throw Exception('Moment not found'),
+    );
+
+    try {
+      // 调用 WorldRepository 创建帖子
+      await _worldRepo.createPost(
+        content: moment.content,
+        tag: topic,
+        bgGradient: 'orange', // 默认渐变色
+        momentId: momentId,
+      );
+
+      // 更新本地 moment 状态
+      state =
+          state.map((m) {
+            if (m.id == momentId) {
+              return m.copyWith(isSharedToWorld: true, worldTopic: topic);
+            }
+            return m;
+          }).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> withdrawFromWorld(String momentId) async {
-    // TODO: 实现从世界撤回的逻辑
+    // 找到要撤回的 moment
+    final moment = state.firstWhere(
+      (m) => m.id == momentId,
+      orElse: () => throw Exception('Moment not found'),
+    );
+
+    if (!moment.isSharedToWorld) return;
+
+    try {
+      // 后端删除 world post 时会自动更新 moment 状态
+      // 需要先获取关联的 world post ID，但后端 API 会处理
+      // 调用 moment repository 来撤回
+      await _repo.withdrawFromWorld(momentId);
+
+      // 更新本地 moment 状态
+      state =
+          state.map((m) {
+            if (m.id == momentId) {
+              return m.copyWith(isSharedToWorld: false, worldTopic: null);
+            }
+            return m;
+          }).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 }
 
@@ -319,7 +371,7 @@ class LettersNotifier extends StateNotifier<List<Letter>> {
       state = letters;
       _initialized = true;
     } catch (e) {
-      // 忽略错误
+      debugPrint('[Letters] Failed to load letters: $e');
     }
   }
 
@@ -331,7 +383,7 @@ class LettersNotifier extends StateNotifier<List<Letter>> {
       final letters = await _repo.getLetters(circleId);
       state = letters;
     } catch (e) {
-      // 忽略错误
+      debugPrint('[Letters] Failed to refresh: $e');
     }
   }
 
@@ -401,7 +453,11 @@ class LettersNotifier extends StateNotifier<List<Letter>> {
   }
 
   Future<void> updateUnlockDate(String id, DateTime newDate) async {
-    // 信件封存后无法修改解锁日期，此方法保留向后兼容
+    // TODO: 后端暂不支持修改已封存信件的解锁日期
+    // 需要在后端添加 PUT /letters/:id/unlock-date 接口
+    debugPrint(
+      '[Letters] updateUnlockDate called for $id with date: $newDate (not implemented)',
+    );
   }
 }
 
@@ -457,7 +513,7 @@ class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
       _currentPage = 1;
       _initialized = true;
     } catch (e) {
-      // 忽略错误
+      debugPrint('[WorldPosts] Failed to load posts: $e');
     }
   }
 
@@ -469,7 +525,7 @@ class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
       _hasMore = result.hasMore;
       _currentPage = 1;
     } catch (e) {
-      // 忽略错误
+      debugPrint('[WorldPosts] Failed to refresh: $e');
     }
   }
 
@@ -486,7 +542,7 @@ class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
       _hasMore = result.hasMore;
       _currentPage++;
     } catch (e) {
-      // 忽略错误
+      debugPrint('[WorldPosts] Failed to load more: $e');
     }
   }
 
@@ -513,7 +569,7 @@ class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
     try {
       final result =
           post.hasResonated
-              ? await _repo.unresoante(id)
+              ? await _repo.unresonate(id)
               : await _repo.resonate(id);
 
       final updated = post.copyWith(
@@ -526,7 +582,7 @@ class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
         ...state.sublist(index + 1),
       ];
     } catch (e) {
-      // 忽略错误
+      debugPrint('[WorldPosts] Failed to toggle resonance: $e');
     }
   }
 
@@ -756,7 +812,7 @@ class CommentsNotifier extends StateNotifier<List<Comment>> {
       state = result.comments;
       _initialized = true;
     } catch (e) {
-      // 忽略错误
+      debugPrint('[Comments] Failed to load comments: $e');
     }
   }
 
@@ -768,7 +824,7 @@ class CommentsNotifier extends StateNotifier<List<Comment>> {
               : await _repo.getWorldPostComments(targetId);
       state = result.comments;
     } catch (e) {
-      // 忽略错误
+      debugPrint('[Comments] Failed to refresh: $e');
     }
   }
 

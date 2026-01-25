@@ -33,7 +33,19 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
   /// 下拉刷新
   Future<void> _onRefresh(WidgetRef ref) async {
-    await ref.read(momentsProvider.notifier).refresh();
+    try {
+      await ref.read(momentsProvider.notifier).refresh();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('刷新失败：${e.toString()}'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _openCommentDrawer(Moment moment) {
@@ -355,34 +367,48 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                 ),
               ),
               TextButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(ctx);
-                  ref.read(momentsProvider.notifier).deleteMoment(id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          const Icon(
-                            Iconsax.tick_circle,
-                            color: AppColors.white,
-                            size: 18,
+                  try {
+                    await ref.read(momentsProvider.notifier).deleteMoment(id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(
+                                Iconsax.tick_circle,
+                                color: AppColors.white,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '已删除',
+                                style: AppTypography.body(
+                                  context,
+                                ).copyWith(color: AppColors.white),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '已删除',
-                            style: AppTypography.body(
-                              context,
-                            ).copyWith(color: AppColors.white),
+                          backgroundColor: AppColors.warmGray800,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
-                        ],
-                      ),
-                      backgroundColor: AppColors.warmGray800,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.full),
-                      ),
-                    ),
-                  );
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('删除失败：${e.toString()}'),
+                          backgroundColor: Colors.red.shade700,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  }
                 },
                 child: Text(
                   '删除',
@@ -412,35 +438,47 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
           (sheetContext) => _TopicPicker(
             onSelect: (topic) async {
               Navigator.pop(sheetContext);
-              await ref
-                  .read(momentsProvider.notifier)
-                  .shareToWorld(moment.id, topic);
-              if (outerContext.mounted) {
-                ScaffoldMessenger.of(outerContext).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        const Icon(
-                          Iconsax.global,
-                          color: AppColors.white,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '已分享到「$topic」',
-                          style: AppTypography.body(
-                            outerContext,
-                          ).copyWith(color: AppColors.white),
-                        ),
-                      ],
+              try {
+                await ref
+                    .read(momentsProvider.notifier)
+                    .shareToWorld(moment.id, topic);
+                if (outerContext.mounted) {
+                  ScaffoldMessenger.of(outerContext).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(
+                            Iconsax.global,
+                            color: AppColors.white,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '已分享到「$topic」',
+                            style: AppTypography.body(
+                              outerContext,
+                            ).copyWith(color: AppColors.white),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: AppColors.warmGray800,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
                     ),
-                    backgroundColor: AppColors.warmGray800,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.full),
+                  );
+                }
+              } catch (e) {
+                if (outerContext.mounted) {
+                  ScaffoldMessenger.of(outerContext).showSnackBar(
+                    SnackBar(
+                      content: Text('分享失败：${e.toString()}'),
+                      backgroundColor: Colors.red.shade700,
+                      behavior: SnackBarBehavior.floating,
                     ),
-                  ),
-                );
+                  );
+                }
               }
             },
           ),
@@ -452,29 +490,41 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     WidgetRef ref,
     Moment moment,
   ) async {
-    await ref.read(momentsProvider.notifier).withdrawFromWorld(moment.id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Iconsax.eye_slash, color: AppColors.white, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                '已从世界撤回',
-                style: AppTypography.body(
-                  context,
-                ).copyWith(color: AppColors.white),
-              ),
-            ],
+    try {
+      await ref.read(momentsProvider.notifier).withdrawFromWorld(moment.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Iconsax.eye_slash, color: AppColors.white, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  '已从世界撤回',
+                  style: AppTypography.body(
+                    context,
+                  ).copyWith(color: AppColors.white),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.warmGray800,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.full),
+            ),
           ),
-          backgroundColor: AppColors.warmGray800,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.full),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('撤回失败：${e.toString()}'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
           ),
-        ),
-      );
+        );
+      }
     }
   }
 }

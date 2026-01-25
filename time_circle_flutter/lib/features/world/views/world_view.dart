@@ -33,7 +33,19 @@ class WorldView extends ConsumerStatefulWidget {
 class _WorldViewState extends ConsumerState<WorldView> {
   /// 下拉刷新
   Future<void> _onRefresh() async {
-    await ref.read(worldPostsProvider.notifier).refresh();
+    try {
+      await ref.read(worldPostsProvider.notifier).refresh();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('刷新失败：${e.toString()}'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _openCommentDrawer(WorldPost post) {

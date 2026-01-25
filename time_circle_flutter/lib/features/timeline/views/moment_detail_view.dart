@@ -55,9 +55,21 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
     super.dispose();
   }
 
-  void _handleLike() {
+  void _handleLike() async {
     _likeController.forward();
-    ref.read(momentsProvider.notifier).toggleFavorite(widget.momentId);
+    try {
+      await ref.read(momentsProvider.notifier).toggleFavorite(widget.momentId);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('操作失败：${e.toString()}'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _openCommentDrawer() {

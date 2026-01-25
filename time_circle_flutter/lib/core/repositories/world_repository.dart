@@ -125,7 +125,7 @@ class WorldRepository {
   }
 
   /// 取消共鸣
-  Future<ResonateResult> unresoante(String postId) async {
+  Future<ResonateResult> unresonate(String postId) async {
     final response = await _api.delete<Map<String, dynamic>>(
       ApiConfig.worldPostResonate(postId),
       fromData: (data) => data as Map<String, dynamic>,

@@ -6,6 +6,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../config/api_config.dart';
 
+/// 统一的 FlutterSecureStorage 配置
+const FlutterSecureStorage secureStorage = FlutterSecureStorage(
+  aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+);
+
 /// API 响应结构
 class ApiResponse<T> {
   final bool success;
@@ -123,13 +129,16 @@ class ApiService {
   static ApiService get instance => _instance ??= ApiService._();
 
   late final Dio _dio;
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _storage = secureStorage;
 
   // Token 刷新锁
   Completer<bool>? _refreshTokenCompleter;
 
   // 认证状态回调
   void Function()? onTokenExpired;
+
+  /// 获取内部 Dio 实例（供拦截器重试使用）
+  Dio get dio => _dio;
 
   ApiService._() {
     _dio = Dio(
@@ -354,13 +363,13 @@ class ApiService {
 }
 
 /// 认证拦截器
-class _AuthInterceptor extends Interceptor {
+class _AuthInterceptor extends QueuedInterceptor {
   final ApiService _apiService;
 
   _AuthInterceptor(this._apiService);
 
   @override
-  void onRequest(
+  Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
@@ -368,8 +377,15 @@ class _AuthInterceptor extends Interceptor {
 
     if (requiresAuth) {
       final token = await _apiService.getAccessToken();
+      debugPrint(
+        '[API] Request to ${options.path}, requiresAuth: $requiresAuth, hasToken: ${token != null}',
+      );
       if (token != null) {
         options.headers['Authorization'] = 'Bearer $token';
+      } else {
+        debugPrint(
+          '[API] WARNING: No token available for authenticated request!',
+        );
       }
     }
 
@@ -377,7 +393,10 @@ class _AuthInterceptor extends Interceptor {
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async {
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
     if (err.response?.statusCode == 401) {
       final requiresAuth = err.requestOptions.extra['requiresAuth'] ?? true;
 
@@ -399,7 +418,7 @@ class _AuthInterceptor extends Interceptor {
             final options = err.requestOptions;
             options.headers['Authorization'] = 'Bearer $token';
 
-            final response = await Dio().fetch(options);
+            final response = await _apiService.dio.fetch(options);
             handler.resolve(response);
             return;
           } catch (e) {

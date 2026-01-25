@@ -297,6 +297,66 @@ moments.put('/:id/favorite', async (c) => {
   return c.json(success({ is_favorite: newValue === 1 }));
 });
 
+/**
+ * DELETE /moments/:id/world
+ * Withdraw moment from world (remove associated world post)
+ */
+moments.delete('/:id/world', async (c) => {
+  const momentId = c.req.param('id');
+  const userId = c.get('userId');
+  
+  // Check ownership
+  const moment = await c.env.DB.prepare(
+    'SELECT author_id, is_shared_to_world FROM moments WHERE id = ? AND deleted_at IS NULL'
+  )
+    .bind(momentId)
+    .first<{ author_id: string; is_shared_to_world: number }>();
+  
+  if (!moment) {
+    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
+  }
+  
+  if (moment.author_id !== userId) {
+    return c.json(error(ErrorCodes.FORBIDDEN, 'Cannot withdraw others\' moments'), 403);
+  }
+  
+  if (!moment.is_shared_to_world) {
+    return c.json(error(ErrorCodes.INVALID_INPUT, 'Moment is not shared to world'), 400);
+  }
+  
+  // Find and soft delete the world post
+  const worldPost = await c.env.DB.prepare(
+    'SELECT id, tag FROM world_posts WHERE moment_id = ? AND deleted_at IS NULL'
+  )
+    .bind(momentId)
+    .first<{ id: string; tag: string }>();
+  
+  if (worldPost) {
+    // Soft delete the world post
+    await c.env.DB.prepare(
+      `UPDATE world_posts SET deleted_at = datetime('now') WHERE id = ?`
+    )
+      .bind(worldPost.id)
+      .run();
+    
+    // Update channel post count
+    await c.env.DB.prepare(
+      `UPDATE world_channels SET post_count = MAX(0, post_count - 1) WHERE id = ?`
+    )
+      .bind(worldPost.tag)
+      .run();
+  }
+  
+  // Update moment
+  await c.env.DB.prepare(
+    `UPDATE moments SET is_shared_to_world = 0, world_topic = NULL, updated_at = datetime('now') WHERE id = ?`
+  )
+    .bind(momentId)
+    .run();
+  
+  return c.json(success({ message: 'Withdrawn from world' }));
+});
+
 // ===== Circle-scoped routes =====
 
 const circleMoments = new Hono<{ Bindings: Env }>();

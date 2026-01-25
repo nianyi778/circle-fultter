@@ -12,8 +12,20 @@ class LettersView extends ConsumerWidget {
   const LettersView({super.key});
 
   /// 下拉刷新
-  Future<void> _onRefresh(WidgetRef ref) async {
-    await ref.read(lettersProvider.notifier).refresh();
+  Future<void> _onRefresh(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(lettersProvider.notifier).refresh();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('刷新失败：${e.toString()}'),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -25,7 +37,7 @@ class LettersView extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: () => _onRefresh(ref),
+          onRefresh: () => _onRefresh(context, ref),
           color: AppColors.warmOrangeDark,
           backgroundColor: AppColors.white,
           child: CustomScrollView(

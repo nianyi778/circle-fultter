@@ -46,6 +46,7 @@ class ApiConfig {
 
   static String moment(String id) => '/moments/$id';
   static String momentFavorite(String id) => '/moments/$id/favorite';
+  static String momentWorld(String id) => '/moments/$id/world';
 
   static String letter(String id) => '/letters/$id';
   static String letterSeal(String id) => '/letters/$id/seal';
