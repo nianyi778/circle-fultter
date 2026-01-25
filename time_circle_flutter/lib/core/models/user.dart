@@ -27,10 +27,11 @@ class User {
 /// - 好友圈（记录友情岁月）
 /// - 个人独白（自己的时间胶囊）
 class CircleInfo {
+  final String? id;
   final String name; // 圈子名称或主角名称
   final DateTime? startDate; // 可选的起始日期（如孩子生日、相识日等）
 
-  const CircleInfo({required this.name, this.startDate});
+  const CircleInfo({this.id, required this.name, this.startDate});
 
   /// 计算时间标签 (如: "第 3 年 5 个月" 或 "3 岁 5 个月")
   String get timeLabel {

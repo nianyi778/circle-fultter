@@ -48,6 +48,7 @@ class ContextTag {
 /// 记录/时刻 模型
 class Moment {
   final String id;
+  final String? circleId;
   final User author;
   final String content;
   final MediaType mediaType;
@@ -60,9 +61,13 @@ class Moment {
   final String? futureMessage; // 对未来说一句
   final bool isSharedToWorld; // 是否已分享到世界
   final String? worldTopic; // 世界频道话题
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
 
   const Moment({
     required this.id,
+    this.circleId,
     required this.author,
     required this.content,
     required this.mediaType,
@@ -75,6 +80,9 @@ class Moment {
     this.futureMessage,
     this.isSharedToWorld = false,
     this.worldTopic,
+    this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
   });
 
   /// 向后兼容的别名
@@ -82,6 +90,7 @@ class Moment {
 
   Moment copyWith({
     String? id,
+    String? circleId,
     User? author,
     String? content,
     MediaType? mediaType,
@@ -94,9 +103,13 @@ class Moment {
     String? futureMessage,
     bool? isSharedToWorld,
     String? worldTopic,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
   }) {
     return Moment(
       id: id ?? this.id,
+      circleId: circleId ?? this.circleId,
       author: author ?? this.author,
       content: content ?? this.content,
       mediaType: mediaType ?? this.mediaType,
@@ -109,6 +122,9 @@ class Moment {
       futureMessage: futureMessage ?? this.futureMessage,
       isSharedToWorld: isSharedToWorld ?? this.isSharedToWorld,
       worldTopic: worldTopic ?? this.worldTopic,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 

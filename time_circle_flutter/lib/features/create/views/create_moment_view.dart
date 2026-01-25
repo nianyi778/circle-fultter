@@ -1406,17 +1406,21 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     final mediaUrl =
         _selectedMedia.isNotEmpty ? _selectedMedia.first.path : null;
 
+    final now = DateTime.now();
     final moment = Moment(
       id: const Uuid().v4(),
+      circleId: circleInfo.id,
       author: currentUser,
       content: _textController.text,
       mediaType: _mediaType,
       mediaUrl: mediaUrl,
-      timestamp: DateTime.now(),
+      timestamp: now,
       timeLabel: circleInfo.ageLabel,
       contextTags: [..._selectedMyMoods, ..._selectedAtmospheres],
       isSharedToWorld: _shareToWorld,
       worldTopic: _shareToWorld ? _worldTopic : null,
+      createdAt: now,
+      updatedAt: now,
     );
 
     ref.read(momentsProvider.notifier).addMoment(moment);
@@ -1424,166 +1428,6 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
     AppSnackBar.showMomentSaved(context);
 
     Navigator.of(context).pop();
-  }
-}
-
-/// 微信朋友圈风格的图片网格组件
-class _WechatStyleImageGrid extends StatelessWidget {
-  final List<XFile> images;
-  final double maxWidth;
-  final Function(int) onRemove;
-
-  const _WechatStyleImageGrid({
-    required this.images,
-    required this.maxWidth,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final count = images.length;
-    if (count == 0) return const SizedBox.shrink();
-
-    final spacing = 4.0;
-
-    // 根据图片数量计算布局
-    if (count == 1) {
-      return _buildSingleImage(context);
-    } else if (count == 2) {
-      return _buildTwoImages(context, spacing);
-    } else if (count == 3) {
-      return _buildThreeImages(context, spacing);
-    } else if (count == 4) {
-      return _buildFourImages(context, spacing);
-    } else {
-      return _buildGridImages(context, spacing);
-    }
-  }
-
-  /// 单张大图
-  Widget _buildSingleImage(BuildContext context) {
-    final size = maxWidth * 0.7;
-    return _buildImageItem(context, 0, size, size);
-  }
-
-  /// 两张图并排
-  Widget _buildTwoImages(BuildContext context, double spacing) {
-    final itemSize = (maxWidth - spacing) / 2;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildImageItem(context, 0, itemSize, itemSize),
-        SizedBox(width: spacing),
-        _buildImageItem(context, 1, itemSize, itemSize),
-      ],
-    );
-  }
-
-  /// 三张图一行
-  Widget _buildThreeImages(BuildContext context, double spacing) {
-    final itemSize = (maxWidth - spacing * 2) / 3;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildImageItem(context, 0, itemSize, itemSize),
-        SizedBox(width: spacing),
-        _buildImageItem(context, 1, itemSize, itemSize),
-        SizedBox(width: spacing),
-        _buildImageItem(context, 2, itemSize, itemSize),
-      ],
-    );
-  }
-
-  /// 四张图 2x2 网格
-  Widget _buildFourImages(BuildContext context, double spacing) {
-    final itemSize = (maxWidth - spacing) / 2;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildImageItem(context, 0, itemSize, itemSize),
-            SizedBox(width: spacing),
-            _buildImageItem(context, 1, itemSize, itemSize),
-          ],
-        ),
-        SizedBox(height: spacing),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildImageItem(context, 2, itemSize, itemSize),
-            SizedBox(width: spacing),
-            _buildImageItem(context, 3, itemSize, itemSize),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// 5-9张图网格
-  Widget _buildGridImages(BuildContext context, double spacing) {
-    final itemSize = (maxWidth - spacing * 2) / 3;
-    final rows = <Widget>[];
-
-    for (var i = 0; i < images.length; i += 3) {
-      final rowItems = <Widget>[];
-      for (var j = i; j < i + 3 && j < images.length; j++) {
-        if (rowItems.isNotEmpty) {
-          rowItems.add(SizedBox(width: spacing));
-        }
-        rowItems.add(_buildImageItem(context, j, itemSize, itemSize));
-      }
-
-      if (rows.isNotEmpty) {
-        rows.add(SizedBox(height: spacing));
-      }
-      rows.add(Row(mainAxisSize: MainAxisSize.min, children: rowItems));
-    }
-
-    return Column(mainAxisSize: MainAxisSize.min, children: rows);
-  }
-
-  /// 单个图片项（带删除按钮）
-  Widget _buildImageItem(
-    BuildContext context,
-    int index,
-    double width,
-    double height,
-  ) {
-    return Stack(
-      children: [
-        Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-          clipBehavior: Clip.antiAlias,
-          child: Image.file(
-            File(images[index].path),
-            fit: BoxFit.cover,
-            width: width,
-            height: height,
-          ),
-        ),
-        // 删除按钮
-        Positioned(
-          top: 4,
-          right: 4,
-          child: GestureDetector(
-            onTap: () => onRemove(index),
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                color: AppColors.warmGray900.withValues(alpha: 0.65),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.close, color: AppColors.white, size: 14),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
 

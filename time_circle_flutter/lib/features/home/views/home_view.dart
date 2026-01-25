@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/providers/sync_provider.dart';
 import '../../../shared/widgets/app_logo.dart';
+import '../../../shared/widgets/sync_status_indicator.dart';
 import '../widgets/memory_card.dart';
 import '../widgets/time_header.dart';
 import '../widgets/annual_letter_card.dart';
@@ -32,6 +34,9 @@ class HomeView extends ConsumerWidget {
     final hasAnyMoments = ref.watch(hasAnyMomentsProvider);
     final hasEnoughMoments = ref.watch(hasEnoughMomentsProvider);
     final moments = ref.watch(momentsProvider);
+
+    // 监听同步状态（触发 SyncProvider 初始化）
+    ref.watch(syncStatusProvider);
 
     return Scaffold(
       backgroundColor: AppColors.timeBeige,
@@ -89,10 +94,15 @@ class HomeView extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 顶部行：头像（右对齐）
+          // 顶部行：同步状态 + 头像（右对齐）
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [_buildAvatarButton(context, currentUser)],
+            children: [
+              // 同步状态指示器
+              const SyncStatusIndicator(size: 18),
+              const SizedBox(width: 12),
+              _buildAvatarButton(context, currentUser),
+            ],
           ),
           const SizedBox(height: AppSpacing.lg),
 

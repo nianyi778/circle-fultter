@@ -1,0 +1,39 @@
+# Aura 拾光 - Backend API
+# Cloudflare Workers Configuration
+
+name = "aura-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-25"
+compatibility_flags = ["nodejs_compat"]
+account_id = "ad48867bb0bbd3ccce8fb30e1ea42a81"
+
+[vars]
+ENVIRONMENT = "production"
+API_VERSION = "v1"
+
+# D1 数据库
+[[d1_databases]]
+binding = "DB"
+database_name = "aura-db"
+database_id = "165ae44c-fbb7-482c-bf28-08522abba388"
+migrations_dir = "migrations"
+
+# R2 存储桶
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "aura-media"
+
+# KV 缓存
+[[kv_namespaces]]
+binding = "CACHE"
+id = "9d801da9fdb14716a9227a5a9b227d09"
+
+# 开发环境
+[env.dev]
+vars = { ENVIRONMENT = "development" }
+
+# 生产环境 - 稍后配置自定义域名
+# [env.production]
+# routes = [
+#   { pattern = "api.aura-app.com/*", zone_name = "aura-app.com" }
+# ]

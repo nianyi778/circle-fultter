@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/views/login_view.dart';
+import '../../features/auth/views/register_view.dart';
+import '../../features/auth/views/circle_setup_view.dart';
 import '../../features/home/views/home_view.dart';
+import '../../features/splash/views/splash_view.dart';
 import '../../features/timeline/views/timeline_view.dart';
 import '../../features/letters/views/letters_view.dart';
 import '../../features/letters/views/letter_detail_view.dart';
@@ -24,8 +28,56 @@ import '../../shared/widgets/main_scaffold.dart';
 /// 全局路由 Provider
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/splash',
     routes: [
+      // 启动页 - 无底部导航
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const SplashView(),
+              transitionsBuilder: _fadeTransition,
+            ),
+      ),
+
+      // 登录页
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const LoginView(),
+              transitionsBuilder: _fadeTransition,
+            ),
+      ),
+
+      // 注册页
+      GoRoute(
+        path: '/register',
+        name: 'register',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const RegisterView(),
+              transitionsBuilder: _fadeTransition,
+            ),
+      ),
+
+      // 圈子设置页（创建/加入圈子）
+      GoRoute(
+        path: '/circle-setup',
+        name: 'circleSetup',
+        pageBuilder:
+            (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const CircleSetupView(),
+              transitionsBuilder: _fadeTransition,
+            ),
+      ),
+
       // 主 Shell 路由 - 带底部导航
       ShellRoute(
         builder: (context, state, child) {

@@ -22,18 +22,18 @@ void main() async {
     ),
   );
 
-  runApp(const ProviderScope(child: NianNianApp()));
+  runApp(const ProviderScope(child: AuraApp()));
 }
 
-class NianNianApp extends ConsumerWidget {
-  const NianNianApp({super.key});
+class AuraApp extends ConsumerWidget {
+  const AuraApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: '念念',
+      title: 'Aura 拾光',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,

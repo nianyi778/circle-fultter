@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/models.dart';
 import '../services/database_service.dart';
+import '../services/sync_service.dart';
+import 'auth_providers.dart';
 
 /// 数据库服务 Provider
 final databaseServiceProvider = Provider<DatabaseService>((ref) {
@@ -37,6 +40,13 @@ final circleMembersProvider = FutureProvider<List<User>>((ref) async {
 /// 圈子信息 Provider（异步）
 final circleInfoAsyncProvider = FutureProvider<CircleInfo>((ref) async {
   final db = ref.watch(databaseServiceProvider);
+  final selectedCircle = ref.watch(selectedCircleInfoProvider);
+
+  if (selectedCircle != null) {
+    await db.updateCircleInfo(selectedCircle);
+    await db.backfillCircleId(selectedCircle.id ?? 'cir_default');
+  }
+
   return await db.getCircleInfo();
 });
 
@@ -92,8 +102,15 @@ class MomentsNotifier extends StateNotifier<List<Moment>> {
   }
 
   Future<void> addMoment(Moment moment) async {
-    await _db.insertMoment(moment);
-    state = [moment, ...state];
+    final now = DateTime.now();
+    final persisted = moment.copyWith(
+      createdAt: moment.createdAt ?? now,
+      updatedAt: moment.updatedAt ?? now,
+    );
+    await _db.insertMoment(persisted);
+    state = [persisted, ...state];
+    // 记录同步
+    SyncService.instance.recordMomentCreate(persisted);
   }
 
   Future<void> toggleFavorite(String id) async {
@@ -101,15 +118,97 @@ class MomentsNotifier extends StateNotifier<List<Moment>> {
     if (index == -1) return;
 
     final moment = state[index];
-    final updated = moment.copyWith(isFavorite: !moment.isFavorite);
+    final updated = moment.copyWith(
+      isFavorite: !moment.isFavorite,
+      updatedAt: DateTime.now(),
+    );
     await _db.updateMoment(updated);
 
     state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
+    // 记录同步
+    SyncService.instance.recordMomentUpdate(updated);
   }
 
   Future<void> deleteMoment(String id) async {
-    await _db.deleteMoment(id);
+    final index = state.indexWhere((m) => m.id == id);
+    if (index == -1) return;
+
+    final moment = state[index];
+    final deleted = moment.copyWith(deletedAt: DateTime.now());
+    await _db.updateMoment(deleted);
     state = state.where((m) => m.id != id).toList();
+    // 记录同步
+    SyncService.instance.recordMomentDelete(id);
+  }
+
+  /// 分享到世界
+  Future<void> shareToWorld(String momentId, String topic) async {
+    final index = state.indexWhere((m) => m.id == momentId);
+    if (index == -1) return;
+
+    final moment = state[index];
+
+    // 更新 Moment 状态
+    final updated = moment.copyWith(
+      isSharedToWorld: true,
+      worldTopic: topic,
+      updatedAt: DateTime.now(),
+    );
+    await _db.updateMoment(updated);
+
+    // 创建 WorldPost
+    final worldPost = WorldPost(
+      id: const Uuid().v4(),
+      momentId: momentId,
+      content: moment.content,
+      tag: topic,
+      bgGradient: _getGradientForTopic(topic),
+      timestamp: DateTime.now(),
+    );
+    await _db.insertWorldPost(worldPost);
+
+    state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
+    // 记录同步
+    SyncService.instance.recordMomentUpdate(updated);
+  }
+
+  /// 从世界撤回
+  Future<void> withdrawFromWorld(String momentId) async {
+    final index = state.indexWhere((m) => m.id == momentId);
+    if (index == -1) return;
+
+    final moment = state[index];
+
+    // 更新 Moment 状态
+    final updated = moment.copyWith(
+      isSharedToWorld: false,
+      worldTopic: null,
+      updatedAt: DateTime.now(),
+    );
+    await _db.updateMoment(updated);
+
+    // 删除 WorldPost
+    await _db.deleteWorldPostByMomentId(momentId);
+
+    state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
+    // 记录同步
+    SyncService.instance.recordMomentUpdate(updated);
+  }
+
+  /// 根据话题获取背景渐变色
+  String _getGradientForTopic(String topic) {
+    switch (topic) {
+      case '写给未来':
+        return 'violet';
+      case '今天很累':
+        return 'blue';
+      case '第一次':
+        return 'green';
+      case '只是爱':
+        return 'peach';
+      default:
+        return 'orange';
+    }
   }
 }
 
@@ -154,19 +253,29 @@ class LettersNotifier extends StateNotifier<List<Letter>> {
   }
 
   Future<void> addLetter(Letter letter) async {
-    await _db.insertLetter(letter);
-    state = [letter, ...state];
+    final now = DateTime.now();
+    final persisted = letter.copyWith(
+      createdAt: letter.createdAt ?? now,
+      updatedAt: letter.updatedAt ?? now,
+    );
+    await _db.insertLetter(persisted);
+    state = [persisted, ...state];
+    // 记录同步
+    SyncService.instance.recordLetterCreate(persisted);
   }
 
   Future<void> updateLetter(Letter letter) async {
-    await _db.updateLetter(letter);
+    final updated = letter.copyWith(updatedAt: DateTime.now());
+    await _db.updateLetter(updated);
     state =
         state.map((l) {
-          if (l.id == letter.id) {
-            return letter;
+          if (l.id == updated.id) {
+            return updated;
           }
           return l;
         }).toList();
+    // 记录同步
+    SyncService.instance.recordLetterUpdate(updated);
   }
 
   Future<void> sealLetter(String id) async {
@@ -177,15 +286,28 @@ class LettersNotifier extends StateNotifier<List<Letter>> {
     final updated = letter.copyWith(
       status: LetterStatus.sealed,
       sealedAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
     await _db.updateLetter(updated);
 
     state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
+    // 记录同步
+    SyncService.instance.recordLetterUpdate(updated);
   }
 
   Future<void> deleteLetter(String id) async {
-    await _db.deleteLetter(id);
+    final index = state.indexWhere((l) => l.id == id);
+    if (index == -1) return;
+
+    final letter = state[index];
+    final deleted = letter.copyWith(
+      deletedAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    await _db.updateLetter(deleted);
     state = state.where((l) => l.id != id).toList();
+    // 记录同步
+    SyncService.instance.recordLetterDelete(id);
   }
 
   Future<void> updateUnlockDate(String id, DateTime newDate) async {
@@ -193,10 +315,15 @@ class LettersNotifier extends StateNotifier<List<Letter>> {
     if (index == -1) return;
 
     final letter = state[index];
-    final updated = letter.copyWith(unlockDate: newDate);
+    final updated = letter.copyWith(
+      unlockDate: newDate,
+      updatedAt: DateTime.now(),
+    );
     await _db.updateLetter(updated);
 
     state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
+    // 记录同步
+    SyncService.instance.recordLetterUpdate(updated);
   }
 }
 
@@ -454,34 +581,38 @@ final worldChannelsSyncProvider = Provider<List<WorldChannel>>((ref) {
 
 // ============== 留言相关 ==============
 
-/// 留言 Provider (按 momentId 获取)
-final commentsProvider =
-    StateNotifierProvider.family<CommentsNotifier, List<Comment>, String>((
-      ref,
-      momentId,
-    ) {
-      final db = ref.watch(databaseServiceProvider);
-      return CommentsNotifier(db, momentId);
-    });
+/// 评论 Provider 的参数类型
+typedef CommentProviderKey = (String targetId, CommentTargetType targetType);
+
+/// 评论 Provider (按 targetId 和 targetType 获取)
+final commentsProvider = StateNotifierProvider.family<
+  CommentsNotifier,
+  List<Comment>,
+  CommentProviderKey
+>((ref, key) {
+  final db = ref.watch(databaseServiceProvider);
+  return CommentsNotifier(db, key.$1, key.$2);
+});
 
 class CommentsNotifier extends StateNotifier<List<Comment>> {
   final DatabaseService _db;
-  final String momentId;
+  final String targetId;
+  final CommentTargetType targetType;
   bool _initialized = false;
 
-  CommentsNotifier(this._db, this.momentId) : super([]) {
+  CommentsNotifier(this._db, this.targetId, this.targetType) : super([]) {
     _loadComments();
   }
 
   Future<void> _loadComments() async {
     if (_initialized) return;
-    final comments = await _db.getCommentsByMomentId(momentId);
+    final comments = await _db.getCommentsByTarget(targetId, targetType);
     state = comments;
     _initialized = true;
   }
 
   Future<void> refresh() async {
-    final comments = await _db.getCommentsByMomentId(momentId);
+    final comments = await _db.getCommentsByTarget(targetId, targetType);
     state = comments;
   }
 

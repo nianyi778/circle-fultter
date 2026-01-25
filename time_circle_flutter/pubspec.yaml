@@ -1,5 +1,5 @@
 name: time_circle
-description: "念念 - 家庭时间记录与回忆保存"
+description: "Aura 拾光 - 家庭时间记录与回忆保存"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -27,6 +27,12 @@ dependencies:
   image_picker: ^1.1.2
   wechat_assets_picker: ^10.1.0
   photo_manager: ^3.8.3
+  # 网络请求
+  dio: ^5.4.0
+  # 安全存储
+  flutter_secure_storage: ^9.2.2
+  # 网络状态
+  connectivity_plus: ^6.0.3
 
 dev_dependencies:
   flutter_test:
@@ -39,11 +45,19 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon.png"
-  adaptive_icon_background: "#FAF8F5"
-  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
+  remove_alpha_ios: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#FAF9F7"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  macos:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/icon/

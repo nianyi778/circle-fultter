@@ -7,6 +7,8 @@ enum LetterType { annual, milestone, free }
 /// 信 模型
 class Letter {
   final String id;
+  final String? circleId;
+  final String? authorId;
   final String title;
   final String preview;
   final LetterStatus status;
@@ -16,9 +18,13 @@ class Letter {
   final String? content;
   final DateTime? createdAt;
   final DateTime? sealedAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
 
   const Letter({
     required this.id,
+    this.circleId,
+    this.authorId,
     required this.title,
     required this.preview,
     required this.status,
@@ -28,10 +34,14 @@ class Letter {
     this.content,
     this.createdAt,
     this.sealedAt,
+    this.updatedAt,
+    this.deletedAt,
   });
 
   Letter copyWith({
     String? id,
+    String? circleId,
+    String? authorId,
     String? title,
     String? preview,
     LetterStatus? status,
@@ -41,9 +51,13 @@ class Letter {
     String? content,
     DateTime? createdAt,
     DateTime? sealedAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
   }) {
     return Letter(
       id: id ?? this.id,
+      circleId: circleId ?? this.circleId,
+      authorId: authorId ?? this.authorId,
       title: title ?? this.title,
       preview: preview ?? this.preview,
       status: status ?? this.status,
@@ -53,6 +67,8 @@ class Letter {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       sealedAt: sealedAt ?? this.sealedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 

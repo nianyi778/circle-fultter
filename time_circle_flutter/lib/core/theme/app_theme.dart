@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// TimeCircle 设计系统 - 色彩
+/// Aura 设计系统 - 色彩
 ///
 /// 设计哲学：温柔、安静、克制
 /// 这是一个"时间容器"，不是效率工具
 class AppColors {
   AppColors._();
+
+  // === Aura 品牌色 ===
+
+  /// Aura Primary - 拾光橙（品牌主色）
+  /// 用途：品牌强调、光效、进度条
+  /// 气质：温暖的灵光，像午后阳光
+  static const Color primary = Color(0xFFDF8020);
+  static const Color primaryLight = Color(0xFFFFF7ED);
+  static const Color primaryMuted = Color(0xFFFDBA74);
+  static const Color primaryDark = Color(0xFFB86A1A);
+
+  /// 品牌光效
+  static Color get primaryGlow => primary.withValues(alpha: 0.15);
+  static Color get primaryGlowStrong => primary.withValues(alpha: 0.25);
 
   // === 主色调 ===
 
@@ -95,7 +109,7 @@ class AppColors {
   static const Color heartDark = Color(0xFFDC2626);
 }
 
-/// TimeCircle 设计系统 - 间距
+/// Aura 设计系统 - 间距
 class AppSpacing {
   AppSpacing._();
 
@@ -126,7 +140,7 @@ class AppSpacing {
   static const double cardGap = 24.0;
 }
 
-/// TimeCircle 设计系统 - 圆角
+/// Aura 设计系统 - 圆角
 class AppRadius {
   AppRadius._();
 
@@ -154,7 +168,7 @@ class AppRadius {
   static const double avatar = 999.0;
 }
 
-/// TimeCircle 设计系统 - 阴影
+/// Aura 设计系统 - 阴影
 /// 使用多层柔和阴影，模拟纸张质感
 class AppShadows {
   AppShadows._();
@@ -230,7 +244,7 @@ class AppShadows {
   ];
 }
 
-/// TimeCircle 设计系统 - 动效
+/// Aura 设计系统 - 动效
 /// 动效原则：慢一点、轻一点、永远不打断情绪
 class AppDurations {
   AppDurations._();
@@ -260,7 +274,7 @@ class AppDurations {
   static const Duration breathing = Duration(milliseconds: 2000);
 }
 
-/// TimeCircle 设计系统 - 曲线
+/// Aura 设计系统 - 曲线
 class AppCurves {
   AppCurves._();
 
@@ -283,7 +297,7 @@ class AppCurves {
   static const Curve smooth = Curves.easeInOutCubic;
 }
 
-/// TimeCircle 设计系统 - 字体样式
+/// Aura 设计系统 - 字体样式
 /// 提供语义化的字体层级
 class AppTypography {
   AppTypography._();
@@ -352,7 +366,7 @@ class AppTypography {
   );
 }
 
-/// TimeCircle 主题
+/// Aura 主题
 class AppTheme {
   AppTheme._();
 

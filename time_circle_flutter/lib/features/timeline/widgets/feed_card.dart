@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/moment.dart';
+import '../../../core/models/comment.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/image_utils.dart';
 
@@ -412,7 +413,9 @@ class _FeedCardState extends ConsumerState<FeedCard>
   /// 底部操作区
   Widget _buildActionBar(BuildContext context) {
     final moment = widget.moment;
-    final comments = ref.watch(commentsProvider(moment.id));
+    final comments = ref.watch(
+      commentsProvider((moment.id, CommentTargetType.moment)),
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -500,7 +503,9 @@ class _FeedCardState extends ConsumerState<FeedCard>
 
   /// 评论预览条
   Widget _buildCommentPreview(BuildContext context) {
-    final comments = ref.watch(commentsProvider(widget.moment.id));
+    final comments = ref.watch(
+      commentsProvider((widget.moment.id, CommentTargetType.moment)),
+    );
     if (comments.isEmpty) return const SizedBox.shrink();
 
     final lastComment = comments.last;

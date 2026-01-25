@@ -1,6 +1,7 @@
 /// 世界频道帖子
 class WorldPost {
   final String id;
+  final String? momentId; // 关联的 Moment ID（用于撤回，匿名分享时不显示）
   final String content;
   final String tag;
   final int resonanceCount; // 共鸣数（不显示给用户）
@@ -10,6 +11,7 @@ class WorldPost {
 
   const WorldPost({
     required this.id,
+    this.momentId,
     required this.content,
     required this.tag,
     this.resonanceCount = 0,
@@ -20,6 +22,7 @@ class WorldPost {
 
   WorldPost copyWith({
     String? id,
+    String? momentId,
     String? content,
     String? tag,
     int? resonanceCount,
@@ -29,6 +32,7 @@ class WorldPost {
   }) {
     return WorldPost(
       id: id ?? this.id,
+      momentId: momentId ?? this.momentId,
       content: content ?? this.content,
       tag: tag ?? this.tag,
       resonanceCount: resonanceCount ?? this.resonanceCount,

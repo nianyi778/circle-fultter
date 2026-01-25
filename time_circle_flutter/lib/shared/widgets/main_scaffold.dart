@@ -7,6 +7,7 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../features/create/views/create_moment_view.dart';
+import 'sync_status_indicator.dart';
 
 /// 当前导航索引 Provider
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -22,7 +23,14 @@ class MainScaffold extends ConsumerWidget {
     final currentIndex = ref.watch(navigationIndexProvider);
 
     return Scaffold(
-      body: child,
+      body: Column(
+        children: [
+          // 同步状态横幅（错误或离线时显示）
+          const SyncStatusBanner(),
+          // 主内容
+          Expanded(child: child),
+        ],
+      ),
       extendBody: true,
       bottomNavigationBar: _BottomNavBar(
         currentIndex: currentIndex,

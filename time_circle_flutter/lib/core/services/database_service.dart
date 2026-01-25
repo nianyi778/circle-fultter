@@ -28,10 +28,58 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 2,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
+  }
+
+  /// 数据库升级
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _upgradeToV2(db);
+    }
+  }
+
+  Future<void> _upgradeToV2(Database db) async {
+    // 补齐 moments 字段
+    await _addColumnIfMissing(db, 'moments', 'circle_id TEXT');
+    await _addColumnIfMissing(db, 'moments', 'created_at TEXT');
+    await _addColumnIfMissing(db, 'moments', 'updated_at TEXT');
+    await _addColumnIfMissing(db, 'moments', 'deleted_at TEXT');
+
+    // 补齐 letters 字段
+    await _addColumnIfMissing(db, 'letters', 'circle_id TEXT');
+    await _addColumnIfMissing(db, 'letters', 'author_id TEXT');
+    await _addColumnIfMissing(db, 'letters', 'updated_at TEXT');
+    await _addColumnIfMissing(db, 'letters', 'deleted_at TEXT');
+
+    // 补齐 comments 字段
+    await _addColumnIfMissing(db, 'comments', 'deleted_at TEXT');
+
+    // 补齐 users 字段
+    await _addColumnIfMissing(db, 'users', 'email TEXT');
+    await _addColumnIfMissing(db, 'users', 'created_at TEXT');
+    await _addColumnIfMissing(db, 'users', 'updated_at TEXT');
+
+    // 补齐 circle_info 字段（与后端 circles 对齐）
+    await _addColumnIfMissing(db, 'circle_info', 'circle_id TEXT');
+  }
+
+  Future<void> _addColumnIfMissing(
+    Database db,
+    String table,
+    String columnDefinition,
+  ) async {
+    final columns = await db.rawQuery('PRAGMA table_info($table)');
+    final columnName = columnDefinition.split(' ').first;
+    final exists = columns.any(
+      (row) => (row['name'] as String?)?.toLowerCase() == columnName,
+    );
+
+    if (!exists) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $columnDefinition');
+    }
   }
 
   /// 创建表
@@ -40,18 +88,22 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE users (
         id TEXT PRIMARY KEY,
+        email TEXT,
         name TEXT NOT NULL,
         avatar TEXT NOT NULL,
-        role TEXT NOT NULL
+        role_label TEXT,
+        created_at TEXT,
+        updated_at TEXT
       )
     ''');
 
-    // 孩子信息表
+    // 圈子信息表（原 child_info）
     await db.execute('''
-      CREATE TABLE child_info (
+      CREATE TABLE circle_info (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        circle_id TEXT,
         name TEXT NOT NULL,
-        birth_date TEXT NOT NULL
+        start_date TEXT NOT NULL
       )
     ''');
 
@@ -59,18 +111,22 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE moments (
         id TEXT PRIMARY KEY,
+        circle_id TEXT,
         author_id TEXT NOT NULL,
         content TEXT NOT NULL,
         media_type TEXT NOT NULL,
         media_url TEXT,
         timestamp TEXT NOT NULL,
-        child_age_label TEXT NOT NULL,
+        time_label TEXT NOT NULL,
         context_tags TEXT,
         location TEXT,
         is_favorite INTEGER DEFAULT 0,
         future_message TEXT,
         is_shared_to_world INTEGER DEFAULT 0,
         world_topic TEXT,
+        created_at TEXT,
+        updated_at TEXT,
+        deleted_at TEXT,
         FOREIGN KEY (author_id) REFERENCES users (id)
       )
     ''');
@@ -79,6 +135,8 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE letters (
         id TEXT PRIMARY KEY,
+        circle_id TEXT,
+        author_id TEXT,
         title TEXT NOT NULL,
         preview TEXT NOT NULL,
         status TEXT NOT NULL,
@@ -87,7 +145,9 @@ class DatabaseService {
         type TEXT NOT NULL,
         content TEXT,
         created_at TEXT,
-        sealed_at TEXT
+        sealed_at TEXT,
+        updated_at TEXT,
+        deleted_at TEXT
       )
     ''');
 
@@ -95,6 +155,7 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE world_posts (
         id TEXT PRIMARY KEY,
+        moment_id TEXT,
         content TEXT NOT NULL,
         tag TEXT NOT NULL,
         resonance_count INTEGER DEFAULT 0,
@@ -114,19 +175,19 @@ class DatabaseService {
       )
     ''');
 
-    // 留言表
+    // 评论表（支持多目标类型）
     await db.execute('''
       CREATE TABLE comments (
         id TEXT PRIMARY KEY,
-        moment_id TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        target_type TEXT NOT NULL DEFAULT 'moment',
         author_id TEXT NOT NULL,
         content TEXT NOT NULL,
         timestamp TEXT NOT NULL,
         likes INTEGER DEFAULT 0,
         reply_to_id TEXT,
-        FOREIGN KEY (moment_id) REFERENCES moments (id) ON DELETE CASCADE,
-        FOREIGN KEY (author_id) REFERENCES users (id),
-        FOREIGN KEY (reply_to_id) REFERENCES users (id)
+        deleted_at TEXT,
+        FOREIGN KEY (author_id) REFERENCES users (id)
       )
     ''');
 
@@ -139,6 +200,19 @@ class DatabaseService {
       )
     ''');
 
+    // 创建索引
+    await db.execute(
+      'CREATE INDEX idx_moments_timestamp ON moments(timestamp DESC)',
+    );
+    await db.execute('CREATE INDEX idx_moments_author ON moments(author_id)');
+    await db.execute(
+      'CREATE INDEX idx_comments_target ON comments(target_id, target_type)',
+    );
+    await db.execute('CREATE INDEX idx_world_posts_tag ON world_posts(tag)');
+    await db.execute(
+      'CREATE INDEX idx_world_posts_timestamp ON world_posts(timestamp DESC)',
+    );
+
     // 初始化默认数据
     await _insertDefaultData(db);
   }
@@ -150,20 +224,21 @@ class DatabaseService {
       'id': 'u1',
       'name': '我',
       'avatar': '',
-      'role': '', // 用户自定义角色标签，留空表示未设置
+      'role_label': null,
     });
 
     await db.insert('users', {
       'id': 'u2',
       'name': 'TA',
       'avatar': '',
-      'role': '',
+      'role_label': null,
     });
 
     // 默认圈子信息
-    await db.insert('child_info', {
+    await db.insert('circle_info', {
+      'circle_id': 'cir_default',
       'name': '我们的圈子',
-      'birth_date':
+      'start_date':
           DateTime.now().subtract(const Duration(days: 365)).toIso8601String(),
     });
 
@@ -288,79 +363,6 @@ class DatabaseService {
     }
   }
 
-  /// 数据库升级
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // 版本 1 -> 2: 添加 comments 表
-    if (oldVersion < 2) {
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS comments (
-          id TEXT PRIMARY KEY,
-          moment_id TEXT NOT NULL,
-          author_id TEXT NOT NULL,
-          content TEXT NOT NULL,
-          timestamp TEXT NOT NULL,
-          likes INTEGER DEFAULT 0,
-          reply_to_id TEXT,
-          FOREIGN KEY (moment_id) REFERENCES moments (id) ON DELETE CASCADE,
-          FOREIGN KEY (author_id) REFERENCES users (id),
-          FOREIGN KEY (reply_to_id) REFERENCES users (id)
-        )
-      ''');
-    }
-
-    // 版本 2 -> 3: 添加 comments 表缺失字段 + moments 表世界分享字段
-    if (oldVersion < 3) {
-      // 添加 comments 表新字段
-      try {
-        await db.execute(
-          'ALTER TABLE comments ADD COLUMN likes INTEGER DEFAULT 0',
-        );
-      } catch (_) {} // 字段可能已存在
-      try {
-        await db.execute('ALTER TABLE comments ADD COLUMN reply_to_id TEXT');
-      } catch (_) {}
-
-      // 添加 moments 表世界分享字段
-      try {
-        await db.execute(
-          'ALTER TABLE moments ADD COLUMN is_shared_to_world INTEGER DEFAULT 0',
-        );
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE moments ADD COLUMN world_topic TEXT');
-      } catch (_) {}
-    }
-
-    // 版本 3 -> 4: 添加 settings 表
-    if (oldVersion < 4) {
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS settings (
-          key TEXT PRIMARY KEY,
-          value TEXT NOT NULL,
-          updated_at TEXT NOT NULL
-        )
-      ''');
-
-      // 插入默认设置
-      final now = DateTime.now().toIso8601String();
-      final defaultSettings = {
-        'annual_letter_reminder': 'true',
-        'face_blur_enabled': 'true',
-        'default_visibility': 'private',
-        'time_lock_duration': '365',
-      };
-      for (final entry in defaultSettings.entries) {
-        try {
-          await db.insert('settings', {
-            'key': entry.key,
-            'value': entry.value,
-            'updated_at': now,
-          });
-        } catch (_) {}
-      }
-    }
-  }
-
   // ============== 用户相关 ==============
 
   /// 获取所有用户
@@ -397,21 +399,27 @@ class DatabaseService {
     );
   }
 
+  /// 删除用户
+  Future<void> deleteUser(String id) async {
+    final db = await database;
+    await db.delete('users', where: 'id = ?', whereArgs: [id]);
+  }
+
   // ============== 圈子信息相关 ==============
 
   /// 获取圈子信息
   Future<CircleInfo> getCircleInfo() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'child_info',
-    ); // 保持表名兼容
+    final List<Map<String, dynamic>> maps = await db.query('circle_info');
     if (maps.isNotEmpty) {
       return CircleInfo(
+        id: maps.first['circle_id'] as String?,
         name: maps.first['name'] as String,
-        startDate: DateTime.parse(maps.first['birth_date'] as String),
+        startDate: DateTime.parse(maps.first['start_date'] as String),
       );
     }
     return CircleInfo(
+      id: 'cir_default',
       name: '我们的圈子',
       startDate: DateTime.now().subtract(const Duration(days: 365)),
     );
@@ -423,10 +431,11 @@ class DatabaseService {
   /// 更新圈子信息
   Future<void> updateCircleInfo(CircleInfo circleInfo) async {
     final db = await database;
-    await db.delete('child_info'); // 保持表名兼容
-    await db.insert('child_info', {
+    await db.delete('circle_info');
+    await db.insert('circle_info', {
+      'circle_id': circleInfo.id,
       'name': circleInfo.name,
-      'birth_date':
+      'start_date':
           circleInfo.startDate?.toIso8601String() ??
           DateTime.now().toIso8601String(),
     });
@@ -579,15 +588,41 @@ class DatabaseService {
     );
   }
 
-  // ============== 留言相关 ==============
+  /// 根据 momentId 删除世界帖子
+  Future<void> deleteWorldPostByMomentId(String momentId) async {
+    final db = await database;
+    await db.delete(
+      'world_posts',
+      where: 'moment_id = ?',
+      whereArgs: [momentId],
+    );
+  }
 
-  /// 获取时刻的所有留言
-  Future<List<Comment>> getCommentsByMomentId(String momentId) async {
+  /// 根据 momentId 获取世界帖子
+  Future<WorldPost?> getWorldPostByMomentId(String momentId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'world_posts',
+      where: 'moment_id = ?',
+      whereArgs: [momentId],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return _mapToWorldPost(maps.first);
+  }
+
+  // ============== 评论相关 ==============
+
+  /// 获取目标的所有评论
+  Future<List<Comment>> getCommentsByTarget(
+    String targetId,
+    CommentTargetType targetType,
+  ) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'comments',
-      where: 'moment_id = ?',
-      whereArgs: [momentId],
+      where: 'target_id = ? AND target_type = ?',
+      whereArgs: [targetId, targetType.name],
       orderBy: 'timestamp ASC',
     );
 
@@ -597,7 +632,12 @@ class DatabaseService {
     return maps.map((map) => _mapToComment(map, userMap)).toList();
   }
 
-  /// 插入留言
+  /// 兼容旧代码：获取时刻的所有评论
+  Future<List<Comment>> getCommentsByMomentId(String momentId) async {
+    return getCommentsByTarget(momentId, CommentTargetType.moment);
+  }
+
+  /// 插入评论
   Future<void> insertComment(Comment comment) async {
     final db = await database;
     await db.insert(
@@ -607,16 +647,28 @@ class DatabaseService {
     );
   }
 
-  /// 删除留言
+  /// 删除评论
   Future<void> deleteComment(String id) async {
     final db = await database;
     await db.delete('comments', where: 'id = ?', whereArgs: [id]);
   }
 
-  /// 删除时刻的所有留言
-  Future<void> deleteCommentsByMomentId(String momentId) async {
+  /// 删除目标的所有评论
+  Future<void> deleteCommentsByTarget(
+    String targetId,
+    CommentTargetType targetType,
+  ) async {
     final db = await database;
-    await db.delete('comments', where: 'moment_id = ?', whereArgs: [momentId]);
+    await db.delete(
+      'comments',
+      where: 'target_id = ? AND target_type = ?',
+      whereArgs: [targetId, targetType.name],
+    );
+  }
+
+  /// 兼容旧代码：删除时刻的所有评论
+  Future<void> deleteCommentsByMomentId(String momentId) async {
+    return deleteCommentsByTarget(momentId, CommentTargetType.moment);
   }
 
   // ============== 世界频道相关 ==============
@@ -635,196 +687,6 @@ class DatabaseService {
           ),
         )
         .toList();
-  }
-
-  // ============== 工具方法 ==============
-
-  User _defaultUser() => const User(id: 'u1', name: '我', avatar: '');
-
-  Map<String, dynamic> _userToMap(User user) => {
-    'id': user.id,
-    'name': user.name,
-    'avatar': user.avatar,
-    'role': user.roleLabel ?? '',
-  };
-
-  User _mapToUser(Map<String, dynamic> map) => User(
-    id: map['id'] as String,
-    name: map['name'] as String,
-    avatar: map['avatar'] as String? ?? '',
-    roleLabel:
-        (map['role'] as String?)?.isNotEmpty == true
-            ? map['role'] as String
-            : null,
-  );
-
-  Map<String, dynamic> _momentToMap(Moment moment) => {
-    'id': moment.id,
-    'author_id': moment.author.id,
-    'content': moment.content,
-    'media_type': moment.mediaType.name,
-    'media_url': moment.mediaUrl,
-    'timestamp': moment.timestamp.toIso8601String(),
-    'child_age_label': moment.timeLabel, // 保持数据库字段名兼容
-    'context_tags': jsonEncode(
-      moment.contextTags
-          .map((t) => {'type': t.type.name, 'label': t.label, 'emoji': t.emoji})
-          .toList(),
-    ),
-    'location': moment.location,
-    'is_favorite': moment.isFavorite ? 1 : 0,
-    'future_message': moment.futureMessage,
-    'is_shared_to_world': moment.isSharedToWorld ? 1 : 0,
-    'world_topic': moment.worldTopic,
-  };
-
-  Moment _mapToMoment(Map<String, dynamic> map, Map<String, User> userMap) {
-    final authorId = map['author_id'] as String;
-    final author = userMap[authorId] ?? _defaultUser();
-
-    List<ContextTag> contextTags = [];
-    if (map['context_tags'] != null) {
-      final tagsJson = jsonDecode(map['context_tags'] as String) as List;
-      contextTags =
-          tagsJson.map((t) {
-            // 兼容旧数据：将 parentMood 映射为 myMood，childState 映射为 atmosphere
-            var typeName = t['type'] as String;
-            if (typeName == 'parentMood') typeName = 'myMood';
-            if (typeName == 'childState') typeName = 'atmosphere';
-
-            return ContextTag(
-              type: ContextTagType.values.firstWhere(
-                (ct) => ct.name == typeName,
-                orElse: () => ContextTagType.myMood,
-              ),
-              label: t['label'] as String,
-              emoji: t['emoji'] as String,
-            );
-          }).toList();
-    }
-
-    return Moment(
-      id: map['id'] as String,
-      author: author,
-      content: map['content'] as String,
-      mediaType: MediaType.values.firstWhere(
-        (m) => m.name == map['media_type'],
-        orElse: () => MediaType.text,
-      ),
-      mediaUrl: map['media_url'] as String?,
-      timestamp: DateTime.parse(map['timestamp'] as String),
-      timeLabel: map['child_age_label'] as String,
-      contextTags: contextTags,
-      location: map['location'] as String?,
-      isFavorite: (map['is_favorite'] as int? ?? 0) == 1,
-      futureMessage: map['future_message'] as String?,
-      isSharedToWorld: (map['is_shared_to_world'] as int? ?? 0) == 1,
-      worldTopic: map['world_topic'] as String?,
-    );
-  }
-
-  Map<String, dynamic> _letterToMap(Letter letter) => {
-    'id': letter.id,
-    'title': letter.title,
-    'preview': letter.preview,
-    'status': letter.status.name,
-    'unlock_date': letter.unlockDate?.toIso8601String(),
-    'recipient': letter.recipient,
-    'type': letter.type.name,
-    'content': letter.content,
-    'created_at': letter.createdAt?.toIso8601String(),
-    'sealed_at': letter.sealedAt?.toIso8601String(),
-  };
-
-  Letter _mapToLetter(Map<String, dynamic> map) => Letter(
-    id: map['id'] as String,
-    title: map['title'] as String,
-    preview: map['preview'] as String,
-    status: LetterStatus.values.firstWhere(
-      (s) => s.name == map['status'],
-      orElse: () => LetterStatus.draft,
-    ),
-    unlockDate:
-        map['unlock_date'] != null
-            ? DateTime.parse(map['unlock_date'] as String)
-            : null,
-    recipient: map['recipient'] as String,
-    type: LetterType.values.firstWhere(
-      (t) => t.name == map['type'],
-      orElse: () => LetterType.annual,
-    ),
-    content: map['content'] as String?,
-    createdAt:
-        map['created_at'] != null
-            ? DateTime.parse(map['created_at'] as String)
-            : null,
-    sealedAt:
-        map['sealed_at'] != null
-            ? DateTime.parse(map['sealed_at'] as String)
-            : null,
-  );
-
-  Map<String, dynamic> _worldPostToMap(WorldPost post) => {
-    'id': post.id,
-    'content': post.content,
-    'tag': post.tag,
-    'resonance_count': post.resonanceCount,
-    'bg_gradient': post.bgGradient,
-    'timestamp': post.timestamp.toIso8601String(),
-    'has_resonated': post.hasResonated ? 1 : 0,
-  };
-
-  WorldPost _mapToWorldPost(Map<String, dynamic> map) => WorldPost(
-    id: map['id'] as String,
-    content: map['content'] as String,
-    tag: map['tag'] as String,
-    resonanceCount: map['resonance_count'] as int? ?? 0,
-    bgGradient: map['bg_gradient'] as String,
-    timestamp: DateTime.parse(map['timestamp'] as String),
-    hasResonated: (map['has_resonated'] as int? ?? 0) == 1,
-  );
-
-  Map<String, dynamic> _commentToMap(Comment comment) => {
-    'id': comment.id,
-    'moment_id': comment.momentId,
-    'author_id': comment.author.id,
-    'content': comment.content,
-    'timestamp': comment.timestamp.toIso8601String(),
-    'likes': comment.likes,
-    'reply_to_id': comment.replyTo?.id,
-  };
-
-  Comment _mapToComment(Map<String, dynamic> map, Map<String, User> userMap) {
-    final authorId = map['author_id'] as String;
-    final author = userMap[authorId] ?? _defaultUser();
-
-    final replyToId = map['reply_to_id'] as String?;
-    final replyTo = replyToId != null ? userMap[replyToId] : null;
-
-    return Comment(
-      id: map['id'] as String,
-      momentId: map['moment_id'] as String,
-      author: author,
-      content: map['content'] as String,
-      timestamp: DateTime.parse(map['timestamp'] as String),
-      likes: map['likes'] as int? ?? 0,
-      replyTo: replyTo,
-    );
-  }
-
-  /// 关闭数据库
-  Future<void> close() async {
-    final db = await database;
-    await db.close();
-    _database = null;
-  }
-
-  /// 清空所有数据（用于测试或重置）
-  Future<void> clearAllData() async {
-    final db = await database;
-    await db.delete('moments');
-    await db.delete('letters');
-    await db.delete('world_posts');
   }
 
   // ============== 设置相关 ==============
@@ -894,11 +756,7 @@ class DatabaseService {
     await db.delete('settings', where: 'key = ?', whereArgs: [key]);
   }
 
-  /// 删除用户
-  Future<void> deleteUser(String id) async {
-    final db = await database;
-    await db.delete('users', where: 'id = ?', whereArgs: [id]);
-  }
+  // ============== 统计相关 ==============
 
   /// 获取统计信息
   Future<Map<String, int>> getStatistics() async {
@@ -932,5 +790,243 @@ class DatabaseService {
       'userCount': userCount,
       'recordedDays': recordedDays,
     };
+  }
+
+  /// 关闭数据库
+  Future<void> close() async {
+    final db = await database;
+    await db.close();
+    _database = null;
+  }
+
+  /// 清空所有数据（用于测试或重置）
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.delete('moments');
+    await db.delete('letters');
+    await db.delete('world_posts');
+    await db.delete('comments');
+  }
+
+  /// 回填本地数据的 circleId
+  Future<void> backfillCircleId(String circleId) async {
+    final db = await database;
+    await db.update('moments', {
+      'circle_id': circleId,
+    }, where: 'circle_id IS NULL');
+    await db.update('letters', {
+      'circle_id': circleId,
+    }, where: 'circle_id IS NULL');
+    await db.update('circle_info', {
+      'circle_id': circleId,
+    }, where: 'circle_id IS NULL');
+  }
+
+  // ============== 工具方法 ==============
+
+  User _defaultUser() => const User(id: 'u1', name: '我', avatar: '');
+
+  Map<String, dynamic> _userToMap(User user) => {
+    'id': user.id,
+    'name': user.name,
+    'avatar': user.avatar,
+    'role_label': user.roleLabel,
+  };
+
+  User _mapToUser(Map<String, dynamic> map) => User(
+    id: map['id'] as String,
+    name: map['name'] as String,
+    avatar: map['avatar'] as String? ?? '',
+    roleLabel: map['role_label'] as String?,
+  );
+
+  Map<String, dynamic> _momentToMap(Moment moment) => {
+    'id': moment.id,
+    'circle_id': moment.circleId,
+    'author_id': moment.author.id,
+    'content': moment.content,
+    'media_type': moment.mediaType.name,
+    'media_url': moment.mediaUrl,
+    'timestamp': moment.timestamp.toIso8601String(),
+    'time_label': moment.timeLabel,
+    'context_tags': jsonEncode(
+      moment.contextTags
+          .map((t) => {'type': t.type.name, 'label': t.label, 'emoji': t.emoji})
+          .toList(),
+    ),
+    'location': moment.location,
+    'is_favorite': moment.isFavorite ? 1 : 0,
+    'future_message': moment.futureMessage,
+    'is_shared_to_world': moment.isSharedToWorld ? 1 : 0,
+    'world_topic': moment.worldTopic,
+    'created_at': (moment.createdAt ?? moment.timestamp).toIso8601String(),
+    'updated_at': (moment.updatedAt ?? moment.timestamp).toIso8601String(),
+    'deleted_at': moment.deletedAt?.toIso8601String(),
+  };
+
+  Moment _mapToMoment(Map<String, dynamic> map, Map<String, User> userMap) {
+    final authorId = map['author_id'] as String;
+    final author = userMap[authorId] ?? _defaultUser();
+
+    List<ContextTag> contextTags = [];
+    if (map['context_tags'] != null) {
+      final tagsJson = jsonDecode(map['context_tags'] as String) as List;
+      contextTags =
+          tagsJson.map((t) {
+            return ContextTag(
+              type: ContextTagType.values.firstWhere(
+                (ct) => ct.name == t['type'],
+                orElse: () => ContextTagType.myMood,
+              ),
+              label: t['label'] as String,
+              emoji: t['emoji'] as String,
+            );
+          }).toList();
+    }
+
+    return Moment(
+      id: map['id'] as String,
+      circleId: map['circle_id'] as String?,
+      author: author,
+      content: map['content'] as String,
+      mediaType: MediaType.values.firstWhere(
+        (m) => m.name == map['media_type'],
+        orElse: () => MediaType.text,
+      ),
+      mediaUrl: map['media_url'] as String?,
+      timestamp: DateTime.parse(map['timestamp'] as String),
+      timeLabel: map['time_label'] as String,
+      contextTags: contextTags,
+      location: map['location'] as String?,
+      isFavorite: (map['is_favorite'] as int? ?? 0) == 1,
+      futureMessage: map['future_message'] as String?,
+      isSharedToWorld: (map['is_shared_to_world'] as int? ?? 0) == 1,
+      worldTopic: map['world_topic'] as String?,
+      createdAt:
+          map['created_at'] != null
+              ? DateTime.parse(map['created_at'] as String)
+              : null,
+      updatedAt:
+          map['updated_at'] != null
+              ? DateTime.parse(map['updated_at'] as String)
+              : null,
+      deletedAt:
+          map['deleted_at'] != null
+              ? DateTime.parse(map['deleted_at'] as String)
+              : null,
+    );
+  }
+
+  Map<String, dynamic> _letterToMap(Letter letter) => {
+    'id': letter.id,
+    'circle_id': letter.circleId,
+    'author_id': letter.authorId,
+    'title': letter.title,
+    'preview': letter.preview,
+    'status': letter.status.name,
+    'unlock_date': letter.unlockDate?.toIso8601String(),
+    'recipient': letter.recipient,
+    'type': letter.type.name,
+    'content': letter.content,
+    'created_at': letter.createdAt?.toIso8601String(),
+    'sealed_at': letter.sealedAt?.toIso8601String(),
+    'updated_at': letter.updatedAt?.toIso8601String(),
+    'deleted_at': letter.deletedAt?.toIso8601String(),
+  };
+
+  Letter _mapToLetter(Map<String, dynamic> map) => Letter(
+    id: map['id'] as String,
+    circleId: map['circle_id'] as String?,
+    authorId: map['author_id'] as String?,
+    title: map['title'] as String,
+    preview: map['preview'] as String,
+    status: LetterStatus.values.firstWhere(
+      (s) => s.name == map['status'],
+      orElse: () => LetterStatus.draft,
+    ),
+    unlockDate:
+        map['unlock_date'] != null
+            ? DateTime.parse(map['unlock_date'] as String)
+            : null,
+    recipient: map['recipient'] as String,
+    type: LetterType.values.firstWhere(
+      (t) => t.name == map['type'],
+      orElse: () => LetterType.annual,
+    ),
+    content: map['content'] as String?,
+    createdAt:
+        map['created_at'] != null
+            ? DateTime.parse(map['created_at'] as String)
+            : null,
+    sealedAt:
+        map['sealed_at'] != null
+            ? DateTime.parse(map['sealed_at'] as String)
+            : null,
+    updatedAt:
+        map['updated_at'] != null
+            ? DateTime.parse(map['updated_at'] as String)
+            : null,
+    deletedAt:
+        map['deleted_at'] != null
+            ? DateTime.parse(map['deleted_at'] as String)
+            : null,
+  );
+
+  Map<String, dynamic> _worldPostToMap(WorldPost post) => {
+    'id': post.id,
+    'moment_id': post.momentId,
+    'content': post.content,
+    'tag': post.tag,
+    'resonance_count': post.resonanceCount,
+    'bg_gradient': post.bgGradient,
+    'timestamp': post.timestamp.toIso8601String(),
+    'has_resonated': post.hasResonated ? 1 : 0,
+  };
+
+  WorldPost _mapToWorldPost(Map<String, dynamic> map) => WorldPost(
+    id: map['id'] as String,
+    momentId: map['moment_id'] as String?,
+    content: map['content'] as String,
+    tag: map['tag'] as String,
+    resonanceCount: map['resonance_count'] as int? ?? 0,
+    bgGradient: map['bg_gradient'] as String,
+    timestamp: DateTime.parse(map['timestamp'] as String),
+    hasResonated: (map['has_resonated'] as int? ?? 0) == 1,
+  );
+
+  Map<String, dynamic> _commentToMap(Comment comment) => {
+    'id': comment.id,
+    'target_id': comment.targetId,
+    'target_type': comment.targetType.name,
+    'author_id': comment.author.id,
+    'content': comment.content,
+    'timestamp': comment.timestamp.toIso8601String(),
+    'likes': comment.likes,
+    'reply_to_id': comment.replyTo?.id,
+  };
+
+  Comment _mapToComment(Map<String, dynamic> map, Map<String, User> userMap) {
+    final authorId = map['author_id'] as String;
+    final author = userMap[authorId] ?? _defaultUser();
+
+    final replyToId = map['reply_to_id'] as String?;
+    final replyTo = replyToId != null ? userMap[replyToId] : null;
+
+    final targetTypeStr = map['target_type'] as String? ?? 'moment';
+    final targetType = CommentTargetType.values.firstWhere(
+      (t) => t.name == targetTypeStr,
+      orElse: () => CommentTargetType.moment,
+    );
+
+    return Comment(
+      id: map['id'] as String,
+      targetId: map['target_id'] as String,
+      targetType: targetType,
+      author: author,
+      content: map['content'] as String,
+      timestamp: DateTime.parse(map['timestamp'] as String),
+      likes: map['likes'] as int? ?? 0,
+      replyTo: replyTo,
+    );
   }
 }

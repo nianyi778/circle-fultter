@@ -84,7 +84,9 @@ class _CircleInfoViewState extends ConsumerState<CircleInfoView> {
         context.pop();
       }
     } catch (e) {
-      context.showSettingsMessage('保存失败: $e', isError: true);
+      if (mounted) {
+        context.showSettingsMessage('保存失败: $e', isError: true);
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

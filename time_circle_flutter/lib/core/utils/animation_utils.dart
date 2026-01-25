@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/app_theme.dart';
 
-/// TimeCircle 动效工具类
+/// Aura 动效工具类
 /// 设计原则：慢一点、轻一点、永远不打断情绪
 class AnimationUtils {
   AnimationUtils._();
@@ -147,7 +147,7 @@ class AnimationUtils {
 }
 
 /// 封装常用动画组合的扩展
-extension TimeCircleAnimateExtension on Widget {
+extension AuraAnimateExtension on Widget {
   /// 温柔的入场动画
   Widget gentleEntrance({Duration? delay, Duration? duration}) {
     return animate(delay: delay)
@@ -189,7 +189,7 @@ extension TimeCircleAnimateExtension on Widget {
 }
 
 /// 页面转场动画构建器
-class TimeCirclePageTransition {
+class AuraPageTransition {
   /// 柔和的从下往上滑入
   static Route<T> slideUp<T>({required Widget page, Duration? duration}) {
     return PageRouteBuilder<T>(

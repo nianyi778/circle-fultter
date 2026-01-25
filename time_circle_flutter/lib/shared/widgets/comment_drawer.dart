@@ -7,15 +7,21 @@ import 'package:uuid/uuid.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/comment.dart';
 import '../../core/models/user.dart';
-import '../../core/models/moment.dart';
 import '../../core/providers/app_providers.dart';
 
 /// 评论抽屉 - 温柔、克制的交互体验
+/// 支持 Moment 和 WorldPost 等任何可评论的内容
 class CommentDrawer extends ConsumerStatefulWidget {
-  final Moment moment;
+  final String targetId; // 可以是 moment.id 或 worldPost.id
+  final CommentTargetType targetType; // 目标类型
   final VoidCallback onClose;
 
-  const CommentDrawer({super.key, required this.moment, required this.onClose});
+  const CommentDrawer({
+    super.key,
+    required this.targetId,
+    this.targetType = CommentTargetType.moment,
+    required this.onClose,
+  });
 
   @override
   ConsumerState<CommentDrawer> createState() => _CommentDrawerState();
@@ -85,14 +91,17 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
     final currentUser = ref.read(currentUserSyncProvider);
     final comment = Comment(
       id: const Uuid().v4(),
-      momentId: widget.moment.id,
+      targetId: widget.targetId,
+      targetType: widget.targetType,
       author: currentUser,
       content: text,
       timestamp: DateTime.now(),
       replyTo: _replyTarget,
     );
 
-    ref.read(commentsProvider(widget.moment.id).notifier).addComment(comment);
+    ref
+        .read(commentsProvider((widget.targetId, widget.targetType)).notifier)
+        .addComment(comment);
     _textController.clear();
     setState(() {
       _replyTarget = null;
@@ -101,50 +110,55 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
 
   @override
   Widget build(BuildContext context) {
-    final comments = ref.watch(commentsProvider(widget.moment.id));
+    final comments = ref.watch(
+      commentsProvider((widget.targetId, widget.targetType)),
+    );
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
-    return GestureDetector(
-      onTap: _handleClose,
-      child: AnimatedBuilder(
-        animation: _fadeAnimation,
-        builder: (context, child) {
-          return Container(
-            color: Colors.black.withValues(alpha: 0.4 * _fadeAnimation.value),
-            child: child,
-          );
-        },
-        child: GestureDetector(
-          onTap: () {}, // 阻止点击穿透
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.7,
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppRadius.xl),
-                  ),
-                  boxShadow: AppShadows.elevated,
-                ),
-                child: Column(
-                  children: [
-                    // 顶部标题栏
-                    _buildHeader(comments.length),
-
-                    // 评论列表
-                    Expanded(
-                      child:
-                          comments.isEmpty
-                              ? _buildEmptyState()
-                              : _buildCommentList(comments),
+    return Material(
+      color: Colors.transparent,
+      child: GestureDetector(
+        onTap: _handleClose,
+        child: AnimatedBuilder(
+          animation: _fadeAnimation,
+          builder: (context, child) {
+            return Container(
+              color: Colors.black.withValues(alpha: 0.4 * _fadeAnimation.value),
+              child: child,
+            );
+          },
+          child: GestureDetector(
+            onTap: () {}, // 阻止点击穿透
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppRadius.xl),
                     ),
+                    boxShadow: AppShadows.elevated,
+                  ),
+                  child: Column(
+                    children: [
+                      // 顶部标题栏
+                      _buildHeader(comments.length),
 
-                    // 底部输入区
-                    _buildInputBar(bottomPadding),
-                  ],
+                      // 评论列表
+                      Expanded(
+                        child:
+                            comments.isEmpty
+                                ? _buildEmptyState()
+                                : _buildCommentList(comments),
+                      ),
+
+                      // 底部输入区
+                      _buildInputBar(bottomPadding),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -256,9 +270,14 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
 
   Widget _buildInputBar(double bottomPadding) {
     final hasText = _textController.text.trim().isNotEmpty;
+    // 获取底部安全区域高度（用于 home indicator）
+    final bottomSafeArea = MediaQuery.of(context).padding.bottom;
+    // 如果键盘弹出，使用键盘高度；否则只需要考虑底部安全区域
+    final actualBottomPadding =
+        bottomPadding > 0 ? bottomPadding : bottomSafeArea;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottomPadding),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + actualBottomPadding),
       decoration: BoxDecoration(
         color: AppColors.white,
         border: Border(
@@ -361,10 +380,13 @@ class _CommentDrawerState extends ConsumerState<CommentDrawer>
                 color: hasText ? AppColors.warmGray800 : AppColors.warmGray200,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Iconsax.send_15,
-                size: 18,
-                color: hasText ? AppColors.white : AppColors.warmGray400,
+              child: Transform.rotate(
+                angle: -0.65, // 约 -37 度，将倾斜的图标扶正
+                child: Icon(
+                  Iconsax.send_15,
+                  size: 18,
+                  color: hasText ? AppColors.white : AppColors.warmGray400,
+                ),
               ),
             ),
           ),

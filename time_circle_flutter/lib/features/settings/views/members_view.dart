@@ -209,12 +209,13 @@ class _MembersViewState extends ConsumerState<MembersView> {
   }
 
   void _showAddMemberSheet(BuildContext context) {
+    final outerContext = context;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder:
-          (context) => _MemberEditSheet(
+          (sheetContext) => _MemberEditSheet(
             title: '添加成员',
             onSave: (name, roleLabel) async {
               final db = ref.read(databaseServiceProvider);
@@ -227,9 +228,11 @@ class _MembersViewState extends ConsumerState<MembersView> {
               );
               await db.insertUser(newUser);
               ref.invalidate(circleMembersProvider);
-              if (mounted) {
-                Navigator.pop(context);
-                context.showSettingsMessage('成员添加成功');
+              if (sheetContext.mounted) {
+                Navigator.pop(sheetContext);
+              }
+              if (outerContext.mounted) {
+                outerContext.showSettingsMessage('成员添加成功');
               }
             },
           ),
@@ -237,12 +240,13 @@ class _MembersViewState extends ConsumerState<MembersView> {
   }
 
   void _showEditMemberSheet(BuildContext context, User user) {
+    final outerContext = context;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder:
-          (context) => _MemberEditSheet(
+          (sheetContext) => _MemberEditSheet(
             title: '编辑成员',
             initialName: user.name,
             initialRoleLabel: user.roleLabel,
@@ -256,9 +260,11 @@ class _MembersViewState extends ConsumerState<MembersView> {
               );
               await db.updateUser(updatedUser);
               ref.invalidate(circleMembersProvider);
-              if (mounted) {
-                Navigator.pop(context);
-                context.showSettingsMessage('成员信息已更新');
+              if (sheetContext.mounted) {
+                Navigator.pop(sheetContext);
+              }
+              if (outerContext.mounted) {
+                outerContext.showSettingsMessage('成员信息已更新');
               }
             },
           ),
@@ -266,15 +272,16 @@ class _MembersViewState extends ConsumerState<MembersView> {
   }
 
   void _confirmDeleteMember(BuildContext context, User user) {
+    final outerContext = context;
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
+          (dialogContext) => AlertDialog(
             title: const Text('确认移除'),
             content: Text('确定要将 ${user.name} 从圈子中移除吗？'),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('取消'),
               ),
               TextButton(
@@ -282,9 +289,11 @@ class _MembersViewState extends ConsumerState<MembersView> {
                   final db = ref.read(databaseServiceProvider);
                   await db.deleteUser(user.id);
                   ref.invalidate(circleMembersProvider);
-                  if (mounted) {
-                    Navigator.pop(context);
-                    this.context.showSettingsMessage('成员已移除');
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
+                  if (outerContext.mounted) {
+                    outerContext.showSettingsMessage('成员已移除');
                   }
                 },
                 child: const Text('移除', style: TextStyle(color: Colors.red)),

@@ -1,9 +1,13 @@
 import 'user.dart';
 
+/// 评论目标类型
+enum CommentTargetType { moment, worldPost }
+
 /// 留言/评论模型
 class Comment {
   final String id;
-  final String momentId; // 关联的时刻 ID
+  final String targetId; // 关联的目标 ID（moment 或 world_post）
+  final CommentTargetType targetType; // 目标类型
   final User author; // 留言者
   final String content; // 留言内容
   final DateTime timestamp; // 留言时间
@@ -12,7 +16,8 @@ class Comment {
 
   const Comment({
     required this.id,
-    required this.momentId,
+    required this.targetId,
+    this.targetType = CommentTargetType.moment,
     required this.author,
     required this.content,
     required this.timestamp,
@@ -20,9 +25,13 @@ class Comment {
     this.replyTo,
   });
 
+  /// 兼容旧代码的别名
+  String get momentId => targetId;
+
   Comment copyWith({
     String? id,
-    String? momentId,
+    String? targetId,
+    CommentTargetType? targetType,
     User? author,
     String? content,
     DateTime? timestamp,
@@ -31,7 +40,8 @@ class Comment {
   }) {
     return Comment(
       id: id ?? this.id,
-      momentId: momentId ?? this.momentId,
+      targetId: targetId ?? this.targetId,
+      targetType: targetType ?? this.targetType,
       author: author ?? this.author,
       content: content ?? this.content,
       timestamp: timestamp ?? this.timestamp,

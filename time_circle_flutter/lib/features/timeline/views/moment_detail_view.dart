@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/models/comment.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../shared/widgets/media_viewer.dart';
 import '../../../shared/widgets/context_tags_view.dart';
@@ -74,7 +75,9 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
   @override
   Widget build(BuildContext context) {
     final moment = ref.watch(momentByIdProvider(widget.momentId));
-    final comments = ref.watch(commentsProvider(widget.momentId));
+    final comments = ref.watch(
+      commentsProvider((widget.momentId, CommentTargetType.moment)),
+    );
 
     if (moment == null) {
       return Scaffold(
@@ -382,7 +385,7 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
           if (_showCommentDrawer)
             Positioned.fill(
               child: CommentDrawer(
-                moment: moment,
+                targetId: moment.id,
                 onClose: _closeCommentDrawer,
               ),
             ),
