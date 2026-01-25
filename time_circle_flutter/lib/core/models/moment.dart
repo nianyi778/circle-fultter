@@ -54,7 +54,6 @@ class Moment {
   final MediaType mediaType;
   final String? mediaUrl;
   final DateTime timestamp;
-  final String timeLabel; // 时间标签（如"第3年"或"3岁2个月"）
   final List<ContextTag> contextTags;
   final String? location;
   final bool isFavorite;
@@ -73,7 +72,6 @@ class Moment {
     required this.mediaType,
     this.mediaUrl,
     required this.timestamp,
-    required this.timeLabel,
     this.contextTags = const [],
     this.location,
     this.isFavorite = false,
@@ -85,9 +83,6 @@ class Moment {
     this.deletedAt,
   });
 
-  /// 向后兼容的别名
-  String get childAgeLabel => timeLabel;
-
   Moment copyWith({
     String? id,
     String? circleId,
@@ -96,7 +91,6 @@ class Moment {
     MediaType? mediaType,
     String? mediaUrl,
     DateTime? timestamp,
-    String? timeLabel,
     List<ContextTag>? contextTags,
     String? location,
     bool? isFavorite,
@@ -115,7 +109,6 @@ class Moment {
       mediaType: mediaType ?? this.mediaType,
       mediaUrl: mediaUrl ?? this.mediaUrl,
       timestamp: timestamp ?? this.timestamp,
-      timeLabel: timeLabel ?? this.timeLabel,
       contextTags: contextTags ?? this.contextTags,
       location: location ?? this.location,
       isFavorite: isFavorite ?? this.isFavorite,
@@ -148,13 +141,5 @@ class Moment {
     } else {
       return '${diff.inDays ~/ 365} 年前';
     }
-  }
-
-  /// 生成时间叙事句
-  String get timeNarrative {
-    if (timeLabel.isEmpty) {
-      return '这是你留下的这一刻。';
-    }
-    return '这是 $timeLabel 时留下的这一刻。';
   }
 }

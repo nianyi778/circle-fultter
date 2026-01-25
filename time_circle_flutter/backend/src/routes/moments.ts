@@ -20,7 +20,6 @@ const createMomentSchema = z.object({
   mediaType: z.enum(['text', 'image', 'video', 'audio']),
   mediaUrl: z.string().optional(),
   timestamp: z.string().optional(),
-  timeLabel: z.string().min(1, 'Time label is required'),
   contextTags: z.array(z.object({
     type: z.string(),
     label: z.string(),
@@ -33,7 +32,6 @@ const createMomentSchema = z.object({
 const updateMomentSchema = z.object({
   content: z.string().min(1).optional(),
   mediaUrl: z.string().optional(),
-  timeLabel: z.string().optional(),
   contextTags: z.array(z.object({
     type: z.string(),
     label: z.string(),
@@ -136,10 +134,6 @@ moments.put('/:id', async (c) => {
     values.push(result.data.mediaUrl);
   }
   
-  if (result.data.timeLabel !== undefined) {
-    updates.push('time_label = ?');
-    values.push(result.data.timeLabel);
-  }
   
   if (result.data.contextTags !== undefined) {
     updates.push('context_tags = ?');
@@ -462,9 +456,9 @@ circleMoments.post('/', async (c) => {
   await c.env.DB.prepare(
     `INSERT INTO moments (
       id, circle_id, author_id, content, media_type, media_url,
-      timestamp, time_label, context_tags, location, future_message,
+      timestamp, context_tags, location, future_message,
       created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       momentId,
@@ -474,7 +468,6 @@ circleMoments.post('/', async (c) => {
       data.mediaType,
       data.mediaUrl || null,
       timestamp,
-      data.timeLabel,
       data.contextTags ? JSON.stringify(data.contextTags) : null,
       data.location || null,
       data.futureMessage || null,

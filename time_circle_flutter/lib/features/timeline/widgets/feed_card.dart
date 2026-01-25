@@ -78,6 +78,7 @@ class _FeedCardState extends ConsumerState<FeedCard>
   @override
   Widget build(BuildContext context) {
     final moment = widget.moment;
+    final circleInfo = ref.watch(childInfoProvider);
     final hasMedia = moment.mediaUrl != null && moment.mediaUrl!.isNotEmpty;
     final isImageType = moment.mediaType == MediaType.image;
 
@@ -197,6 +198,7 @@ class _FeedCardState extends ConsumerState<FeedCard>
   /// 头部信息
   Widget _buildHeader(BuildContext context) {
     final moment = widget.moment;
+    final circleInfo = ref.watch(childInfoProvider);
 
     return Row(
       children: [
@@ -227,7 +229,7 @@ class _FeedCardState extends ConsumerState<FeedCard>
               ),
               const SizedBox(height: 2),
               Text(
-                moment.childAgeLabel,
+                circleInfo.timeLabel.isEmpty ? '刚开始' : circleInfo.timeLabel,
                 style: AppTypography.caption(
                   context,
                 ).copyWith(color: AppColors.warmGray400),

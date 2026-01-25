@@ -80,16 +80,16 @@ class MemoryCard extends ConsumerWidget {
 }
 
 /// 沉浸式滑动回忆卡片
-class _MemorySwipeCard extends StatefulWidget {
+class _MemorySwipeCard extends ConsumerStatefulWidget {
   final List<Moment> moments;
 
   const _MemorySwipeCard({required this.moments});
 
   @override
-  State<_MemorySwipeCard> createState() => _MemorySwipeCardState();
+  ConsumerState<_MemorySwipeCard> createState() => _MemorySwipeCardState();
 }
 
-class _MemorySwipeCardState extends State<_MemorySwipeCard> {
+class _MemorySwipeCardState extends ConsumerState<_MemorySwipeCard> {
   late PageController _pageController;
   int _currentPage = 0;
 
@@ -107,6 +107,7 @@ class _MemorySwipeCardState extends State<_MemorySwipeCard> {
 
   @override
   Widget build(BuildContext context) {
+    final circleInfo = ref.watch(childInfoProvider);
     return SizedBox(
       height: 280,
       child: Stack(
@@ -121,7 +122,10 @@ class _MemorySwipeCardState extends State<_MemorySwipeCard> {
             },
             itemCount: widget.moments.length,
             itemBuilder: (context, index) {
-              return _MemorySingleCard(moment: widget.moments[index]);
+              return _MemorySingleCard(
+                moment: widget.moments[index],
+                timeLabel: circleInfo.timeLabel,
+              );
             },
           ),
 
@@ -144,8 +148,9 @@ class _MemorySwipeCardState extends State<_MemorySwipeCard> {
 /// 单张回忆卡片 - 沉浸式设计
 class _MemorySingleCard extends StatelessWidget {
   final Moment moment;
+  final String timeLabel;
 
-  const _MemorySingleCard({required this.moment});
+  const _MemorySingleCard({required this.moment, required this.timeLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -261,7 +266,7 @@ class _MemorySingleCard extends StatelessWidget {
                       ),
                       _buildDot(),
                       Text(
-                        moment.childAgeLabel,
+                        timeLabel.isEmpty ? '刚开始' : timeLabel,
                         style: AppTypography.caption(
                           context,
                         ).copyWith(color: Colors.white.withValues(alpha: 0.8)),

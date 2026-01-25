@@ -38,7 +38,7 @@ circles.get('/', async (c) => {
   const userId = c.get('userId');
   
   const result = await c.env.DB.prepare(
-    `SELECT c.*, cm.role, cm.role_label, cm.joined_at as member_since,
+    `SELECT c.*, cm.role, cm.role_label, cm.joined_at, cm.joined_at as member_since,
             (SELECT COUNT(*) FROM circle_members WHERE circle_id = c.id) as member_count,
             (SELECT COUNT(*) FROM moments WHERE circle_id = c.id AND deleted_at IS NULL) as moment_count
      FROM circles c

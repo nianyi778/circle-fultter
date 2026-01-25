@@ -171,10 +171,17 @@ class CircleRepository {
       startDate = DateTime.tryParse(startDateStr.toString());
     }
 
+    DateTime? joinedAt;
+    final joinedAtStr = json['joined_at'] ?? json['joinedAt'];
+    if (joinedAtStr != null && joinedAtStr.toString().isNotEmpty) {
+      joinedAt = DateTime.tryParse(joinedAtStr.toString());
+    }
+
     return CircleInfo(
       id: json['id'] as String?,
       name: json['name'] as String? ?? '',
       startDate: startDate,
+      joinedAt: joinedAt,
     );
   }
 }

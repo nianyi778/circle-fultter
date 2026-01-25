@@ -1430,7 +1430,6 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       mediaType: _mediaType,
       mediaUrl: mediaUrl,
       timestamp: now,
-      timeLabel: circleInfo.ageLabel,
       contextTags: [..._selectedMyMoods, ..._selectedAtmospheres],
       isSharedToWorld: _shareToWorld,
       worldTopic: _shareToWorld ? _worldTopic : null,

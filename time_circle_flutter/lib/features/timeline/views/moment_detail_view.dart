@@ -84,6 +84,13 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
     });
   }
 
+  String _buildTimeNarrative(String timeLabel) {
+    if (timeLabel.isEmpty) {
+      return '这是你留下的这一刻。';
+    }
+    return '这是 $timeLabel 时留下的这一刻。';
+  }
+
   @override
   Widget build(BuildContext context) {
     final moment = ref.watch(momentByIdProvider(widget.momentId));
@@ -116,6 +123,8 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
       );
     }
 
+    final childInfo = ref.watch(childInfoProvider);
+
     // 计算动态延迟索引
     int delayIndex = 0;
 
@@ -144,7 +153,7 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                         children: [
                           // 时间叙事标题
                           Text(
-                            moment.timeNarrative,
+                            _buildTimeNarrative(childInfo.timeLabel),
                             style: AppTypography.title(
                               context,
                             ).copyWith(fontSize: 22, height: 1.5),

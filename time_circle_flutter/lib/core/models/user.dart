@@ -7,12 +7,14 @@ class User {
   final String name;
   final String avatar;
   final String? roleLabel; // 可选的角色标签，用户自定义
+  final DateTime? joinedAt; // 成员加入时间
 
   const User({
     required this.id,
     required this.name,
     required this.avatar,
     this.roleLabel,
+    this.joinedAt,
   });
 
   /// 显示名称（优先使用 roleLabel，否则用 name）
@@ -30,23 +32,30 @@ class CircleInfo {
   final String? id;
   final String name; // 圈子名称或主角名称
   final DateTime? startDate; // 可选的起始日期（如孩子生日、相识日等）
+  final DateTime? joinedAt; // 成员加入时间
 
-  const CircleInfo({this.id, required this.name, this.startDate});
+  const CircleInfo({
+    this.id,
+    required this.name,
+    this.startDate,
+    this.joinedAt,
+  });
 
   /// 计算时间标签 (如: "第 3 年 5 个月" 或 "3 岁 5 个月")
   String get timeLabel {
-    if (startDate == null) return '';
+    final baseDate = joinedAt ?? startDate;
+    if (baseDate == null) return '';
 
     final now = DateTime.now();
-    int years = now.year - startDate!.year;
-    int months = now.month - startDate!.month;
+    int years = now.year - baseDate.year;
+    int months = now.month - baseDate.month;
 
     if (months < 0) {
       years--;
       months += 12;
     }
 
-    if (now.day < startDate!.day) {
+    if (now.day < baseDate.day) {
       months--;
       if (months < 0) {
         years--;
@@ -54,7 +63,7 @@ class CircleInfo {
       }
     }
 
-    if (years == 0) {
+    if (years <= 0) {
       return '$months 个月';
     }
     return '$years 年 $months 个月';
@@ -62,12 +71,13 @@ class CircleInfo {
 
   /// 简短时间标签 (如: "第3年")
   String get shortTimeLabel {
-    if (startDate == null) return '';
+    final baseDate = joinedAt ?? startDate;
+    if (baseDate == null) return '';
 
     final now = DateTime.now();
-    int years = now.year - startDate!.year;
-    if (now.month < startDate!.month ||
-        (now.month == startDate!.month && now.day < startDate!.day)) {
+    int years = now.year - baseDate.year;
+    if (now.month < baseDate.month ||
+        (now.month == baseDate.month && now.day < baseDate.day)) {
       years--;
     }
     return '第${years + 1}年';
@@ -75,11 +85,12 @@ class CircleInfo {
 
   /// 季节描述 (如: "第 3 个冬天")
   String get seasonLabel {
-    if (startDate == null) return '这是你们的故事';
+    final baseDate = joinedAt ?? startDate;
+    if (baseDate == null) return '这是你们的故事';
 
     final now = DateTime.now();
-    int years = now.year - startDate!.year;
-    if (now.month < startDate!.month) {
+    int years = now.year - baseDate.year;
+    if (now.month < baseDate.month) {
       years--;
     }
 
@@ -107,20 +118,22 @@ class CircleInfo {
   /// 天数标签 (如: "第 847 天")
   /// 用于首页显示圈子已创建的天数
   String get durationLabel {
-    if (startDate == null) return '第 1 天';
+    final baseDate = joinedAt ?? startDate;
+    if (baseDate == null) return '第 1 天';
 
     final now = DateTime.now();
-    final days = now.difference(startDate!).inDays + 1; // +1 因为当天也算
+    final days = now.difference(baseDate).inDays + 1; // +1 因为当天也算
     return '第 $days 天';
   }
 
   /// 距离起始日期的天数（整数）
   /// 用于首页大字体显示
   int get daysSinceBirth {
-    if (startDate == null) return 1;
+    final baseDate = joinedAt ?? startDate;
+    if (baseDate == null) return 1;
 
     final now = DateTime.now();
-    return now.difference(startDate!).inDays + 1; // +1 因为当天也算
+    return now.difference(baseDate).inDays + 1; // +1 因为当天也算
   }
 }
 

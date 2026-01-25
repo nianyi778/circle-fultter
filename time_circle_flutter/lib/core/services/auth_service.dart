@@ -80,6 +80,7 @@ class RemoteCircle {
   final String createdBy;
   final String? role;
   final String? roleLabel;
+  final DateTime? joinedAt;
 
   const RemoteCircle({
     required this.id,
@@ -90,6 +91,7 @@ class RemoteCircle {
     required this.createdBy,
     this.role,
     this.roleLabel,
+    this.joinedAt,
   });
 
   factory RemoteCircle.fromJson(Map<String, dynamic> json) {
@@ -108,12 +110,16 @@ class RemoteCircle {
       createdBy: json['created_by'] as String,
       role: json['role'] as String?,
       roleLabel: json['role_label'] as String?,
+      joinedAt:
+          json['joined_at'] != null
+              ? DateTime.parse(json['joined_at'] as String)
+              : null,
     );
   }
 
   /// 转换为本地 CircleInfo 模型
   CircleInfo toCircleInfo() =>
-      CircleInfo(id: id, name: name, startDate: startDate);
+      CircleInfo(id: id, name: name, startDate: startDate, joinedAt: joinedAt);
 
   bool get isAdmin => role == 'admin';
 }

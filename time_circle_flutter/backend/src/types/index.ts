@@ -65,7 +65,7 @@ export interface Moment {
   media_type: 'text' | 'image' | 'video' | 'audio';
   media_url: string | null;
   timestamp: string;
-  time_label: string;
+
   context_tags: string | null; // JSON string
   location: string | null;
   is_favorite: number;
@@ -218,7 +218,6 @@ export interface CreateMomentRequest {
   mediaType: 'text' | 'image' | 'video' | 'audio';
   mediaUrl?: string;
   timestamp?: string;
-  timeLabel: string;
   contextTags?: Array<{ type: string; label: string; emoji: string }>;
   location?: string;
   futureMessage?: string;

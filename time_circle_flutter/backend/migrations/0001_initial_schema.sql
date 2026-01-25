@@ -49,7 +49,6 @@ CREATE TABLE IF NOT EXISTS moments (
   media_type TEXT NOT NULL,
   media_url TEXT,
   timestamp TEXT NOT NULL,
-  time_label TEXT NOT NULL,
   context_tags TEXT,
   location TEXT,
   is_favorite INTEGER DEFAULT 0,

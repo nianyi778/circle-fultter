@@ -82,7 +82,6 @@ class MomentRepository {
     required String circleId,
     required String content,
     required MediaType mediaType,
-    required String timeLabel,
     String? mediaUrl,
     DateTime? timestamp,
     List<ContextTag>? contextTags,
@@ -92,7 +91,6 @@ class MomentRepository {
     final data = <String, dynamic>{
       'content': content,
       'mediaType': mediaType.name,
-      'timeLabel': timeLabel,
     };
 
     if (mediaUrl != null) data['mediaUrl'] = mediaUrl;
@@ -133,7 +131,6 @@ class MomentRepository {
     required String momentId,
     String? content,
     String? mediaUrl,
-    String? timeLabel,
     List<ContextTag>? contextTags,
     String? location,
     bool clearLocation = false,
@@ -144,7 +141,6 @@ class MomentRepository {
 
     if (content != null) data['content'] = content;
     if (mediaUrl != null) data['mediaUrl'] = mediaUrl;
-    if (timeLabel != null) data['timeLabel'] = timeLabel;
     if (contextTags != null) {
       data['contextTags'] =
           contextTags
@@ -283,7 +279,6 @@ class MomentRepository {
       mediaType: mediaType,
       mediaUrl: json['media_url'] as String?,
       timestamp: timestamp,
-      timeLabel: json['time_label'] as String? ?? '',
       contextTags: contextTags,
       location: json['location'] as String?,
       isFavorite: isFavorite,

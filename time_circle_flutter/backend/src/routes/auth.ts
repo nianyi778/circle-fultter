@@ -231,7 +231,7 @@ auth.get('/me', authMiddleware, async (c) => {
   
   // Get user's circles
   const circles = await c.env.DB.prepare(
-    `SELECT c.*, cm.role, cm.role_label
+    `SELECT c.*, cm.role, cm.role_label, cm.joined_at
      FROM circles c
      JOIN circle_members cm ON c.id = cm.circle_id
      WHERE cm.user_id = ?

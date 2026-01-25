@@ -51,11 +51,13 @@ final currentUserProvider = Provider<User>((ref) {
 
   if (authState.isFullyAuthenticated && user != null) {
     final roleLabel = authState.selectedCircle?.roleLabel;
+    final joinedAt = authState.selectedCircle?.joinedAt;
     return User(
       id: user.id,
       name: user.name,
       avatar: user.avatar ?? '',
       roleLabel: roleLabel,
+      joinedAt: joinedAt,
     );
   }
   return const User(id: 'guest', name: '我', avatar: '');
@@ -243,7 +245,6 @@ class MomentsNotifier extends StateNotifier<List<Moment>> {
         circleId: circleId,
         content: moment.content,
         mediaType: moment.mediaType,
-        timeLabel: moment.timeLabel,
         mediaUrl: moment.mediaUrl,
         timestamp: moment.timestamp,
         contextTags: moment.contextTags,
