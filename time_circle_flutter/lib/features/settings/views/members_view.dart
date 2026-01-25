@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/providers/auth_providers.dart';
 import '../../../core/models/user.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../../core/extensions/context_extensions.dart';
@@ -34,11 +34,12 @@ class _MembersViewState extends ConsumerState<MembersView> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('加载失败: $e')),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddMemberSheet(context),
-        backgroundColor: const Color(0xFFE8A87C),
-        child: const Icon(Iconsax.user_add, color: AppColors.white),
-      ),
+      // TODO: 添加成员需要通过邀请码，暂时隐藏添加按钮
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () => _showInviteSheet(context),
+      //   backgroundColor: const Color(0xFFE8A87C),
+      //   child: const Icon(Iconsax.user_add, color: AppColors.white),
+      // ),
     );
   }
 
@@ -55,7 +56,7 @@ class _MembersViewState extends ConsumerState<MembersView> {
           // 顶部说明
           SettingsHintBox(
             icon: Iconsax.people,
-            message: '圈子成员可以查看和记录回忆，共同守护这段时光',
+            message: '圈子成员可以查看和记录回忆，共同守护这段时光。\n通过邀请码邀请新成员加入。',
             style: HintBoxStyle.success,
           ),
 
@@ -169,7 +170,7 @@ class _MembersViewState extends ConsumerState<MembersView> {
               ],
             ),
           ),
-          // 操作按钮
+          // 操作按钮（仅管理员可以编辑其他成员）
           if (!isCurrentUser)
             GestureDetector(
               onTapDown: (details) {
@@ -201,12 +202,12 @@ class _MembersViewState extends ConsumerState<MembersView> {
       items: [
         AppPopupMenuItemData(
           icon: Iconsax.edit,
-          label: '编辑',
-          onTap: () => _showEditMemberSheet(context, user),
+          label: '编辑角色',
+          onTap: () => _showEditRoleLabelSheet(context, user),
         ),
         AppPopupMenuItemData(
           icon: Iconsax.trash,
-          label: '移除',
+          label: '移除成员',
           isDestructive: true,
           onTap: () => _confirmDeleteMember(context, user),
         ),
@@ -214,63 +215,32 @@ class _MembersViewState extends ConsumerState<MembersView> {
     );
   }
 
-  void _showAddMemberSheet(BuildContext context) {
+  void _showEditRoleLabelSheet(BuildContext context, User user) {
     final outerContext = context;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder:
-          (sheetContext) => _MemberEditSheet(
-            title: '添加成员',
-            onSave: (name, roleLabel) async {
-              final db = ref.read(databaseServiceProvider);
-              final id = const Uuid().v4();
-              final newUser = User(
-                id: id,
-                name: name,
-                avatar: '',
-                roleLabel: roleLabel,
-              );
-              await db.insertUser(newUser);
-              ref.invalidate(circleMembersProvider);
-              if (sheetContext.mounted) {
-                Navigator.pop(sheetContext);
-              }
-              if (outerContext.mounted) {
-                outerContext.showSettingsMessage('成员添加成功');
-              }
-            },
-          ),
-    );
-  }
-
-  void _showEditMemberSheet(BuildContext context, User user) {
-    final outerContext = context;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (sheetContext) => _MemberEditSheet(
-            title: '编辑成员',
-            initialName: user.name,
+          (sheetContext) => _RoleLabelEditSheet(
             initialRoleLabel: user.roleLabel,
-            onSave: (name, roleLabel) async {
-              final db = ref.read(databaseServiceProvider);
-              final updatedUser = User(
-                id: user.id,
-                name: name,
-                avatar: user.avatar,
-                roleLabel: roleLabel,
+            onSave: (roleLabel) async {
+              final repo = ref.read(memberRepositoryProvider);
+              final selectedCircle = ref.read(selectedCircleProvider);
+
+              if (selectedCircle == null) return;
+
+              await repo.updateMember(
+                circleId: selectedCircle.id,
+                userId: user.id,
+                roleLabel: roleLabel ?? '',
               );
-              await db.updateUser(updatedUser);
               ref.invalidate(circleMembersProvider);
               if (sheetContext.mounted) {
                 Navigator.pop(sheetContext);
               }
               if (outerContext.mounted) {
-                outerContext.showSettingsMessage('成员信息已更新');
+                outerContext.showSettingsMessage('角色标签已更新');
               }
             },
           ),
@@ -292,8 +262,15 @@ class _MembersViewState extends ConsumerState<MembersView> {
               ),
               TextButton(
                 onPressed: () async {
-                  final db = ref.read(databaseServiceProvider);
-                  await db.deleteUser(user.id);
+                  final repo = ref.read(memberRepositoryProvider);
+                  final selectedCircle = ref.read(selectedCircleProvider);
+
+                  if (selectedCircle == null) return;
+
+                  await repo.removeMember(
+                    circleId: selectedCircle.id,
+                    userId: user.id,
+                  );
                   ref.invalidate(circleMembersProvider);
                   if (dialogContext.mounted) {
                     Navigator.pop(dialogContext);
@@ -310,39 +287,29 @@ class _MembersViewState extends ConsumerState<MembersView> {
   }
 }
 
-/// 成员编辑弹窗
-class _MemberEditSheet extends StatefulWidget {
-  final String title;
-  final String? initialName;
+/// 角色标签编辑弹窗
+class _RoleLabelEditSheet extends StatefulWidget {
   final String? initialRoleLabel;
-  final Future<void> Function(String name, String? roleLabel) onSave;
+  final Future<void> Function(String? roleLabel) onSave;
 
-  const _MemberEditSheet({
-    required this.title,
-    this.initialName,
-    this.initialRoleLabel,
-    required this.onSave,
-  });
+  const _RoleLabelEditSheet({this.initialRoleLabel, required this.onSave});
 
   @override
-  State<_MemberEditSheet> createState() => _MemberEditSheetState();
+  State<_RoleLabelEditSheet> createState() => _RoleLabelEditSheetState();
 }
 
-class _MemberEditSheetState extends State<_MemberEditSheet> {
-  late final TextEditingController _nameController;
+class _RoleLabelEditSheetState extends State<_RoleLabelEditSheet> {
   late final TextEditingController _roleLabelController;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialName);
     _roleLabelController = TextEditingController(text: widget.initialRoleLabel);
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
     _roleLabelController.dispose();
     super.dispose();
   }
@@ -369,7 +336,7 @@ class _MemberEditSheetState extends State<_MemberEditSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.title,
+                    '编辑角色标签',
                     style: AppTypography.subtitle(
                       context,
                     ).copyWith(fontWeight: FontWeight.w600),
@@ -383,26 +350,9 @@ class _MemberEditSheetState extends State<_MemberEditSheet> {
 
               const SizedBox(height: 20),
 
-              // 名称输入
-              Text(
-                '名称 *',
-                style: AppTypography.caption(context).copyWith(
-                  color: AppColors.warmGray600,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              AppTextField(
-                controller: _nameController,
-                hintText: '输入成员名称',
-                autofocus: true,
-              ),
-
-              const SizedBox(height: 20),
-
               // 角色标签
               Text(
-                '角色标签（可选）',
+                '角色标签',
                 style: AppTypography.caption(context).copyWith(
                   color: AppColors.warmGray600,
                   fontWeight: FontWeight.w500,
@@ -412,6 +362,7 @@ class _MemberEditSheetState extends State<_MemberEditSheet> {
               AppTextField(
                 controller: _roleLabelController,
                 hintText: '如：妈妈、爸爸、闺蜜',
+                autofocus: true,
               ),
 
               const SizedBox(height: 24),
@@ -453,17 +404,15 @@ class _MemberEditSheetState extends State<_MemberEditSheet> {
   }
 
   Future<void> _handleSave() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      context.showSettingsMessage('请输入成员名称', isError: true);
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
       final roleLabel = _roleLabelController.text.trim();
-      await widget.onSave(name, roleLabel.isEmpty ? null : roleLabel);
+      await widget.onSave(roleLabel.isEmpty ? null : roleLabel);
+    } catch (e) {
+      if (mounted) {
+        context.showSettingsMessage('保存失败: $e', isError: true);
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

@@ -6,7 +6,6 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
-import '../../../core/providers/sync_provider.dart';
 import '../../../core/models/moment.dart';
 import '../../../shared/widgets/comment_drawer.dart';
 import '../widgets/feed_card.dart';
@@ -32,14 +31,9 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   void _openFilter() => setState(() => _isFilterOpen = true);
   void _closeFilter() => setState(() => _isFilterOpen = false);
 
-  /// 下拉刷新同步
+  /// 下拉刷新
   Future<void> _onRefresh(WidgetRef ref) async {
-    // 触发同步
-    final triggerSync = ref.read(triggerSyncProvider);
-    await triggerSync();
-
-    // 刷新本地数据
-    ref.invalidate(momentsProvider);
+    await ref.read(momentsProvider.notifier).refresh();
   }
 
   void _openCommentDrawer(Moment moment) {

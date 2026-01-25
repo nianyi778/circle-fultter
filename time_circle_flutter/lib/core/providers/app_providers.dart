@@ -1,59 +1,104 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 
 import '../models/models.dart';
-import '../services/database_service.dart';
-import '../services/sync_service.dart';
+import '../repositories/repositories.dart';
 import 'auth_providers.dart';
 
-/// 数据库服务 Provider
-final databaseServiceProvider = Provider<DatabaseService>((ref) {
-  return DatabaseService();
+// ============== Repository Providers ==============
+
+/// Circle Repository Provider
+final circleRepositoryProvider = Provider<CircleRepository>((ref) {
+  return CircleRepository();
+});
+
+/// Member Repository Provider
+final memberRepositoryProvider = Provider<MemberRepository>((ref) {
+  return MemberRepository();
+});
+
+/// Moment Repository Provider
+final momentRepositoryProvider = Provider<MomentRepository>((ref) {
+  return MomentRepository();
+});
+
+/// Letter Repository Provider
+final letterRepositoryProvider = Provider<LetterRepository>((ref) {
+  return LetterRepository();
+});
+
+/// Comment Repository Provider
+final commentRepositoryProvider = Provider<CommentRepository>((ref) {
+  return CommentRepository();
+});
+
+/// World Repository Provider
+final worldRepositoryProvider = Provider<WorldRepository>((ref) {
+  return WorldRepository();
+});
+
+/// Settings Repository Provider
+final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+  return SettingsRepository();
 });
 
 // ============== 用户相关 ==============
 
-/// 当前用户 Provider（异步）
-final currentUserProvider = FutureProvider<User>((ref) async {
-  final db = ref.watch(databaseServiceProvider);
-  return await db.getCurrentUser();
+/// 当前用户 Provider（从认证状态获取）
+final currentUserProvider = Provider<User>((ref) {
+  final authState = ref.watch(authProvider);
+  final user = authState.user;
+
+  if (authState.isFullyAuthenticated && user != null) {
+    return User(id: user.id, name: user.name, avatar: user.avatar ?? '');
+  }
+  return const User(id: 'guest', name: '我', avatar: '');
 });
 
-/// 当前用户（同步访问，需要先加载）
-final currentUserSyncProvider = Provider<User>((ref) {
-  final asyncUser = ref.watch(currentUserProvider);
-  return asyncUser.when(
-    data: (user) => user,
-    loading: () => const User(id: 'u1', name: '我', avatar: ''),
-    error: (_, __) => const User(id: 'u1', name: '我', avatar: ''),
-  );
-});
+/// 当前用户（同步访问，向后兼容）
+final currentUserSyncProvider = currentUserProvider;
 
-/// 圈子成员 Provider
+/// 圈子成员 Provider（从远程 API 获取）
 final circleMembersProvider = FutureProvider<List<User>>((ref) async {
-  final db = ref.watch(databaseServiceProvider);
-  return await db.getUsers();
+  final selectedCircle = ref.watch(selectedCircleInfoProvider);
+  if (selectedCircle == null || selectedCircle.id == null) {
+    return [];
+  }
+
+  final repo = ref.watch(memberRepositoryProvider);
+  try {
+    final members = await repo.getMembers(selectedCircle.id!);
+    return members.map((m) => m.toUser()).toList();
+  } catch (e) {
+    return [];
+  }
 });
 
 // ============== 圈子信息相关 ==============
 
-/// 用于追踪上次同步的圈子 ID，避免重复覆盖本地数据
-String? _lastSyncedCircleId;
-
-/// 圈子信息 Provider（异步）
+/// 圈子信息 Provider（异步，直接从 API 获取）
 final circleInfoAsyncProvider = FutureProvider<CircleInfo>((ref) async {
-  final db = ref.watch(databaseServiceProvider);
   final selectedCircle = ref.watch(selectedCircleInfoProvider);
 
-  // 只有当选择了新的圈子时才用远程数据覆盖本地数据
-  // 这样可以避免用户本地编辑后，invalidate 时被远程数据覆盖
-  if (selectedCircle != null && selectedCircle.id != _lastSyncedCircleId) {
-    await db.updateCircleInfo(selectedCircle);
-    await db.backfillCircleId(selectedCircle.id ?? 'cir_default');
-    _lastSyncedCircleId = selectedCircle.id;
+  // 如果已经有选中的圈子信息，直接使用
+  if (selectedCircle != null) {
+    return selectedCircle;
   }
 
-  return await db.getCircleInfo();
+  // 否则尝试从 API 获取用户的圈子列表
+  final repo = ref.watch(circleRepositoryProvider);
+  try {
+    final circles = await repo.getCircles();
+    if (circles.isNotEmpty) {
+      return circles.first;
+    }
+  } catch (e) {
+    // 忽略错误，返回默认值
+  }
+
+  return CircleInfo(
+    name: '我们的圈子',
+    startDate: DateTime.now().subtract(const Duration(days: 365)),
+  );
 });
 
 /// 圈子信息（同步访问）
@@ -79,142 +124,159 @@ final childInfoProvider = circleInfoProvider;
 
 // ============== 时刻相关 ==============
 
+/// 时刻列表状态
+class MomentsState {
+  final List<Moment> moments;
+  final bool isLoading;
+  final String? error;
+  final bool hasMore;
+  final int currentPage;
+
+  const MomentsState({
+    this.moments = const [],
+    this.isLoading = false,
+    this.error,
+    this.hasMore = true,
+    this.currentPage = 1,
+  });
+
+  MomentsState copyWith({
+    List<Moment>? moments,
+    bool? isLoading,
+    String? error,
+    bool? hasMore,
+    int? currentPage,
+  }) {
+    return MomentsState(
+      moments: moments ?? this.moments,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+      hasMore: hasMore ?? this.hasMore,
+      currentPage: currentPage ?? this.currentPage,
+    );
+  }
+}
+
 /// 时刻列表 Provider
 final momentsProvider = StateNotifierProvider<MomentsNotifier, List<Moment>>((
   ref,
 ) {
-  final db = ref.watch(databaseServiceProvider);
-  return MomentsNotifier(db);
+  final repo = ref.watch(momentRepositoryProvider);
+  final selectedCircle = ref.watch(selectedCircleInfoProvider);
+  return MomentsNotifier(repo, selectedCircle?.id);
 });
 
 class MomentsNotifier extends StateNotifier<List<Moment>> {
-  final DatabaseService _db;
+  final MomentRepository _repo;
+  final String? _circleId;
   bool _initialized = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
 
-  MomentsNotifier(this._db) : super([]) {
+  MomentsNotifier(this._repo, this._circleId) : super([]) {
     _loadMoments();
   }
 
   Future<void> _loadMoments() async {
-    if (_initialized) return;
-    final moments = await _db.getMoments();
-    state = moments;
-    _initialized = true;
+    final circleId = _circleId;
+    if (_initialized || circleId == null) return;
+
+    try {
+      final result = await _repo.getMoments(circleId, page: 1, limit: 50);
+      state = result.moments;
+      _hasMore = result.hasMore;
+      _currentPage = 1;
+      _initialized = true;
+    } catch (e) {
+      // 忽略错误，保持空列表
+    }
   }
 
   Future<void> refresh() async {
-    final moments = await _db.getMoments();
-    state = moments;
+    final circleId = _circleId;
+    if (circleId == null) return;
+
+    try {
+      final result = await _repo.getMoments(circleId, page: 1, limit: 50);
+      state = result.moments;
+      _hasMore = result.hasMore;
+      _currentPage = 1;
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+
+  Future<void> loadMore() async {
+    final circleId = _circleId;
+    if (circleId == null || !_hasMore) return;
+
+    try {
+      final result = await _repo.getMoments(
+        circleId,
+        page: _currentPage + 1,
+        limit: 50,
+      );
+      state = [...state, ...result.moments];
+      _hasMore = result.hasMore;
+      _currentPage++;
+    } catch (e) {
+      // 忽略错误
+    }
   }
 
   Future<void> addMoment(Moment moment) async {
-    final now = DateTime.now();
-    final persisted = moment.copyWith(
-      createdAt: moment.createdAt ?? now,
-      updatedAt: moment.updatedAt ?? now,
-    );
-    await _db.insertMoment(persisted);
-    state = [persisted, ...state];
-    // 记录同步
-    SyncService.instance.recordMomentCreate(persisted);
+    final circleId = _circleId;
+    if (circleId == null) return;
+
+    try {
+      final created = await _repo.createMoment(
+        circleId: circleId,
+        content: moment.content,
+        mediaType: moment.mediaType,
+        timeLabel: moment.timeLabel,
+        mediaUrl: moment.mediaUrl,
+        timestamp: moment.timestamp,
+        contextTags: moment.contextTags,
+        location: moment.location,
+        futureMessage: moment.futureMessage,
+      );
+      state = [created, ...state];
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> toggleFavorite(String id) async {
-    final index = state.indexWhere((m) => m.id == id);
-    if (index == -1) return;
-
-    final moment = state[index];
-    final updated = moment.copyWith(
-      isFavorite: !moment.isFavorite,
-      updatedAt: DateTime.now(),
-    );
-    await _db.updateMoment(updated);
-
-    state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
-    // 记录同步
-    SyncService.instance.recordMomentUpdate(updated);
+    try {
+      final isFavorite = await _repo.toggleFavorite(id);
+      state =
+          state.map((m) {
+            if (m.id == id) {
+              return m.copyWith(isFavorite: isFavorite);
+            }
+            return m;
+          }).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> deleteMoment(String id) async {
-    final index = state.indexWhere((m) => m.id == id);
-    if (index == -1) return;
-
-    final moment = state[index];
-    final deleted = moment.copyWith(deletedAt: DateTime.now());
-    await _db.updateMoment(deleted);
-    state = state.where((m) => m.id != id).toList();
-    // 记录同步
-    SyncService.instance.recordMomentDelete(id);
-  }
-
-  /// 分享到世界
-  Future<void> shareToWorld(String momentId, String topic) async {
-    final index = state.indexWhere((m) => m.id == momentId);
-    if (index == -1) return;
-
-    final moment = state[index];
-
-    // 更新 Moment 状态
-    final updated = moment.copyWith(
-      isSharedToWorld: true,
-      worldTopic: topic,
-      updatedAt: DateTime.now(),
-    );
-    await _db.updateMoment(updated);
-
-    // 创建 WorldPost
-    final worldPost = WorldPost(
-      id: const Uuid().v4(),
-      momentId: momentId,
-      content: moment.content,
-      tag: topic,
-      bgGradient: _getGradientForTopic(topic),
-      timestamp: DateTime.now(),
-    );
-    await _db.insertWorldPost(worldPost);
-
-    state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
-    // 记录同步
-    SyncService.instance.recordMomentUpdate(updated);
-  }
-
-  /// 从世界撤回
-  Future<void> withdrawFromWorld(String momentId) async {
-    final index = state.indexWhere((m) => m.id == momentId);
-    if (index == -1) return;
-
-    final moment = state[index];
-
-    // 更新 Moment 状态
-    final updated = moment.copyWith(
-      isSharedToWorld: false,
-      worldTopic: null,
-      updatedAt: DateTime.now(),
-    );
-    await _db.updateMoment(updated);
-
-    // 删除 WorldPost
-    await _db.deleteWorldPostByMomentId(momentId);
-
-    state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
-    // 记录同步
-    SyncService.instance.recordMomentUpdate(updated);
-  }
-
-  /// 根据话题获取背景渐变色
-  String _getGradientForTopic(String topic) {
-    switch (topic) {
-      case '写给未来':
-        return 'violet';
-      case '今天很累':
-        return 'blue';
-      case '第一次':
-        return 'green';
-      case '只是爱':
-        return 'peach';
-      default:
-        return 'orange';
+    try {
+      await _repo.deleteMoment(id);
+      state = state.where((m) => m.id != id).toList();
+    } catch (e) {
+      rethrow;
     }
+  }
+
+  Future<void> shareToWorld(String momentId, String topic) async {
+    // TODO: 实现分享到世界的逻辑
+    // 需要调用 WorldRepository.createPost
+  }
+
+  Future<void> withdrawFromWorld(String momentId) async {
+    // TODO: 实现从世界撤回的逻辑
   }
 }
 
@@ -234,102 +296,112 @@ final momentByIdProvider = Provider.family<Moment?, String>((ref, id) {
 final lettersProvider = StateNotifierProvider<LettersNotifier, List<Letter>>((
   ref,
 ) {
-  final db = ref.watch(databaseServiceProvider);
-  return LettersNotifier(db);
+  final repo = ref.watch(letterRepositoryProvider);
+  final selectedCircle = ref.watch(selectedCircleInfoProvider);
+  return LettersNotifier(repo, selectedCircle?.id);
 });
 
 class LettersNotifier extends StateNotifier<List<Letter>> {
-  final DatabaseService _db;
+  final LetterRepository _repo;
+  final String? _circleId;
   bool _initialized = false;
 
-  LettersNotifier(this._db) : super([]) {
+  LettersNotifier(this._repo, this._circleId) : super([]) {
     _loadLetters();
   }
 
   Future<void> _loadLetters() async {
-    if (_initialized) return;
-    final letters = await _db.getLetters();
-    state = letters;
-    _initialized = true;
+    final circleId = _circleId;
+    if (_initialized || circleId == null) return;
+
+    try {
+      final letters = await _repo.getLetters(circleId);
+      state = letters;
+      _initialized = true;
+    } catch (e) {
+      // 忽略错误
+    }
   }
 
   Future<void> refresh() async {
-    final letters = await _db.getLetters();
-    state = letters;
+    final circleId = _circleId;
+    if (circleId == null) return;
+
+    try {
+      final letters = await _repo.getLetters(circleId);
+      state = letters;
+    } catch (e) {
+      // 忽略错误
+    }
   }
 
   Future<void> addLetter(Letter letter) async {
-    final now = DateTime.now();
-    final persisted = letter.copyWith(
-      createdAt: letter.createdAt ?? now,
-      updatedAt: letter.updatedAt ?? now,
-    );
-    await _db.insertLetter(persisted);
-    state = [persisted, ...state];
-    // 记录同步
-    SyncService.instance.recordLetterCreate(persisted);
+    final circleId = _circleId;
+    if (circleId == null) return;
+
+    try {
+      final created = await _repo.createLetter(
+        circleId: circleId,
+        title: letter.title,
+        type: letter.type,
+        recipient: letter.recipient,
+        content: letter.content,
+      );
+      state = [created, ...state];
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> updateLetter(Letter letter) async {
-    final updated = letter.copyWith(updatedAt: DateTime.now());
-    await _db.updateLetter(updated);
-    state =
-        state.map((l) {
-          if (l.id == updated.id) {
-            return updated;
-          }
-          return l;
-        }).toList();
-    // 记录同步
-    SyncService.instance.recordLetterUpdate(updated);
+    try {
+      final updated = await _repo.updateLetter(
+        letterId: letter.id,
+        title: letter.title,
+        content: letter.content,
+        recipient: letter.recipient,
+      );
+      state =
+          state.map((l) {
+            if (l.id == updated.id) {
+              return updated;
+            }
+            return l;
+          }).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 
-  Future<void> sealLetter(String id) async {
-    final index = state.indexWhere((l) => l.id == id);
-    if (index == -1) return;
-
-    final letter = state[index];
-    final updated = letter.copyWith(
-      status: LetterStatus.sealed,
-      sealedAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-    await _db.updateLetter(updated);
-
-    state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
-    // 记录同步
-    SyncService.instance.recordLetterUpdate(updated);
+  Future<void> sealLetter(String id, DateTime unlockDate) async {
+    try {
+      final sealed = await _repo.sealLetter(
+        letterId: id,
+        unlockDate: unlockDate,
+      );
+      state =
+          state.map((l) {
+            if (l.id == id) {
+              return sealed;
+            }
+            return l;
+          }).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> deleteLetter(String id) async {
-    final index = state.indexWhere((l) => l.id == id);
-    if (index == -1) return;
-
-    final letter = state[index];
-    final deleted = letter.copyWith(
-      deletedAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-    await _db.updateLetter(deleted);
-    state = state.where((l) => l.id != id).toList();
-    // 记录同步
-    SyncService.instance.recordLetterDelete(id);
+    try {
+      await _repo.deleteLetter(id);
+      state = state.where((l) => l.id != id).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> updateUnlockDate(String id, DateTime newDate) async {
-    final index = state.indexWhere((l) => l.id == id);
-    if (index == -1) return;
-
-    final letter = state[index];
-    final updated = letter.copyWith(
-      unlockDate: newDate,
-      updatedAt: DateTime.now(),
-    );
-    await _db.updateLetter(updated);
-
-    state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
-    // 记录同步
-    SyncService.instance.recordLetterUpdate(updated);
+    // 信件封存后无法修改解锁日期，此方法保留向后兼容
   }
 }
 
@@ -360,33 +432,76 @@ final annualDraftLetterProvider = Provider<Letter?>((ref) {
 /// 世界帖子 Provider
 final worldPostsProvider =
     StateNotifierProvider<WorldPostsNotifier, List<WorldPost>>((ref) {
-      final db = ref.watch(databaseServiceProvider);
-      return WorldPostsNotifier(db);
+      final repo = ref.watch(worldRepositoryProvider);
+      return WorldPostsNotifier(repo);
     });
 
 class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
-  final DatabaseService _db;
+  final WorldRepository _repo;
   bool _initialized = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
+  String? _currentTag;
 
-  WorldPostsNotifier(this._db) : super([]) {
+  WorldPostsNotifier(this._repo) : super([]) {
     _loadPosts();
   }
 
   Future<void> _loadPosts() async {
     if (_initialized) return;
-    final posts = await _db.getWorldPosts();
-    state = posts;
-    _initialized = true;
+
+    try {
+      final result = await _repo.getPosts(page: 1, limit: 20);
+      state = result.posts;
+      _hasMore = result.hasMore;
+      _currentPage = 1;
+      _initialized = true;
+    } catch (e) {
+      // 忽略错误
+    }
   }
 
-  Future<void> refresh() async {
-    final posts = await _db.getWorldPosts();
-    state = posts;
+  Future<void> refresh({String? tag}) async {
+    try {
+      _currentTag = tag;
+      final result = await _repo.getPosts(tag: tag, page: 1, limit: 20);
+      state = result.posts;
+      _hasMore = result.hasMore;
+      _currentPage = 1;
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (!_hasMore) return;
+
+    try {
+      final result = await _repo.getPosts(
+        tag: _currentTag,
+        page: _currentPage + 1,
+        limit: 20,
+      );
+      state = [...state, ...result.posts];
+      _hasMore = result.hasMore;
+      _currentPage++;
+    } catch (e) {
+      // 忽略错误
+    }
   }
 
   Future<void> addPost(WorldPost post) async {
-    await _db.insertWorldPost(post);
-    state = [post, ...state];
+    try {
+      final created = await _repo.createPost(
+        content: post.content,
+        tag: post.tag,
+        bgGradient: post.bgGradient,
+        momentId: post.momentId,
+      );
+      state = [created, ...state];
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> toggleResonance(String id) async {
@@ -394,14 +509,34 @@ class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
     if (index == -1) return;
 
     final post = state[index];
-    final updated = post.copyWith(
-      hasResonated: !post.hasResonated,
-      resonanceCount:
-          post.hasResonated ? post.resonanceCount - 1 : post.resonanceCount + 1,
-    );
-    await _db.updateWorldPost(updated);
 
-    state = [...state.sublist(0, index), updated, ...state.sublist(index + 1)];
+    try {
+      final result =
+          post.hasResonated
+              ? await _repo.unresoante(id)
+              : await _repo.resonate(id);
+
+      final updated = post.copyWith(
+        hasResonated: result.hasResonated,
+        resonanceCount: result.resonanceCount,
+      );
+      state = [
+        ...state.sublist(0, index),
+        updated,
+        ...state.sublist(index + 1),
+      ];
+    } catch (e) {
+      // 忽略错误
+    }
+  }
+
+  Future<void> deletePost(String id) async {
+    try {
+      await _repo.deletePost(id);
+      state = state.where((p) => p.id != id).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 }
 
@@ -503,7 +638,6 @@ final lastYearTodayMomentsProvider = Provider<List<Moment>>((ref) {
   final now = DateTime.now();
   final lastYear = now.year - 1;
 
-  // 筛选去年同月同日的时刻
   return moments.where((m) {
     return m.timestamp.year == lastYear &&
         m.timestamp.month == now.month &&
@@ -511,26 +645,23 @@ final lastYearTodayMomentsProvider = Provider<List<Moment>>((ref) {
   }).toList();
 });
 
-/// 是否有足够的历史数据（用于判断是否显示某些区域）
-/// 当圈子创建满一年时返回 true
+/// 是否有足够的历史数据
 final hasLastYearDataProvider = Provider<bool>((ref) {
   final circleInfo = ref.watch(circleInfoProvider);
   if (circleInfo.startDate == null) return false;
 
   final daysSinceStart =
       DateTime.now().difference(circleInfo.startDate!).inDays;
-  // 圈子创建至少满一年
   return daysSinceStart >= 365;
 });
 
-/// 是否有足够的记录数据（用于显示统计区域）
+/// 是否有足够的记录数据
 final hasEnoughMomentsProvider = Provider<bool>((ref) {
   final moments = ref.watch(momentsProvider);
-  // 至少需要 5 条记录才显示统计区域
   return moments.length >= 5;
 });
 
-/// 是否有任何记录（用于判断是否是全新用户）
+/// 是否有任何记录
 final hasAnyMomentsProvider = Provider<bool>((ref) {
   final moments = ref.watch(momentsProvider);
   return moments.isNotEmpty;
@@ -541,7 +672,7 @@ final availableYearsProvider = Provider<List<String>>((ref) {
   final moments = ref.watch(momentsProvider);
   final years =
       moments.map((m) => m.timestamp.year.toString()).toSet().toList();
-  years.sort((a, b) => b.compareTo(a)); // 降序
+  years.sort((a, b) => b.compareTo(a));
   return years;
 });
 
@@ -557,8 +688,12 @@ final availableAuthorsProvider = Provider<List<User>>((ref) {
 
 /// 世界频道 Provider
 final worldChannelsProvider = FutureProvider<List<WorldChannel>>((ref) async {
-  final db = ref.watch(databaseServiceProvider);
-  return await db.getWorldChannels();
+  final repo = ref.watch(worldRepositoryProvider);
+  try {
+    return await repo.getChannels();
+  } catch (e) {
+    return const [];
+  }
 });
 
 /// 世界频道（同步访问）
@@ -596,39 +731,84 @@ final commentsProvider = StateNotifierProvider.family<
   List<Comment>,
   CommentProviderKey
 >((ref, key) {
-  final db = ref.watch(databaseServiceProvider);
-  return CommentsNotifier(db, key.$1, key.$2);
+  final repo = ref.watch(commentRepositoryProvider);
+  return CommentsNotifier(repo, key.$1, key.$2);
 });
 
 class CommentsNotifier extends StateNotifier<List<Comment>> {
-  final DatabaseService _db;
+  final CommentRepository _repo;
   final String targetId;
   final CommentTargetType targetType;
   bool _initialized = false;
 
-  CommentsNotifier(this._db, this.targetId, this.targetType) : super([]) {
+  CommentsNotifier(this._repo, this.targetId, this.targetType) : super([]) {
     _loadComments();
   }
 
   Future<void> _loadComments() async {
     if (_initialized) return;
-    final comments = await _db.getCommentsByTarget(targetId, targetType);
-    state = comments;
-    _initialized = true;
+
+    try {
+      final result =
+          targetType == CommentTargetType.moment
+              ? await _repo.getMomentComments(targetId)
+              : await _repo.getWorldPostComments(targetId);
+      state = result.comments;
+      _initialized = true;
+    } catch (e) {
+      // 忽略错误
+    }
   }
 
   Future<void> refresh() async {
-    final comments = await _db.getCommentsByTarget(targetId, targetType);
-    state = comments;
+    try {
+      final result =
+          targetType == CommentTargetType.moment
+              ? await _repo.getMomentComments(targetId)
+              : await _repo.getWorldPostComments(targetId);
+      state = result.comments;
+    } catch (e) {
+      // 忽略错误
+    }
   }
 
   Future<void> addComment(Comment comment) async {
-    await _db.insertComment(comment);
-    state = [...state, comment]; // 追加到末尾
+    try {
+      final created =
+          targetType == CommentTargetType.moment
+              ? await _repo.addMomentComment(
+                momentId: targetId,
+                content: comment.content,
+              )
+              : await _repo.addWorldPostComment(
+                postId: targetId,
+                content: comment.content,
+              );
+      state = [...state, created];
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> deleteComment(String id) async {
-    await _db.deleteComment(id);
-    state = state.where((c) => c.id != id).toList();
+    try {
+      await _repo.deleteComment(id);
+      state = state.where((c) => c.id != id).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
+}
+
+// ============== 向后兼容：保留 databaseServiceProvider ==============
+// 注意: 这个 Provider 已废弃，仅为保持编译通过
+// 后续应该逐步移除对它的依赖
+
+/// @deprecated 使用 Repository Providers 代替
+final databaseServiceProvider = Provider<_DeprecatedDatabaseService>((ref) {
+  return _DeprecatedDatabaseService();
+});
+
+class _DeprecatedDatabaseService {
+  Future<void> init() async {}
 }

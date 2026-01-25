@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/app_providers.dart';
-import '../../../core/services/database_service.dart';
 
 /// 设置键名常量
 class SettingsKeys {
@@ -94,33 +93,23 @@ class SettingsState {
   }
 }
 
-/// 设置 StateNotifier
+/// 设置 StateNotifier - 使用 SettingsRepository
 class SettingsNotifier extends StateNotifier<SettingsState> {
-  final DatabaseService _db;
+  final Ref _ref;
 
-  SettingsNotifier(this._db) : super(const SettingsState(isLoading: true)) {
+  SettingsNotifier(this._ref) : super(const SettingsState(isLoading: true)) {
     _loadSettings();
   }
 
   /// 加载所有设置
   Future<void> _loadSettings() async {
     try {
-      final annualLetterReminder = await _db.getBoolSetting(
-        SettingsKeys.annualLetterReminder,
-        defaultValue: true,
-      );
-      final faceBlurEnabled = await _db.getBoolSetting(
-        SettingsKeys.faceBlurEnabled,
-        defaultValue: true,
-      );
-      final defaultVisibilityValue = await _db.getSettingWithDefault(
-        SettingsKeys.defaultVisibility,
-        'private',
-      );
-      final timeLockDuration = await _db.getIntSetting(
-        SettingsKeys.timeLockDuration,
-        defaultValue: 365,
-      );
+      final repo = _ref.read(settingsRepositoryProvider);
+
+      final annualLetterReminder = await repo.isAnnualLetterReminderEnabled();
+      final faceBlurEnabled = await repo.isFaceBlurEnabled();
+      final defaultVisibilityValue = await repo.getDefaultVisibility();
+      final timeLockDuration = await repo.getTimeLockDuration();
 
       state = SettingsState(
         annualLetterReminder: annualLetterReminder,
@@ -143,7 +132,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   /// 设置年度信提醒
   Future<void> setAnnualLetterReminder(bool value) async {
     try {
-      await _db.saveBoolSetting(SettingsKeys.annualLetterReminder, value);
+      final repo = _ref.read(settingsRepositoryProvider);
+      await repo.setAnnualLetterReminderEnabled(value);
       state = state.copyWith(annualLetterReminder: value);
     } catch (e) {
       state = state.copyWith(error: '保存失败: $e');
@@ -153,7 +143,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   /// 设置面部模糊
   Future<void> setFaceBlurEnabled(bool value) async {
     try {
-      await _db.saveBoolSetting(SettingsKeys.faceBlurEnabled, value);
+      final repo = _ref.read(settingsRepositoryProvider);
+      await repo.setFaceBlurEnabled(value);
       state = state.copyWith(faceBlurEnabled: value);
     } catch (e) {
       state = state.copyWith(error: '保存失败: $e');
@@ -163,7 +154,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   /// 设置默认可见性
   Future<void> setDefaultVisibility(ContentVisibility value) async {
     try {
-      await _db.saveSetting(SettingsKeys.defaultVisibility, value.value);
+      final repo = _ref.read(settingsRepositoryProvider);
+      await repo.setDefaultVisibility(value.value);
       state = state.copyWith(defaultVisibility: value);
     } catch (e) {
       state = state.copyWith(error: '保存失败: $e');
@@ -173,7 +165,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   /// 设置时间锁时长
   Future<void> setTimeLockDuration(int days) async {
     try {
-      await _db.saveIntSetting(SettingsKeys.timeLockDuration, days);
+      final repo = _ref.read(settingsRepositoryProvider);
+      await repo.setTimeLockDuration(days);
       state = state.copyWith(timeLockDuration: days);
     } catch (e) {
       state = state.copyWith(error: '保存失败: $e');
@@ -189,8 +182,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 /// 设置 Provider
 final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>(
   (ref) {
-    final db = ref.watch(databaseServiceProvider);
-    return SettingsNotifier(db);
+    return SettingsNotifier(ref);
   },
 );
 

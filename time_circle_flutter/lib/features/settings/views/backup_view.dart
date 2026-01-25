@@ -27,8 +27,8 @@ class _BackupViewState extends ConsumerState<BackupView> {
   }
 
   Future<void> _loadLastBackupTime() async {
-    final db = ref.read(databaseServiceProvider);
-    final time = await db.getSetting('last_backup_time');
+    final repo = ref.read(settingsRepositoryProvider);
+    final time = await repo.getLastBackupTime();
     if (mounted && time != null) {
       setState(() {
         _lastBackupTime = _formatDateTime(DateTime.parse(time));
@@ -117,9 +117,9 @@ class _BackupViewState extends ConsumerState<BackupView> {
     try {
       await Future.delayed(const Duration(seconds: 2));
 
-      final db = ref.read(databaseServiceProvider);
+      final repo = ref.read(settingsRepositoryProvider);
       final now = DateTime.now();
-      await db.saveSetting('last_backup_time', now.toIso8601String());
+      await repo.setLastBackupTime(now.toIso8601String());
 
       if (mounted) {
         setState(() {

@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
-import '../../../core/providers/sync_provider.dart';
 import '../../../shared/widgets/sync_status_indicator.dart';
 import '../widgets/memory_card.dart';
 import '../widgets/time_header.dart';
@@ -33,9 +32,6 @@ class HomeView extends ConsumerWidget {
     final hasAnyMoments = ref.watch(hasAnyMomentsProvider);
     final hasEnoughMoments = ref.watch(hasEnoughMomentsProvider);
     final moments = ref.watch(momentsProvider);
-
-    // 监听同步状态（触发 SyncProvider 初始化）
-    ref.watch(syncStatusProvider);
 
     return Scaffold(
       backgroundColor: AppColors.timeBeige,

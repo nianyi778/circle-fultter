@@ -6,17 +6,14 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
-import '../../../core/providers/sync_provider.dart';
 import '../../../core/models/letter.dart';
 
 class LettersView extends ConsumerWidget {
   const LettersView({super.key});
 
-  /// 下拉刷新同步
+  /// 下拉刷新
   Future<void> _onRefresh(WidgetRef ref) async {
-    final triggerSync = ref.read(triggerSyncProvider);
-    await triggerSync();
-    ref.invalidate(lettersProvider);
+    await ref.read(lettersProvider.notifier).refresh();
   }
 
   @override

@@ -7,7 +7,9 @@ import 'dart:io';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
-import '../../../core/models/user.dart';
+import '../../../core/providers/auth_providers.dart';
+import '../../../core/config/api_config.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../../core/extensions/context_extensions.dart';
 import '../../../shared/widgets/app_text_field.dart';
@@ -72,28 +74,40 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView> {
     setState(() => _isLoading = true);
 
     try {
-      final db = ref.read(databaseServiceProvider);
       final user = ref.read(currentUserSyncProvider);
 
-      String finalAvatarPath = user.avatar;
-      if (_avatarPath != null && _avatarPath != user.avatar) {
-        finalAvatarPath = _avatarPath!;
+      // 构建更新数据
+      final Map<String, dynamic> updateData = {
+        'name': _nameController.text.trim(),
+      };
+
+      // 如果有角色标签
+      final roleLabel = _roleLabelController.text.trim();
+      if (roleLabel.isNotEmpty) {
+        updateData['roleLabel'] = roleLabel;
       }
 
-      final updatedUser = User(
-        id: user.id,
-        name: _nameController.text.trim(),
-        avatar: finalAvatarPath,
-        roleLabel:
-            _roleLabelController.text.trim().isEmpty
-                ? null
-                : _roleLabelController.text.trim(),
-      );
+      // 如果更换了头像（本地路径），需要先上传
+      // TODO: 实现头像上传逻辑
+      if (_avatarPath != null &&
+          _avatarPath != user.avatar &&
+          _avatarPath!.startsWith('/')) {
+        // 暂时跳过头像上传，保持原头像
+        // 未来可以添加媒体上传逻辑
+      } else if (_avatarPath != null && _avatarPath != user.avatar) {
+        updateData['avatar'] = _avatarPath;
+      }
 
-      await db.updateUser(updatedUser);
+      // 调用 API 更新用户信息
+      final api = ApiService.instance;
+      final response = await api.put(ApiConfig.authMe, data: updateData);
 
-      ref.invalidate(circleMembersProvider);
-      ref.invalidate(currentUserProvider);
+      if (!response.success) {
+        throw Exception(response.error?.message ?? '更新失败');
+      }
+
+      // 刷新认证状态
+      await ref.read(authProvider.notifier).refresh();
 
       if (mounted) {
         context.showSettingsMessage('保存成功');

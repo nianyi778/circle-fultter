@@ -4,13 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
-import 'core/services/database_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 初始化数据库
-  await DatabaseService().database;
 
   // 设置系统UI样式 - 温柔的沉浸式体验
   SystemChrome.setSystemUIOverlayStyle(

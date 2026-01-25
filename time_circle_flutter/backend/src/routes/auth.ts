@@ -249,6 +249,72 @@ auth.get('/me', authMiddleware, async (c) => {
 });
 
 /**
+ * PUT /auth/me
+ * Update current user profile
+ */
+auth.put('/me', authMiddleware, async (c) => {
+  const userId = c.get('userId');
+  const body = await c.req.json();
+  const { name, avatar, roleLabel } = body as {
+    name?: string;
+    avatar?: string;
+    roleLabel?: string;
+  };
+  
+  // Build update query dynamically
+  const updates: string[] = [];
+  const values: (string | null)[] = [];
+  
+  if (name !== undefined) {
+    if (name.length < 1 || name.length > 50) {
+      return c.json(
+        error(ErrorCodes.VALIDATION_ERROR, 'Name must be 1-50 characters'),
+        400
+      );
+    }
+    updates.push('name = ?');
+    values.push(name);
+  }
+  
+  if (avatar !== undefined) {
+    updates.push('avatar = ?');
+    values.push(avatar || null);
+  }
+  
+  if (updates.length === 0) {
+    return c.json(error(ErrorCodes.INVALID_INPUT, 'No fields to update'), 400);
+  }
+  
+  updates.push("updated_at = datetime('now')");
+  values.push(userId);
+  
+  await c.env.DB.prepare(
+    `UPDATE users SET ${updates.join(', ')} WHERE id = ?`
+  )
+    .bind(...values)
+    .run();
+  
+  // Also update role_label in circle_members if provided
+  if (roleLabel !== undefined) {
+    // Update all circle memberships for this user
+    await c.env.DB.prepare(
+      `UPDATE circle_members SET role_label = ? WHERE user_id = ?`
+    )
+      .bind(roleLabel || null, userId)
+      .run();
+  }
+  
+  // Get updated user
+  const updatedUser = await c.env.DB.prepare(
+    'SELECT id, email, name, avatar, created_at, updated_at FROM users WHERE id = ?'
+  )
+    .bind(userId)
+    .first();
+  
+  return c.json(success({ user: updatedUser }));
+});
+
+/**
  * PUT /auth/password
  * Change password
  */

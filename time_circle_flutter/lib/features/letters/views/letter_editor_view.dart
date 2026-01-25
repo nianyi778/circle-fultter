@@ -81,8 +81,11 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
 
     setState(() => _showToast = true);
 
-    // 封存信件
-    ref.read(lettersProvider.notifier).sealLetter(widget.letterId);
+    // 封存信件 - 默认一年后解锁
+    final unlockDate = DateTime.now().add(const Duration(days: 365));
+    await ref
+        .read(lettersProvider.notifier)
+        .sealLetter(widget.letterId, unlockDate);
 
     // 显示 toast 后关闭
     await Future.delayed(const Duration(milliseconds: 2000));
