@@ -304,27 +304,37 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   }
 
   Widget _buildTextInput(BuildContext context) {
-    return TextField(
-      controller: _textController,
-      maxLines: 6,
-      minLines: 4,
-      autofocus: true,
-      onChanged: (value) => setState(() {}),
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        fontSize: 14,
-        height: 1.6,
-        color: AppColors.warmGray700,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.warmGray50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warmGray200, width: 1),
       ),
-      decoration: InputDecoration(
-        hintText: '这一刻，你想留下些什么？',
-        hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+      child: TextField(
+        controller: _textController,
+        maxLines: 6,
+        minLines: 4,
+        autofocus: true,
+        onChanged: (value) => setState(() {}),
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           fontSize: 14,
-          color: AppColors.warmGray300,
           height: 1.6,
+          color: AppColors.warmGray700,
         ),
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        isDense: true,
+        decoration: InputDecoration(
+          hintText: '这一刻，你想留下些什么？',
+          hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontSize: 14,
+            color: AppColors.warmGray400,
+            height: 1.6,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
+          isDense: true,
+        ),
       ),
     );
   }
@@ -345,19 +355,19 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
           width: itemSize,
           height: itemSize,
           decoration: BoxDecoration(
-            color: AppColors.warmGray50,
+            color: AppColors.warmGray100,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.warmGray100, width: 0.5),
+            border: Border.all(color: AppColors.warmGray300, width: 0.8),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add, color: AppColors.warmGray300, size: 36),
+              Icon(Icons.add, color: AppColors.warmGray500, size: 36),
               const SizedBox(height: 4),
               Text(
                 '添加',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.warmGray300,
+                  color: AppColors.warmGray500,
                   fontSize: 11,
                 ),
               ),
@@ -449,11 +459,11 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: AppColors.warmGray50,
+          color: AppColors.warmGray100,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.warmGray100, width: 0.5),
+          border: Border.all(color: AppColors.warmGray300, width: 0.8),
         ),
-        child: const Icon(Icons.add, color: AppColors.warmGray300, size: 32),
+        child: const Icon(Icons.add, color: AppColors.warmGray500, size: 32),
       ),
     );
   }
@@ -776,7 +786,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
     return Column(
       children: [
-        Divider(height: 1, color: AppColors.warmGray100.withValues(alpha: 0.5)),
+        Divider(height: 1, color: AppColors.warmGray200.withValues(alpha: 0.8)),
         // 位置选项
         GestureDetector(
           onTap: _selectLocation,
@@ -787,7 +797,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
               children: [
                 Icon(
                   hasLocation ? Iconsax.location5 : Iconsax.location,
-                  color: hasLocation ? wechatGreen : AppColors.warmGray400,
+                  color: hasLocation ? wechatGreen : AppColors.warmGray500,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
@@ -795,21 +805,21 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                   child: Text(
                     _locationName ?? '所在位置',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: hasLocation ? wechatGreen : AppColors.warmGray400,
+                      color: hasLocation ? wechatGreen : AppColors.warmGray500,
                       fontSize: 13,
                     ),
                   ),
                 ),
                 Icon(
                   Icons.chevron_right,
-                  color: AppColors.warmGray200,
+                  color: AppColors.warmGray300,
                   size: 18,
                 ),
               ],
             ),
           ),
         ),
-        Divider(height: 1, color: AppColors.warmGray100.withValues(alpha: 0.5)),
+        Divider(height: 1, color: AppColors.warmGray200.withValues(alpha: 0.8)),
       ],
     );
   }
@@ -893,11 +903,11 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       decoration: BoxDecoration(
         color:
             isExpanded
-                ? AppColors.warmGray50.withValues(alpha: 0.5)
+                ? AppColors.warmGray100.withValues(alpha: 0.6)
                 : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isExpanded ? AppColors.warmGray100 : Colors.transparent,
+          color: isExpanded ? AppColors.warmGray200 : Colors.transparent,
           width: 1,
         ),
       ),
@@ -918,7 +928,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                   Text(
                     label,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.warmGray400,
+                      color: AppColors.warmGray500,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 1,
                       fontSize: 10,
@@ -948,7 +958,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                     child: Icon(
                       Icons.keyboard_arrow_down,
                       size: 18,
-                      color: AppColors.warmGray300,
+                      color: AppColors.warmGray500,
                     ),
                   ),
                 ],
@@ -994,18 +1004,18 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
         color:
             _shareToWorld
                 ? AppColors.warmOrange.withValues(alpha: 0.15)
-                : AppColors.white,
+                : AppColors.warmGray50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color:
               _shareToWorld
-                  ? AppColors.warmOrangeDeep.withValues(alpha: 0.2)
-                  : AppColors.warmGray200.withValues(alpha: 0.5),
+                  ? AppColors.warmOrangeDeep.withValues(alpha: 0.25)
+                  : AppColors.warmGray300.withValues(alpha: 0.8),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.warmGray900.withValues(alpha: 0.03),
+            color: AppColors.warmGray900.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1026,7 +1036,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                     color:
                         _shareToWorld
                             ? AppColors.warmOrangeDeep
-                            : AppColors.warmGray400,
+                            : AppColors.warmGray600,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -1035,7 +1045,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                       color:
                           _shareToWorld
                               ? AppColors.warmGray800
-                              : AppColors.warmGray500,
+                              : AppColors.warmGray700,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1057,7 +1067,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                     color:
                         _shareToWorld
                             ? AppColors.warmOrangeDeep
-                            : AppColors.warmGray300,
+                            : AppColors.warmGray400,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: AnimatedAlign(
@@ -1094,7 +1104,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
               padding: const EdgeInsets.only(top: 12),
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: AppColors.warmGray100, width: 1),
+                  top: BorderSide(color: AppColors.warmGray200, width: 1),
                 ),
               ),
               child: Column(
@@ -1131,7 +1141,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                                         ? AppColors.warmOrange.withValues(
                                           alpha: 0.3,
                                         )
-                                        : AppColors.warmGray50,
+                                        : AppColors.warmGray100,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color:
@@ -1139,7 +1149,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                                           ? AppColors.warmOrangeDeep.withValues(
                                             alpha: 0.3,
                                           )
-                                          : AppColors.warmGray100,
+                                          : AppColors.warmGray300,
                                   width: 1,
                                 ),
                               ),
@@ -1151,7 +1161,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
                                   color:
                                       isSelected
                                           ? AppColors.warmOrangeDark
-                                          : AppColors.warmGray500,
+                                          : AppColors.warmGray700,
                                   fontWeight:
                                       isSelected
                                           ? FontWeight.w600
@@ -1664,11 +1674,11 @@ class _ContextChip extends StatelessWidget {
         decoration: BoxDecoration(
           color:
               isSelected
-                  ? AppColors.warmGray800.withValues(alpha: 0.1)
-                  : AppColors.warmGray50,
+                  ? AppColors.warmGray800.withValues(alpha: 0.12)
+                  : AppColors.warmGray100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.warmGray400 : AppColors.warmGray200,
+            color: isSelected ? AppColors.warmGray500 : AppColors.warmGray300,
             width: 1,
           ),
         ),
@@ -1681,7 +1691,7 @@ class _ContextChip extends StatelessWidget {
               tag.label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color:
-                    isSelected ? AppColors.warmGray800 : AppColors.warmGray600,
+                    isSelected ? AppColors.warmGray800 : AppColors.warmGray700,
                 fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
                 fontSize: 13,
               ),
