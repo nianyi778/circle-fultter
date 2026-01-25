@@ -1,2 +1,11 @@
 Circle
 ./time_circle_flutter/backend/node_modules/
+
+# Agent skills (auto-generated)
+.agents/
+.opencode/skills/
+.github/skills/
+.claude/skills/
+.codex/skills/
+.cursor/skills/
+.gemini/skills/
