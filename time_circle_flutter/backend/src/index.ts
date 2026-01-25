@@ -58,6 +58,7 @@ app.get('/health', (c) => {
 app.route('/auth', authRoutes);
 app.route('/circles', circleRoutes);
 app.route('/circles/:circleId/moments', circleMomentRoutes);
+app.route('/circles/:circleId/letters', circleLetterRoutes);
 app.route('/moments', momentRoutes);
 app.route('/letters', letterRoutes);
 app.route('/world', worldRoutes);

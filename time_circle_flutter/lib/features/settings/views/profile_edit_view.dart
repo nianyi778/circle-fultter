@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import 'dart:io';
 
 import '../../../core/theme/app_theme.dart';
@@ -75,31 +76,72 @@ class _ProfileEditViewState extends ConsumerState<ProfileEditView> {
 
     try {
       final user = ref.read(currentUserSyncProvider);
+      final api = ApiService.instance;
 
       // 构建更新数据
       final Map<String, dynamic> updateData = {
         'name': _nameController.text.trim(),
       };
 
-      // 如果有角色标签
+      // 角色标签（允许清空）
       final roleLabel = _roleLabelController.text.trim();
-      if (roleLabel.isNotEmpty) {
-        updateData['roleLabel'] = roleLabel;
-      }
+      updateData['roleLabel'] = roleLabel.isEmpty ? null : roleLabel;
 
       // 如果更换了头像（本地路径），需要先上传
-      // TODO: 实现头像上传逻辑
       if (_avatarPath != null &&
           _avatarPath != user.avatar &&
           _avatarPath!.startsWith('/')) {
-        // 暂时跳过头像上传，保持原头像
-        // 未来可以添加媒体上传逻辑
+        final file = File(_avatarPath!);
+        if (!await file.exists()) {
+          throw Exception('头像文件不存在');
+        }
+
+        final bytes = await file.readAsBytes();
+        final filename = path.basename(file.path);
+
+        // 1) 获取上传地址
+        final uploadResponse = await api.post<Map<String, dynamic>>(
+          ApiConfig.mediaUploadUrl,
+          data: {
+            'filename': filename,
+            'contentType': 'image/jpeg',
+            'size': bytes.length,
+          },
+          fromData: (data) => data as Map<String, dynamic>,
+        );
+
+        if (!uploadResponse.success || uploadResponse.data == null) {
+          throw Exception(uploadResponse.error?.message ?? '获取上传地址失败');
+        }
+
+        final uploadUrl = uploadResponse.data!['uploadUrl'] as String;
+        final key = uploadResponse.data!['key'] as String;
+
+        // 2) 上传文件
+        await api.uploadFile(
+          '${ApiConfig.baseUrl}$uploadUrl',
+          bytes,
+          contentType: 'image/jpeg',
+        );
+
+        // 3) 完成上传，获取最终 URL
+        final completeResponse = await api.post<Map<String, dynamic>>(
+          ApiConfig.mediaComplete,
+          data: {'key': key},
+          fromData: (data) => data as Map<String, dynamic>,
+        );
+
+        if (!completeResponse.success || completeResponse.data == null) {
+          throw Exception(completeResponse.error?.message ?? '确认上传失败');
+        }
+
+        final mediaUrl = completeResponse.data!['url'] as String;
+        updateData['avatar'] = '${ApiConfig.baseUrl}$mediaUrl';
       } else if (_avatarPath != null && _avatarPath != user.avatar) {
         updateData['avatar'] = _avatarPath;
       }
 
       // 调用 API 更新用户信息
-      final api = ApiService.instance;
       final response = await api.put(ApiConfig.authMe, data: updateData);
 
       if (!response.success) {

@@ -50,7 +50,13 @@ final currentUserProvider = Provider<User>((ref) {
   final user = authState.user;
 
   if (authState.isFullyAuthenticated && user != null) {
-    return User(id: user.id, name: user.name, avatar: user.avatar ?? '');
+    final roleLabel = authState.selectedCircle?.roleLabel;
+    return User(
+      id: user.id,
+      name: user.name,
+      avatar: user.avatar ?? '',
+      roleLabel: roleLabel,
+    );
   }
   return const User(id: 'guest', name: '我', avatar: '');
 });
