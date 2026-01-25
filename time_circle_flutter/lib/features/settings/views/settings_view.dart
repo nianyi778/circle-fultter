@@ -174,18 +174,11 @@ class SettingsView extends ConsumerWidget {
 
                     const SizedBox(height: 24),
 
-                    // 存储与备份
+                    // 导出
                     _SettingsGroup(
-                      title: '存储与备份',
+                      title: '导出',
                       iconColor: const Color(0xFF8B7A9C),
                       children: [
-                        SettingsListTile(
-                          icon: Iconsax.cloud,
-                          iconColor: const Color(0xFF8B7A9C),
-                          title: '本地备份',
-                          subtitle: '已使用 2.3 GB',
-                          onTap: () => context.push('/settings/backup'),
-                        ),
                         SettingsListTile(
                           icon: Iconsax.document_download,
                           iconColor: const Color(0xFF8B7A9C),

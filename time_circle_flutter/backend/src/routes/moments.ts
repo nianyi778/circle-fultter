@@ -5,7 +5,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { generateId } from '../utils/id';
-import { success, error, paginated, ErrorCodes } from '../utils/response';
+import { success, error, paginate, ErrorCodes } from '../utils/response';
 import { authMiddleware, circleMemberMiddleware } from '../middleware/auth';
 import type { Env, Moment } from '../types';
 
@@ -428,7 +428,14 @@ circleMoments.get('/', async (c) => {
     context_tags: m.context_tags ? JSON.parse(m.context_tags) : [],
   }));
   
-  return c.json(paginated(momentsWithParsedTags, page, limit, total));
+  return c.json(
+    success(
+      {
+        data: momentsWithParsedTags,
+        meta: paginate(page, limit, total),
+      },
+    ),
+  );
 });
 
 /**

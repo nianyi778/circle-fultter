@@ -130,7 +130,6 @@ class SettingsRepository {
   static const String _faceBlurEnabledKey = 'face_blur_enabled';
   static const String _defaultVisibilityKey = 'default_visibility';
   static const String _timeLockDurationKey = 'time_lock_duration';
-  static const String _lastBackupTimeKey = 'last_backup_time';
 
   /// 获取年度信提醒开关
   Future<bool> isAnnualLetterReminderEnabled() async {
@@ -178,18 +177,6 @@ class SettingsRepository {
   Future<void> setTimeLockDuration(int days) async {
     final prefs = await _getPrefs();
     await prefs.setInt(_timeLockDurationKey, days);
-  }
-
-  /// 获取上次备份时间
-  Future<String?> getLastBackupTime() async {
-    final prefs = await _getPrefs();
-    return prefs.getString(_lastBackupTimeKey);
-  }
-
-  /// 设置上次备份时间
-  Future<void> setLastBackupTime(String time) async {
-    final prefs = await _getPrefs();
-    await prefs.setString(_lastBackupTimeKey, time);
   }
 
   // ============== 清除所有设置 ==============

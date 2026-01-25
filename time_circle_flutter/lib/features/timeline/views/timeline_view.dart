@@ -215,54 +215,67 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
   ) {
     return SafeArea(
       bottom: false,
-      child: ClipRect(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.pagePadding,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 展开时显示的标题
-              if (expandRatio > 0.3)
-                Flexible(
-                  child: Opacity(
-                    opacity: expandRatio,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${childInfo.name}的时间线',
-                          style: AppTypography.title(context),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          childInfo.timeLabel,
-                          style: AppTypography.caption(
-                            context,
-                          ).copyWith(color: AppColors.warmGray400),
-                        ),
-                      ],
-                    ),
-                  ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showExpanded = expandRatio > 0.3;
+          final showDetail = showExpanded && constraints.maxHeight > 64;
+          return ClipRect(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.pagePadding,
+              ),
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: AnimatedSwitcher(
+                  duration: AppDurations.fast,
+                  switchInCurve: AppCurves.smooth,
+                  switchOutCurve: AppCurves.smooth,
+                  child:
+                      showExpanded
+                          ? Opacity(
+                            key: const ValueKey('expanded'),
+                            opacity: expandRatio,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${childInfo.name}的时间线',
+                                  style: AppTypography.title(context),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (showDetail) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    childInfo.timeLabel,
+                                    style: AppTypography.caption(
+                                      context,
+                                    ).copyWith(color: AppColors.warmGray400),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                                if (showDetail) const SizedBox(height: 12),
+                              ],
+                            ),
+                          )
+                          : Padding(
+                            key: const ValueKey('collapsed'),
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Opacity(
+                              opacity: 1 - expandRatio,
+                              child: Text(
+                                '时间线',
+                                style: AppTypography.subtitle(context),
+                              ),
+                            ),
+                          ),
                 ),
-              // 收缩时的简化标题
-              if (expandRatio <= 0.3)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Opacity(
-                    opacity: 1 - expandRatio,
-                    child: Text('时间线', style: AppTypography.subtitle(context)),
-                  ),
-                ),
-              if (expandRatio > 0.3) const SizedBox(height: 12),
-            ],
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

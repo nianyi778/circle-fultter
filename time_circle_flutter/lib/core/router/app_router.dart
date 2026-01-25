@@ -20,7 +20,6 @@ import '../../features/settings/views/members_view.dart';
 import '../../features/settings/views/visibility_view.dart';
 import '../../features/settings/views/time_lock_view.dart';
 import '../../features/settings/views/export_view.dart';
-import '../../features/settings/views/backup_view.dart';
 import '../../features/settings/views/about_view.dart';
 import '../../features/settings/views/feedback_view.dart';
 import '../../shared/widgets/main_scaffold.dart';
@@ -240,17 +239,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             (context, state) => CustomTransitionPage(
               key: state.pageKey,
               child: const ExportView(),
-              transitionsBuilder: _slideUpTransition,
-            ),
-      ),
-
-      GoRoute(
-        path: '/settings/backup',
-        name: 'backup',
-        pageBuilder:
-            (context, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const BackupView(),
               transitionsBuilder: _slideUpTransition,
             ),
       ),
