@@ -57,6 +57,7 @@ app.get('/health', (c) => {
 // API Routes
 app.route('/auth', authRoutes);
 app.route('/circles', circleRoutes);
+app.route('/circles/:circleId/moments', circleMomentRoutes);
 app.route('/moments', momentRoutes);
 app.route('/letters', letterRoutes);
 app.route('/world', worldRoutes);
