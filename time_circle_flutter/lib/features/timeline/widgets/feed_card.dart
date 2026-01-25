@@ -79,7 +79,7 @@ class _FeedCardState extends ConsumerState<FeedCard>
   Widget build(BuildContext context) {
     final moment = widget.moment;
     final circleInfo = ref.watch(childInfoProvider);
-    final hasMedia = moment.mediaUrl != null && moment.mediaUrl!.isNotEmpty;
+    final hasMedia = moment.mediaUrls.isNotEmpty;
     final isImageType = moment.mediaType == MediaType.image;
 
     return Stack(
@@ -98,7 +98,10 @@ class _FeedCardState extends ConsumerState<FeedCard>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 图片在顶部（如果有图片）
-                if (hasMedia && isImageType) _buildTopImage(context),
+                if (hasMedia && isImageType)
+                  moment.mediaUrls.length == 1
+                      ? _buildTopImage(context)
+                      : _buildImageGrid(context),
 
                 // 发布者信息 + 内容
                 Padding(
@@ -188,9 +191,38 @@ class _FeedCardState extends ConsumerState<FeedCard>
       child: AspectRatio(
         aspectRatio: 4 / 3,
         child: ImageUtils.buildImage(
-          url: widget.moment.mediaUrl!,
+          url: widget.moment.mediaUrls.first,
           fit: BoxFit.cover,
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageGrid(BuildContext context) {
+    final images = widget.moment.mediaUrls.take(9).toList();
+    const spacing = 4.0;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalSpacing = spacing * 2;
+          final itemSize = (constraints.maxWidth - totalSpacing) / 3;
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children:
+                images.map((url) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: SizedBox(
+                      width: itemSize,
+                      height: itemSize,
+                      child: ImageUtils.buildImage(url: url, fit: BoxFit.cover),
+                    ),
+                  );
+                }).toList(),
+          );
+        },
       ),
     );
   }

@@ -207,7 +207,7 @@ async function processMomentChange(
     }
 
     await db.prepare(
-      `INSERT INTO moments (id, circle_id, author_id, content, media_type, media_url, 
+      `INSERT INTO moments (id, circle_id, author_id, content, media_type, media_urls, 
         timestamp, context_tags, location, future_message, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
@@ -217,7 +217,7 @@ async function processMomentChange(
         userId,
         data.content,
         data.mediaType || 'text',
-        data.mediaUrl || null,
+        JSON.stringify(data.mediaUrls ?? []),
         data.timestamp || serverTimestamp,
         data.contextTags ? JSON.stringify(data.contextTags) : null,
         data.location || null,
@@ -252,7 +252,7 @@ async function processMomentChange(
     await db.prepare(
       `UPDATE moments SET 
         content = COALESCE(?, content),
-        media_url = COALESCE(?, media_url),
+        media_urls = COALESCE(?, media_urls),
         context_tags = COALESCE(?, context_tags),
         location = COALESCE(?, location),
         is_favorite = COALESCE(?, is_favorite),
@@ -262,7 +262,7 @@ async function processMomentChange(
     )
       .bind(
         data.content || null,
-        data.mediaUrl || null,
+        JSON.stringify(data.mediaUrls ?? []),
         data.contextTags ? JSON.stringify(data.contextTags) : null,
         data.location || null,
         data.isFavorite !== undefined ? (data.isFavorite ? 1 : 0) : null,

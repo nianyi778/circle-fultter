@@ -18,7 +18,7 @@ moments.use('*', authMiddleware);
 const createMomentSchema = z.object({
   content: z.string().min(1, 'Content is required'),
   mediaType: z.enum(['text', 'image', 'video', 'audio']),
-  mediaUrl: z.string().optional(),
+  mediaUrls: z.array(z.string()).optional(),
   timestamp: z.string().optional(),
   contextTags: z.array(z.object({
     type: z.string(),
@@ -31,7 +31,7 @@ const createMomentSchema = z.object({
 
 const updateMomentSchema = z.object({
   content: z.string().min(1).optional(),
-  mediaUrl: z.string().optional(),
+  mediaUrls: z.array(z.string()).optional(),
   contextTags: z.array(z.object({
     type: z.string(),
     label: z.string(),
@@ -85,6 +85,7 @@ moments.get('/:id', async (c) => {
   return c.json(success({
     ...moment,
     context_tags: moment.context_tags ? JSON.parse(moment.context_tags as string) : [],
+    media_urls: moment.media_urls ? JSON.parse(moment.media_urls as string) : [],
     comment_count: commentCount?.count || 0,
   }));
 });
@@ -129,11 +130,11 @@ moments.put('/:id', async (c) => {
     values.push(result.data.content);
   }
   
-  if (result.data.mediaUrl !== undefined) {
-    updates.push('media_url = ?');
-    values.push(result.data.mediaUrl);
+  if (result.data.mediaUrls !== undefined) {
+    updates.push('media_urls = ?');
+    values.push(JSON.stringify(result.data.mediaUrls));
   }
-  
+
   
   if (result.data.contextTags !== undefined) {
     updates.push('context_tags = ?');
@@ -183,6 +184,7 @@ moments.put('/:id', async (c) => {
   return c.json(success({
     ...updated,
     context_tags: updated?.context_tags ? JSON.parse(updated.context_tags as string) : [],
+    media_urls: updated?.media_urls ? JSON.parse(updated.media_urls as string) : [],
   }));
 });
 
@@ -426,6 +428,7 @@ circleMoments.get('/', async (c) => {
   const momentsWithParsedTags = momentsResult.results.map((m: any) => ({
     ...m,
     context_tags: m.context_tags ? JSON.parse(m.context_tags) : [],
+    media_urls: m.media_urls ? JSON.parse(m.media_urls) : [],
   }));
   
   return c.json(
@@ -462,7 +465,7 @@ circleMoments.post('/', async (c) => {
   
   await c.env.DB.prepare(
     `INSERT INTO moments (
-      id, circle_id, author_id, content, media_type, media_url,
+      id, circle_id, author_id, content, media_type, media_urls,
       timestamp, context_tags, location, future_message,
       created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -473,7 +476,7 @@ circleMoments.post('/', async (c) => {
       userId,
       data.content,
       data.mediaType,
-      data.mediaUrl || null,
+      JSON.stringify(data.mediaUrls ?? []),
       timestamp,
       data.contextTags ? JSON.stringify(data.contextTags) : null,
       data.location || null,
@@ -501,14 +504,15 @@ circleMoments.post('/', async (c) => {
     .bind(momentId)
     .first();
   
-  return c.json(
-    success({
-      ...moment,
-      context_tags: data.contextTags || [],
-      comment_count: 0,
-    }),
-    201
-  );
+   return c.json(
+     success({
+       ...moment,
+       context_tags: data.contextTags || [],
+       media_urls: data.mediaUrls ?? [],
+       comment_count: 0,
+     }),
+     201
+   );
 });
 
 export { moments as momentRoutes, circleMoments as circleMomentRoutes };

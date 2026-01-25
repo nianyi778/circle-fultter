@@ -245,7 +245,7 @@ class MomentsNotifier extends StateNotifier<List<Moment>> {
         circleId: circleId,
         content: moment.content,
         mediaType: moment.mediaType,
-        mediaUrl: moment.mediaUrl,
+        mediaUrls: moment.mediaUrls,
         timestamp: moment.timestamp,
         contextTags: moment.contextTags,
         location: moment.location,

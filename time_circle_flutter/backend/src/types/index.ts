@@ -63,7 +63,7 @@ export interface Moment {
   author_id: string;
   content: string;
   media_type: 'text' | 'image' | 'video' | 'audio';
-  media_url: string | null;
+  media_urls: string | null;
   timestamp: string;
 
   context_tags: string | null; // JSON string
@@ -216,7 +216,7 @@ export interface JoinCircleRequest {
 export interface CreateMomentRequest {
   content: string;
   mediaType: 'text' | 'image' | 'video' | 'audio';
-  mediaUrl?: string;
+  mediaUrls?: string[];
   timestamp?: string;
   contextTags?: Array<{ type: string; label: string; emoji: string }>;
   location?: string;

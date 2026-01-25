@@ -1,15 +1,13 @@
--- Migration: 0003_drop_moments_time_label.sql
+-- Migration: 0004_migrate_media_urls.sql
 
--- Removes time_label column and clears historical values (legacy media_url retained)
-
--- Rebuild moments table without time_label
+-- Rebuild moments table to replace media_url with media_urls
 CREATE TABLE IF NOT EXISTS moments_new (
   id TEXT PRIMARY KEY,
   circle_id TEXT NOT NULL,
   author_id TEXT NOT NULL,
   content TEXT NOT NULL,
   media_type TEXT NOT NULL,
-  media_url TEXT,
+  media_urls TEXT,
   timestamp TEXT NOT NULL,
   context_tags TEXT,
   location TEXT,
@@ -30,7 +28,7 @@ INSERT INTO moments_new (
   author_id,
   content,
   media_type,
-  media_url,
+  media_urls,
   timestamp,
   context_tags,
   location,
@@ -48,7 +46,10 @@ SELECT
   author_id,
   content,
   media_type,
-  media_url,
+  CASE
+    WHEN media_url IS NOT NULL AND media_url != '' THEN json_array(media_url)
+    ELSE json_array()
+  END AS media_urls,
   timestamp,
   context_tags,
   location,

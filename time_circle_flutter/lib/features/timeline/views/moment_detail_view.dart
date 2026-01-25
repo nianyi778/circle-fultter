@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
@@ -6,6 +7,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/comment.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/utils/image_utils.dart';
 import '../../../shared/widgets/media_viewer.dart';
 import '../../../shared/widgets/context_tags_view.dart';
 import '../../../shared/widgets/future_message_card.dart';
@@ -219,7 +221,7 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                 ),
 
               // 媒体内容 - 更大的展示空间
-              if (moment.mediaUrl != null && moment.mediaUrl!.isNotEmpty)
+              if (moment.mediaUrls.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
                         padding: const EdgeInsets.fromLTRB(
@@ -230,10 +232,16 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(AppRadius.card),
-                          child: MediaViewer(
-                            mediaType: moment.mediaType,
-                            mediaUrl: moment.mediaUrl,
-                          ),
+                          child:
+                              moment.mediaUrls.length == 1
+                                  ? MediaViewer(
+                                    mediaType: moment.mediaType,
+                                    mediaUrl: moment.mediaUrls.first,
+                                  )
+                                  : _MomentMediaGrid(
+                                    mediaUrls: moment.mediaUrls,
+                                    borderRadius: AppRadius.card,
+                                  ),
                         ),
                       )
                       .animate()
@@ -248,7 +256,6 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                       .scale(
                         begin: const Offset(0.98, 0.98),
                         end: const Offset(1, 1),
-                        curve: AppCurves.enter,
                       ),
                 ),
 
@@ -363,53 +370,33 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
                             if (comments.isNotEmpty) ...[
                               const SizedBox(width: 6),
                               Text(
-                                '${comments.length}',
-                                style: AppTypography.caption(context).copyWith(
-                                  color: AppColors.warmGray400,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                comments.length.toString(),
+                                style: AppTypography.caption(
+                                  context,
+                                ).copyWith(color: AppColors.warmGray500),
                               ),
                             ],
                           ],
                         ),
                       ),
-
-                      const Spacer(),
-
-                      // 时间
-                      Text(
-                        _formatTime(moment.timestamp),
-                        style: AppTypography.micro(context).copyWith(
-                          color: AppColors.warmGray300,
-                          letterSpacing: 1,
-                        ),
-                      ),
                     ],
                   ),
-                ).animate().fadeIn(
-                  duration: AppDurations.slow,
-                  delay: Duration(milliseconds: _baseDelay * ++delayIndex),
-                  curve: AppCurves.enter,
                 ),
               ),
 
-              // 底部安全区
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: MediaQuery.of(context).padding.bottom + 48,
-                ),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
 
-          // 评论抽屉
+          // 评论抽屉（底部滑出）
           if (_showCommentDrawer)
-            Positioned.fill(
-              child: CommentDrawer(
-                targetId: moment.id,
-                onClose: _closeCommentDrawer,
-              ),
-            ),
+            CommentDrawer(
+              targetId: widget.momentId,
+              targetType: CommentTargetType.moment,
+              onClose: _closeCommentDrawer,
+            )
+          else
+            const SizedBox.shrink(),
         ],
       ),
     );
@@ -436,5 +423,41 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
 
   String _formatTime(DateTime date) {
     return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _MomentMediaGrid extends StatelessWidget {
+  final List<String> mediaUrls;
+  final double borderRadius;
+
+  const _MomentMediaGrid({required this.mediaUrls, required this.borderRadius});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = mediaUrls.take(9).toList();
+    final crossAxisCount = items.length <= 2 ? 2 : 3;
+    const spacing = 6.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalSpacing = spacing * (crossAxisCount - 1);
+        final itemSize = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children:
+              items.map((url) {
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(borderRadius / 2),
+                  child: SizedBox(
+                    width: itemSize,
+                    height: itemSize,
+                    child: ImageUtils.buildImage(url: url, fit: BoxFit.cover),
+                  ),
+                );
+              }).toList(),
+        );
+      },
+    );
   }
 }

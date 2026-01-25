@@ -52,7 +52,7 @@ class Moment {
   final User author;
   final String content;
   final MediaType mediaType;
-  final String? mediaUrl;
+  final List<String> mediaUrls;
   final DateTime timestamp;
   final List<ContextTag> contextTags;
   final String? location;
@@ -70,7 +70,7 @@ class Moment {
     required this.author,
     required this.content,
     required this.mediaType,
-    this.mediaUrl,
+    this.mediaUrls = const [],
     required this.timestamp,
     this.contextTags = const [],
     this.location,
@@ -89,7 +89,7 @@ class Moment {
     User? author,
     String? content,
     MediaType? mediaType,
-    String? mediaUrl,
+    List<String>? mediaUrls,
     DateTime? timestamp,
     List<ContextTag>? contextTags,
     String? location,
@@ -107,7 +107,7 @@ class Moment {
       author: author ?? this.author,
       content: content ?? this.content,
       mediaType: mediaType ?? this.mediaType,
-      mediaUrl: mediaUrl ?? this.mediaUrl,
+      mediaUrls: mediaUrls ?? this.mediaUrls,
       timestamp: timestamp ?? this.timestamp,
       contextTags: contextTags ?? this.contextTags,
       location: location ?? this.location,

@@ -1,13 +1,19 @@
 import 'dart:io';
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/config/api_config.dart';
+import '../../../core/models/user.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/moment.dart';
@@ -1418,30 +1424,109 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   void _submitMoment(BuildContext context) {
     final circleInfo = ref.read(childInfoProvider);
     final currentUser = ref.read(currentUserSyncProvider);
-    final mediaUrl =
-        _selectedMedia.isNotEmpty ? _selectedMedia.first.path : null;
 
-    final now = DateTime.now();
-    final moment = Moment(
-      id: const Uuid().v4(),
-      circleId: circleInfo.id,
-      author: currentUser,
-      content: _textController.text,
-      mediaType: _mediaType,
-      mediaUrl: mediaUrl,
-      timestamp: now,
-      contextTags: [..._selectedMyMoods, ..._selectedAtmospheres],
-      isSharedToWorld: _shareToWorld,
-      worldTopic: _shareToWorld ? _worldTopic : null,
-      createdAt: now,
-      updatedAt: now,
-    );
+    _submitMomentWithUploads(context, circleInfo, currentUser);
+  }
 
-    ref.read(momentsProvider.notifier).addMoment(moment);
+  Future<void> _submitMomentWithUploads(
+    BuildContext context,
+    CircleInfo circleInfo,
+    User currentUser,
+  ) async {
+    try {
+      final mediaUrls = await _uploadSelectedMedia(context, circleInfo);
+      final now = DateTime.now();
+      final moment = Moment(
+        id: const Uuid().v4(),
+        circleId: circleInfo.id,
+        author: currentUser,
+        content: _textController.text,
+        mediaType: _mediaType,
+        mediaUrls: mediaUrls,
+        timestamp: now,
+        contextTags: [..._selectedMyMoods, ..._selectedAtmospheres],
+        isSharedToWorld: _shareToWorld,
+        worldTopic: _shareToWorld ? _worldTopic : null,
+        createdAt: now,
+        updatedAt: now,
+      );
 
-    AppSnackBar.showMomentSaved(context);
+      await ref.read(momentsProvider.notifier).addMoment(moment);
 
-    Navigator.of(context).pop();
+      if (context.mounted) {
+        AppSnackBar.showMomentSaved(context);
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('发布失败：$e'),
+            backgroundColor: AppColors.warmGray800,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<List<String>> _uploadSelectedMedia(
+    BuildContext context,
+    CircleInfo circleInfo,
+  ) async {
+    if (_mediaType != MediaType.image || _selectedMedia.isEmpty) {
+      return _selectedMedia.map((file) => file.path).toList();
+    }
+
+    final api = ApiService.instance;
+    final uploadedUrls = <String>[];
+
+    for (final file in _selectedMedia) {
+      final localFile = File(file.path);
+      if (!await localFile.exists()) {
+        throw Exception('读取图片失败');
+      }
+      final bytes = await localFile.readAsBytes();
+      final filename = path.basename(localFile.path);
+
+      final uploadResponse = await api.post<Map<String, dynamic>>(
+        ApiConfig.mediaUploadUrl,
+        data: {
+          'filename': filename,
+          'contentType': 'image/jpeg',
+          'size': bytes.length,
+          'circleId': circleInfo.id,
+        },
+        fromData: (data) => data as Map<String, dynamic>,
+      );
+
+      if (!uploadResponse.success || uploadResponse.data == null) {
+        throw Exception(uploadResponse.error?.message ?? '获取上传地址失败');
+      }
+
+      final uploadUrl = uploadResponse.data!['uploadUrl'] as String;
+      final key = uploadResponse.data!['key'] as String;
+
+      await api.uploadFile(
+        '${ApiConfig.baseUrl}$uploadUrl',
+        bytes,
+        contentType: 'image/jpeg',
+      );
+
+      final completeResponse = await api.post<Map<String, dynamic>>(
+        ApiConfig.mediaComplete,
+        data: {'key': key},
+        fromData: (data) => data as Map<String, dynamic>,
+      );
+
+      if (!completeResponse.success || completeResponse.data == null) {
+        throw Exception(completeResponse.error?.message ?? '确认上传失败');
+      }
+
+      final mediaUrl = completeResponse.data!['url'] as String;
+      uploadedUrls.add('${ApiConfig.baseUrl}$mediaUrl');
+    }
+
+    return uploadedUrls;
   }
 }
 

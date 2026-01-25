@@ -1,4 +1,6 @@
 import '../config/api_config.dart';
+import 'dart:convert';
+
 import '../models/moment.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
@@ -82,7 +84,7 @@ class MomentRepository {
     required String circleId,
     required String content,
     required MediaType mediaType,
-    String? mediaUrl,
+    List<String>? mediaUrls,
     DateTime? timestamp,
     List<ContextTag>? contextTags,
     String? location,
@@ -93,7 +95,7 @@ class MomentRepository {
       'mediaType': mediaType.name,
     };
 
-    if (mediaUrl != null) data['mediaUrl'] = mediaUrl;
+    if (mediaUrls != null) data['mediaUrls'] = mediaUrls;
     if (timestamp != null) data['timestamp'] = timestamp.toIso8601String();
     if (contextTags != null && contextTags.isNotEmpty) {
       data['contextTags'] =
@@ -130,7 +132,7 @@ class MomentRepository {
   Future<Moment> updateMoment({
     required String momentId,
     String? content,
-    String? mediaUrl,
+    List<String>? mediaUrls,
     List<ContextTag>? contextTags,
     String? location,
     bool clearLocation = false,
@@ -140,7 +142,7 @@ class MomentRepository {
     final data = <String, dynamic>{};
 
     if (content != null) data['content'] = content;
-    if (mediaUrl != null) data['mediaUrl'] = mediaUrl;
+    if (mediaUrls != null) data['mediaUrls'] = mediaUrls;
     if (contextTags != null) {
       data['contextTags'] =
           contextTags
@@ -277,7 +279,7 @@ class MomentRepository {
       author: author,
       content: json['content'] as String? ?? '',
       mediaType: mediaType,
-      mediaUrl: json['media_url'] as String?,
+      mediaUrls: _parseMediaUrls(json['media_urls']),
       timestamp: timestamp,
       contextTags: contextTags,
       location: json['location'] as String?,
@@ -302,6 +304,24 @@ class MomentRepository {
   DateTime? _parseDateTime(dynamic value) {
     if (value == null) return null;
     return DateTime.tryParse(value.toString());
+  }
+
+  List<String> _parseMediaUrls(dynamic value) {
+    if (value == null) return [];
+    if (value is List) {
+      return value.map((item) => item.toString()).toList();
+    }
+    if (value is String && value.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is List) {
+          return decoded.map((item) => item.toString()).toList();
+        }
+      } catch (_) {
+        return [value];
+      }
+    }
+    return [];
   }
 }
 

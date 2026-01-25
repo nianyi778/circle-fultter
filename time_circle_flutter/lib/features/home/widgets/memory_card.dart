@@ -154,7 +154,8 @@ class _MemorySingleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasImage = moment.mediaUrl != null && moment.mediaUrl!.isNotEmpty;
+    final hasImage = moment.mediaUrls.isNotEmpty;
+    final coverUrl = hasImage ? moment.mediaUrls.first : null;
 
     return GestureDetector(
       onTap: () => context.push('/moment/${moment.id}'),
@@ -169,9 +170,9 @@ class _MemorySingleCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // 背景层
-            if (hasImage)
+            if (coverUrl != null)
               // 有图片：显示图片
-              ImageUtils.buildImage(url: moment.mediaUrl!, fit: BoxFit.cover)
+              ImageUtils.buildImage(url: coverUrl, fit: BoxFit.cover)
             else
               // 无图片：显示渐变背景
               Container(
