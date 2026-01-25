@@ -164,11 +164,11 @@ class _CircleInfoViewState extends ConsumerState<CircleInfoView> {
 
             const SizedBox(height: 32),
 
-            // 统计信息卡片
-            if (circleInfo.startDate != null) ...[
+            // 统计信息卡片（使用本地 _startDate 而不是 provider 中的数据）
+            if (_startDate != null) ...[
               SettingsSectionTitle(title: '统计'),
               const SizedBox(height: 12),
-              _buildStatsCard(circleInfo),
+              _buildStatsCard(_startDate!),
             ],
 
             const SizedBox(height: 40),
@@ -185,7 +185,11 @@ class _CircleInfoViewState extends ConsumerState<CircleInfoView> {
     );
   }
 
-  Widget _buildStatsCard(dynamic circleInfo) {
+  Widget _buildStatsCard(DateTime startDate) {
+    final now = DateTime.now();
+    final days = now.difference(startDate).inDays;
+    final timeLabel = _calculateTimeLabel(startDate, now);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -195,21 +199,37 @@ class _CircleInfoViewState extends ConsumerState<CircleInfoView> {
       ),
       child: Row(
         children: [
-          _buildStatItem(
-            '${circleInfo.daysSinceBirth}',
-            '天',
-            const Color(0xFFE8A87C),
-          ),
+          _buildStatItem('$days', '天', const Color(0xFFE8A87C)),
           Container(
             width: 1,
             height: 40,
             color: AppColors.warmGray100,
             margin: const EdgeInsets.symmetric(horizontal: 20),
           ),
-          _buildStatItem(circleInfo.timeLabel, '', AppColors.softGreenDeep),
+          _buildStatItem(timeLabel, '', AppColors.softGreenDeep),
         ],
       ),
     );
+  }
+
+  String _calculateTimeLabel(DateTime startDate, DateTime now) {
+    int years = now.year - startDate.year;
+    int months = now.month - startDate.month;
+
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    if (years > 0 && months > 0) {
+      return '$years 年 $months 个月';
+    } else if (years > 0) {
+      return '$years 年';
+    } else if (months > 0) {
+      return '$months 个月';
+    } else {
+      return '刚开始';
+    }
   }
 
   Widget _buildStatItem(String value, String unit, Color color) {

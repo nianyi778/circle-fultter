@@ -37,14 +37,20 @@ final circleMembersProvider = FutureProvider<List<User>>((ref) async {
 
 // ============== 圈子信息相关 ==============
 
+/// 用于追踪上次同步的圈子 ID，避免重复覆盖本地数据
+String? _lastSyncedCircleId;
+
 /// 圈子信息 Provider（异步）
 final circleInfoAsyncProvider = FutureProvider<CircleInfo>((ref) async {
   final db = ref.watch(databaseServiceProvider);
   final selectedCircle = ref.watch(selectedCircleInfoProvider);
 
-  if (selectedCircle != null) {
+  // 只有当选择了新的圈子时才用远程数据覆盖本地数据
+  // 这样可以避免用户本地编辑后，invalidate 时被远程数据覆盖
+  if (selectedCircle != null && selectedCircle.id != _lastSyncedCircleId) {
     await db.updateCircleInfo(selectedCircle);
     await db.backfillCircleId(selectedCircle.id ?? 'cir_default');
+    _lastSyncedCircleId = selectedCircle.id;
   }
 
   return await db.getCircleInfo();
