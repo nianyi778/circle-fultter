@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/database_service.dart';
 import '../services/sync_service.dart';
+import 'app_providers.dart';
 import 'auth_providers.dart';
 
 /// 同步状态 Provider
@@ -169,6 +170,11 @@ class SyncController extends StateNotifier<SyncStatus> {
 
     await SyncService.instance.init(DatabaseService(), circleId);
 
+    // 设置数据变更回调，当同步拉取到新数据时刷新对应的 Provider
+    SyncService.instance.onDataChanged = (changedTypes) {
+      _refreshProviders(changedTypes);
+    };
+
     // 开始监听 SyncService 状态流
     _subscription?.cancel();
     _subscription = SyncService.instance.statusStream.listen((status) {
@@ -176,6 +182,24 @@ class SyncController extends StateNotifier<SyncStatus> {
     });
 
     SyncService.instance.sync();
+  }
+
+  /// 根据变更的实体类型刷新对应的 Provider
+  void _refreshProviders(Set<String> changedTypes) {
+    for (final type in changedTypes) {
+      switch (type) {
+        case 'moment':
+          _ref.read(momentsProvider.notifier).refresh();
+          break;
+        case 'letter':
+          _ref.read(lettersProvider.notifier).refresh();
+          break;
+        case 'comment':
+          // 评论是 family provider，无法直接刷新全部
+          // 用户查看具体 moment 时会重新加载评论
+          break;
+      }
+    }
   }
 
   /// 手动触发同步

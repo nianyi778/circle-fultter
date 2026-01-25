@@ -58,13 +58,14 @@ class AppTextField extends StatelessWidget {
     return Container(
       padding:
           isFilled
-              ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
+              ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
               : EdgeInsets.zero,
       decoration:
           isFilled
               ? BoxDecoration(
-                color: AppColors.warmGray100,
-                borderRadius: BorderRadius.circular(20),
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.warmGray250, width: 1),
               )
               : null,
       child: Row(
@@ -84,6 +85,7 @@ class AppTextField extends StatelessWidget {
                 context,
               ).textTheme.bodyMedium?.copyWith(color: AppColors.warmGray800),
               decoration: InputDecoration(
+                filled: false, // 禁用全局主题的填充效果
                 hintText: hintText,
                 hintStyle: Theme.of(
                   context,
@@ -151,8 +153,9 @@ class AppTextArea extends StatelessWidget {
       decoration:
           isFilled
               ? BoxDecoration(
-                color: AppColors.warmGray100,
-                borderRadius: BorderRadius.circular(16),
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.warmGray250, width: 1),
               )
               : null,
       child: TextField(
@@ -171,6 +174,7 @@ class AppTextArea extends StatelessWidget {
           letterSpacing: 0.3,
         ),
         decoration: InputDecoration(
+          filled: false, // 禁用全局主题的填充效果
           hintText: hintText,
           hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
             fontSize: fontSize,

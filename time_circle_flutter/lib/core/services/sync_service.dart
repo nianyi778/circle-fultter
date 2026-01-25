@@ -234,6 +234,9 @@ class SyncService {
   // 错误回调
   void Function(SyncError error)? onError;
 
+  // 数据变更回调（同步完成后通知 Provider 刷新）
+  void Function(Set<String> changedEntityTypes)? onDataChanged;
+
   SyncService._() {
     // 监听网络状态变化
     _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
@@ -457,6 +460,11 @@ class SyncService {
       pulledCount = pullResult.pulledCount;
       conflictCount += pullResult.conflictCount;
       errors.addAll(pullResult.errors);
+
+      // 通知数据变更
+      if (pullResult.changedTypes.isNotEmpty) {
+        onDataChanged?.call(pullResult.changedTypes);
+      }
 
       final duration = DateTime.now().difference(startTime);
       final success =
@@ -708,6 +716,8 @@ class SyncService {
     _isSyncing = true;
     _setStatus(SyncStatus.syncing);
 
+    final Set<String> changedTypes = {};
+
     try {
       final response = await _api.get<Map<String, dynamic>>(
         ApiConfig.syncFull,
@@ -729,6 +739,7 @@ class SyncService {
             await _db!.updateMoment(moment);
           }
         }
+        if (moments.isNotEmpty) changedTypes.add('moment');
 
         // 同步信件
         final letters = (data['letters'] as List<dynamic>?) ?? [];
@@ -740,6 +751,11 @@ class SyncService {
             await _db!.updateLetter(letter);
           }
         }
+        if (letters.isNotEmpty) changedTypes.add('letter');
+
+        // 同步评论
+        final comments = (data['comments'] as List<dynamic>?) ?? [];
+        if (comments.isNotEmpty) changedTypes.add('comment');
 
         // 更新最后同步时间
         final serverTimestamp = data['serverTimestamp'] as String?;
@@ -748,6 +764,11 @@ class SyncService {
             key: ApiConfig.lastSyncTimestampKey,
             value: serverTimestamp,
           );
+        }
+
+        // 通知数据变更
+        if (changedTypes.isNotEmpty) {
+          onDataChanged?.call(changedTypes);
         }
       }
 
@@ -859,15 +880,28 @@ class SyncService {
   }
 
   /// 带冲突解决的拉取变更
-  Future<({int pulledCount, int conflictCount, List<SyncError> errors})>
+  Future<
+    ({
+      int pulledCount,
+      int conflictCount,
+      List<SyncError> errors,
+      Set<String> changedTypes,
+    })
+  >
   _pullChangesWithConflictResolution() async {
     if (_currentCircleId == null || _db == null) {
-      return (pulledCount: 0, conflictCount: 0, errors: <SyncError>[]);
+      return (
+        pulledCount: 0,
+        conflictCount: 0,
+        errors: <SyncError>[],
+        changedTypes: <String>{},
+      );
     }
 
     int pulledCount = 0;
     int conflictCount = 0;
     final errors = <SyncError>[];
+    final changedTypes = <String>{};
     final lastSync = await _storage.read(key: ApiConfig.lastSyncTimestampKey);
 
     try {
@@ -885,7 +919,12 @@ class SyncService {
         // 这种情况下不视为严重错误，只记录日志
         debugPrint('Sync pull returned non-success: ${response.error}');
         // 不添加到 errors，让同步被视为成功
-        return (pulledCount: 0, conflictCount: 0, errors: <SyncError>[]);
+        return (
+          pulledCount: 0,
+          conflictCount: 0,
+          errors: <SyncError>[],
+          changedTypes: <String>{},
+        );
       }
 
       if (response.data != null) {
@@ -904,6 +943,7 @@ class SyncService {
               conflictCount++;
             }
             await _applyChange(change);
+            changedTypes.add(change.entityType);
             pulledCount++;
           } catch (e) {
             errors.add(_classifyError(e));
@@ -926,6 +966,7 @@ class SyncService {
           pulledCount += moreResult.pulledCount;
           conflictCount += moreResult.conflictCount;
           errors.addAll(moreResult.errors);
+          changedTypes.addAll(moreResult.changedTypes);
         }
       }
     } catch (e) {
@@ -946,6 +987,7 @@ class SyncService {
       pulledCount: pulledCount,
       conflictCount: conflictCount,
       errors: errors,
+      changedTypes: changedTypes,
     );
   }
 
@@ -1089,6 +1131,43 @@ class SyncService {
     }
   }
 
+  /// 统一布尔值解析（支持 bool、int、String 类型）
+  bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    return false;
+  }
+
+  /// 解析 contextTags（支持 JSON 字符串或 List）
+  List<ContextTag> _parseContextTags(dynamic tagsData) {
+    if (tagsData == null) return [];
+
+    List<dynamic> tagsList;
+    if (tagsData is String) {
+      // 服务器可能返回 JSON 字符串
+      try {
+        tagsList = json.decode(tagsData) as List<dynamic>;
+      } catch (_) {
+        return [];
+      }
+    } else if (tagsData is List) {
+      tagsList = tagsData;
+    } else {
+      return [];
+    }
+
+    return tagsList.map((t) {
+      final tagMap = t as Map<String, dynamic>;
+      return ContextTag(
+        type: _parseContextTagType(tagMap['type'] as String? ?? 'myMood'),
+        label: tagMap['label'] as String? ?? '',
+        emoji: tagMap['emoji'] as String? ?? '',
+      );
+    }).toList();
+  }
+
   Moment _syncDataToMoment(String id, Map<String, dynamic> data) {
     return Moment(
       id: id,
@@ -1102,20 +1181,9 @@ class SyncService {
       timestamp: DateTime.parse(data['timestamp'] as String),
       timeLabel: data['timeLabel'] as String? ?? '',
       author: const User(id: 'u1', name: '我', avatar: ''),
-      contextTags:
-          ((data['contextTags'] as List<dynamic>?) ?? [])
-              .map(
-                (t) => ContextTag(
-                  type: _parseContextTagType(
-                    (t as Map<String, dynamic>)['type'] as String,
-                  ),
-                  label: t['label'] as String,
-                  emoji: t['emoji'] as String,
-                ),
-              )
-              .toList(),
+      contextTags: _parseContextTags(data['contextTags']),
       location: data['location'] as String?,
-      isFavorite: data['isFavorite'] as bool? ?? false,
+      isFavorite: _parseBool(data['isFavorite']),
       futureMessage: data['futureMessage'] as String?,
       createdAt:
           data['createdAt'] != null
@@ -1203,7 +1271,9 @@ class SyncService {
       timestamp: DateTime.parse(m['timestamp'] as String),
       timeLabel: m['time_label'] as String? ?? '',
       author: const User(id: 'u1', name: '我', avatar: ''),
-      isFavorite: (m['is_favorite'] as int? ?? 0) == 1,
+      contextTags: _parseContextTags(m['context_tags']),
+      location: m['location'] as String?,
+      isFavorite: _parseBool(m['is_favorite']),
       futureMessage: m['future_message'] as String?,
       createdAt:
           m['created_at'] != null

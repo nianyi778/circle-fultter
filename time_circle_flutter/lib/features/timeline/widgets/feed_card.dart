@@ -8,6 +8,7 @@ import '../../../core/models/moment.dart';
 import '../../../core/models/comment.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/image_utils.dart';
+import '../../../shared/widgets/app_popup_menu.dart';
 
 /// 时间线卡片 - 重新设计
 ///
@@ -576,82 +577,32 @@ class _CardMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final isShared = moment.isSharedToWorld;
 
-    return Container(
+    return AppPopupMenu(
       width: 180,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.elevated,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 分享到世界
-            if (onShareToWorld != null)
-              _MenuItem(
-                icon: isShared ? Iconsax.eye_slash : Iconsax.global,
-                label: isShared ? '从世界撤回' : '发布到世界',
-                onTap: () {
-                  onClose();
-                  onShareToWorld!(moment.id);
-                },
-              ),
+      items: [
+        // 分享到世界
+        if (onShareToWorld != null)
+          AppPopupMenuItem(
+            icon: isShared ? Iconsax.eye_slash : Iconsax.global,
+            label: isShared ? '从世界撤回' : '发布到世界',
+            onTap: () {
+              onClose();
+              onShareToWorld!(moment.id);
+            },
+          ),
 
-            // 删除
-            if (onDelete != null)
-              _MenuItem(
-                icon: Iconsax.trash,
-                label: '删除',
-                isDestructive: true,
-                onTap: () {
-                  onClose();
-                  onDelete!(moment.id);
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 菜单项
-class _MenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool isDestructive;
-
-  const _MenuItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.isDestructive = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isDestructive ? Colors.red.shade400 : AppColors.warmGray600;
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: AppTypography.body(context).copyWith(color: color),
-            ),
-          ],
-        ),
-      ),
+        // 删除
+        if (onDelete != null)
+          AppPopupMenuItem(
+            icon: Iconsax.trash,
+            label: '删除',
+            isDestructive: true,
+            onTap: () {
+              onClose();
+              onDelete!(moment.id);
+            },
+          ),
+      ],
     );
   }
 }

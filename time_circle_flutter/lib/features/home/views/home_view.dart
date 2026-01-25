@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/providers/sync_provider.dart';
-import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/sync_status_indicator.dart';
 import '../widgets/memory_card.dart';
 import '../widgets/time_header.dart';
@@ -101,7 +100,7 @@ class HomeView extends ConsumerWidget {
               // 同步状态指示器
               const SyncStatusIndicator(size: 18),
               const SizedBox(width: 12),
-              _buildAvatarButton(context, currentUser),
+              _buildSettingsButton(context),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -242,11 +241,23 @@ class HomeView extends ConsumerWidget {
     );
   }
 
-  /// 构建 Logo 按钮（点击进入设置）
-  Widget _buildAvatarButton(BuildContext context, dynamic currentUser) {
-    return AppLogo(
-      size: AppLogoSize.medium,
+  /// 构建设置按钮（点击进入设置）
+  Widget _buildSettingsButton(BuildContext context) {
+    return GestureDetector(
       onTap: () => context.push('/settings'),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.bgElevated,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.settings_outlined,
+          size: 22,
+          color: AppColors.warmGray600,
+        ),
+      ),
     );
   }
 }

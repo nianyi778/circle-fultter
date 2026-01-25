@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/models/user.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/extensions/context_extensions.dart';
 import '../../../shared/widgets/app_text_field.dart';
@@ -66,18 +67,19 @@ class _CircleInfoViewState extends ConsumerState<CircleInfoView> {
 
     try {
       final db = ref.read(databaseServiceProvider);
+      final currentInfo = ref.read(childInfoProvider);
 
-      // 保存圈子信息到设置
-      await db.saveSetting('circle_name', _nameController.text.trim());
-      if (_startDate != null) {
-        await db.saveSetting(
-          'circle_start_date',
-          _startDate!.toIso8601String(),
-        );
-      }
+      // 使用 updateCircleInfo 写入 circle_info 表
+      await db.updateCircleInfo(
+        CircleInfo(
+          id: currentInfo.id,
+          name: _nameController.text.trim(),
+          startDate: _startDate,
+        ),
+      );
 
-      // 刷新数据
-      ref.invalidate(childInfoProvider);
+      // 刷新异步 provider（会触发 circleInfoProvider 更新）
+      ref.invalidate(circleInfoAsyncProvider);
 
       if (mounted) {
         context.showSettingsMessage('保存成功');

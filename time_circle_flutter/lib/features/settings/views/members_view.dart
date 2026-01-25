@@ -9,6 +9,7 @@ import '../../../core/models/user.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../../core/extensions/context_extensions.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/app_popup_menu.dart';
 import '../../../shared/widgets/settings/settings_widgets.dart';
 
 /// 成员管理页
@@ -170,41 +171,46 @@ class _MembersViewState extends ConsumerState<MembersView> {
           ),
           // 操作按钮
           if (!isCurrentUser)
-            PopupMenuButton<String>(
-              icon: Icon(Iconsax.more, size: 20, color: AppColors.warmGray400),
-              onSelected: (value) {
-                if (value == 'edit') {
-                  _showEditMemberSheet(context, user);
-                } else if (value == 'delete') {
-                  _confirmDeleteMember(context, user);
-                }
+            GestureDetector(
+              onTapDown: (details) {
+                _showMemberMenu(context, details.globalPosition, user);
               },
-              itemBuilder:
-                  (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Iconsax.edit, size: 18),
-                          SizedBox(width: 12),
-                          Text('编辑'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Iconsax.trash, size: 18, color: Colors.red),
-                          SizedBox(width: 12),
-                          Text('移除', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                child: Icon(
+                  Iconsax.more,
+                  size: 20,
+                  color: AppColors.warmGray400,
+                ),
+              ),
             ),
         ],
       ),
+    );
+  }
+
+  void _showMemberMenu(BuildContext context, Offset position, User user) {
+    showAppPopupMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx - 120,
+        position.dy,
+        position.dx,
+        position.dy + 100,
+      ),
+      items: [
+        AppPopupMenuItemData(
+          icon: Iconsax.edit,
+          label: '编辑',
+          onTap: () => _showEditMemberSheet(context, user),
+        ),
+        AppPopupMenuItemData(
+          icon: Iconsax.trash,
+          label: '移除',
+          isDestructive: true,
+          onTap: () => _confirmDeleteMember(context, user),
+        ),
+      ],
     );
   }
 
