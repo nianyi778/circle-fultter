@@ -1,5 +1,5 @@
 Circle
-./time_circle_flutter/backend/node_modules/
+time_circle_flutter/backend/node_modules/
 
 # Agent skills (auto-generated)
 .agents/
