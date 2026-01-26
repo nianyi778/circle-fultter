@@ -42,7 +42,7 @@ class InspirationTags extends StatelessWidget {
   static const List<_InspirationItem> _items = [
     _InspirationItem(emoji: '📸', label: '第一张合影'),
     _InspirationItem(emoji: '🏠', label: '搬进新家'),
-    _InspirationItem(emoji: '👶', label: '宝宝出生'),
+    _InspirationItem(emoji: '✈️', label: '一次旅行'),
     _InspirationItem(emoji: '🎁', label: '收到的礼物'),
     _InspirationItem(emoji: '🍜', label: '一顿晚餐'),
   ];

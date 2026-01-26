@@ -11,6 +11,7 @@ import '../../../core/extensions/context_extensions.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/app_popup_menu.dart';
 import '../../../shared/widgets/settings/settings_widgets.dart';
+import '../../../shared/widgets/aura/aura_dialog.dart';
 
 /// 成员管理页
 class MembersView extends ConsumerStatefulWidget {
@@ -247,43 +248,26 @@ class _MembersViewState extends ConsumerState<MembersView> {
     );
   }
 
-  void _confirmDeleteMember(BuildContext context, User user) {
+  void _confirmDeleteMember(BuildContext context, User user) async {
     final outerContext = context;
-    showDialog(
-      context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            title: const Text('确认移除'),
-            content: Text('确定要将 ${user.name} 从圈子中移除吗？'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('取消'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final repo = ref.read(memberRepositoryProvider);
-                  final selectedCircle = ref.read(selectedCircleProvider);
-
-                  if (selectedCircle == null) return;
-
-                  await repo.removeMember(
-                    circleId: selectedCircle.id,
-                    userId: user.id,
-                  );
-                  ref.invalidate(circleMembersProvider);
-                  if (dialogContext.mounted) {
-                    Navigator.pop(dialogContext);
-                  }
-                  if (outerContext.mounted) {
-                    outerContext.showSettingsMessage('成员已移除');
-                  }
-                },
-                child: const Text('移除', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
+    final confirmed = await AuraDialog.showDelete(
+      context,
+      title: '确认移除',
+      message: '确定要将 ${user.name} 从圈子中移除吗？',
     );
+
+    if (confirmed == true && outerContext.mounted) {
+      final repo = ref.read(memberRepositoryProvider);
+      final selectedCircle = ref.read(selectedCircleProvider);
+
+      if (selectedCircle == null) return;
+
+      await repo.removeMember(circleId: selectedCircle.id, userId: user.id);
+      ref.invalidate(circleMembersProvider);
+      if (outerContext.mounted) {
+        outerContext.showSettingsMessage('成员已移除');
+      }
+    }
   }
 }
 

@@ -7,6 +7,8 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/letter.dart';
+import '../../../shared/widgets/aura/aura_toast.dart';
+import '../../../shared/widgets/aura/aura_dialog.dart';
 
 /// 灵感提示列表
 const List<String> _inspirations = [
@@ -100,13 +102,7 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
         _showToast = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('封存失败：${e.toString()}'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AuraToast.error(context, '封存失败：${e.toString()}');
       }
     }
   }
@@ -557,60 +553,18 @@ class _LetterEditorViewState extends ConsumerState<LetterEditorView> {
     );
   }
 
-  void _showExitDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: AppColors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-            content: Text(
-              '要把这一刻带走，还是留下来？',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            actionsAlignment: MainAxisAlignment.center,
-            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  context.pop();
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.warmGray500,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                child: const Text('带走'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.warmGray800,
-                  foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text('留下'),
-              ),
-            ],
-          ),
+  void _showExitDialog(BuildContext context) async {
+    final confirmed = await AuraDialog.show(
+      context,
+      title: '要把这一刻带走，还是留下来？',
+      confirmText: '留下',
+      cancelText: '带走',
     );
+
+    // confirmed == true 表示点击"留下"，继续编辑
+    // confirmed == false 表示点击"带走"，退出页面
+    if (confirmed == false && context.mounted) {
+      context.pop();
+    }
   }
 }

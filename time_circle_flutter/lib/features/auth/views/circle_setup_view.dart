@@ -351,7 +351,7 @@ class _CircleSetupViewState extends ConsumerState<CircleSetupView>
             ),
             const SizedBox(height: 4),
             Text(
-              '可以是孩子的生日、你们相识的日期等',
+              '可以是你们相识的日期、纪念日等',
               style: GoogleFonts.notoSansSc(
                 fontSize: 12,
                 color: AppColors.warmGray400,
@@ -454,11 +454,7 @@ class _CircleSetupViewState extends ConsumerState<CircleSetupView>
   /// 圈子类型建议
   Widget _buildCircleTypeSuggestions() {
     final suggestions = [
-      {
-        'icon': Icons.child_care_rounded,
-        'label': '亲子圈',
-        'example': '如：小明的成长记录',
-      },
+      {'icon': Icons.child_care_rounded, 'label': '亲子圈', 'example': '如：小明的时光记'},
       {'icon': Icons.favorite_rounded, 'label': '情侣圈', 'example': '如：我们的恋爱日记'},
       {'icon': Icons.people_rounded, 'label': '好友圈', 'example': '如：闺蜜时光'},
       {'icon': Icons.person_rounded, 'label': '个人独白', 'example': '如：我的时间胶囊'},

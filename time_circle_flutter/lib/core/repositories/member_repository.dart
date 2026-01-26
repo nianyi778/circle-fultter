@@ -97,6 +97,7 @@ class MemberRepository {
 class CircleMember extends User {
   final String? email;
   final String role; // 'admin' or 'member'
+  @override
   final DateTime? joinedAt;
 
   const CircleMember({

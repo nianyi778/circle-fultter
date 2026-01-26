@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../theme/app_theme.dart';
+import '../../shared/widgets/aura/aura_toast.dart';
+import '../../shared/widgets/aura/aura_dialog.dart';
 
 /// 通用 UI 组件
 /// 统一常用的 UI 模式，减少代码重复
@@ -79,7 +81,7 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// 确认对话框
+/// 确认对话框（现使用 AuraDialog）
 class ConfirmDialog extends StatelessWidget {
   final String title;
   final String? content;
@@ -107,121 +109,66 @@ class ConfirmDialog extends StatelessWidget {
     String cancelText = '取消',
     Color? confirmColor,
   }) {
-    return showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Text(title),
-            content: content != null ? Text(content) : null,
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(
-                  cancelText,
-                  style: TextStyle(color: AppColors.warmGray500),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(
-                  confirmText,
-                  style: TextStyle(color: confirmColor ?? Colors.red),
-                ),
-              ),
-            ],
-          ),
+    // 判断是否是删除/危险操作
+    final isDanger =
+        confirmColor == Colors.red ||
+        confirmText.contains('删除') ||
+        confirmText.contains('移除');
+
+    return AuraDialog.show(
+      context,
+      title: title,
+      message: content,
+      confirmText: confirmText,
+      cancelText: cancelText,
+      isDanger: isDanger,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(title),
-      content: content != null ? Text(content!) : null,
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(
-            cancelText,
-            style: TextStyle(color: AppColors.warmGray500),
-          ),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-            onConfirm();
-          },
-          child: Text(
-            confirmText,
-            style: TextStyle(color: confirmColor ?? Colors.red),
-          ),
-        ),
-      ],
+    // 判断是否是删除/危险操作
+    final isDanger =
+        confirmColor == Colors.red ||
+        confirmText.contains('删除') ||
+        confirmText.contains('移除');
+
+    return AuraDialog(
+      title: title,
+      message: content,
+      confirmText: confirmText,
+      cancelText: cancelText,
+      isDanger: isDanger,
+      onConfirm: () {
+        Navigator.pop(context, true);
+        onConfirm();
+      },
+      onCancel: () => Navigator.pop(context, false),
     );
   }
 }
 
-/// SnackBar 工具类
+/// Toast 工具类（原 SnackBar，现使用 AuraToast）
 class AppSnackBar {
   AppSnackBar._();
 
   /// 显示成功提示
   static void showSuccess(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: AppColors.white, size: 18),
-            const SizedBox(width: 8),
-            Text(message),
-          ],
-        ),
-        backgroundColor: AppColors.warmGray800,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      ),
-    );
+    AuraToast.success(context, message);
   }
 
   /// 显示错误提示
   static void showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: AppColors.white, size: 18),
-            const SizedBox(width: 8),
-            Flexible(child: Text(message)),
-          ],
-        ),
-        backgroundColor: AppColors.dangerDark,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      ),
-    );
+    AuraToast.error(context, message);
   }
 
   /// 显示普通提示
   static void showInfo(BuildContext context, String message, {IconData? icon}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: AppColors.white, size: 18),
-              const SizedBox(width: 8),
-            ],
-            Flexible(child: Text(message)),
-          ],
-        ),
-        backgroundColor: AppColors.warmGray800,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      ),
+    AuraToast.show(
+      context,
+      message: message,
+      type: AuraToastType.info,
+      icon: icon,
     );
   }
 }

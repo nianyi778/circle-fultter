@@ -8,6 +8,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/letter.dart';
 import '../../../shared/widgets/date_wheel_picker.dart';
+import '../../../shared/widgets/aura/aura_toast.dart';
+import '../../../shared/widgets/aura/aura_dialog.dart';
 
 /// 信件详情页（阅读态）- 沉浸式回看
 class LetterDetailView extends ConsumerStatefulWidget {
@@ -486,107 +488,31 @@ class _LetterDetailViewState extends ConsumerState<LetterDetailView> {
   /// 分享信件
   void _shareLetter(BuildContext context, Letter letter) {
     // TODO: 集成 share_plus 包实现分享功能
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('分享功能开发中，敬请期待'),
-        backgroundColor: AppColors.warmGray800,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+    AuraToast.show(context, message: '分享功能开发中，敬请期待', type: AuraToastType.info);
   }
 
   /// 显示删除确认弹窗
-  void _showDeleteConfirmation(BuildContext context, Letter letter) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: AppColors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: Text(
-              '确定要删除这封信吗？',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-            ),
-            content: Text(
-              letter.isLocked ? '这封信还未解锁，删除后将无法恢复。' : '删除后将无法恢复。',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.warmGray500,
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            actionsAlignment: MainAxisAlignment.center,
-            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.warmGray500,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                child: const Text('取消'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  try {
-                    await ref
-                        .read(lettersProvider.notifier)
-                        .deleteLetter(letter.id);
-                    if (context.mounted) {
-                      context.pop(); // 返回上一页
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('信件已删除'),
-                          backgroundColor: AppColors.warmGray800,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          margin: const EdgeInsets.all(16),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('删除失败：${e.toString()}'),
-                          backgroundColor: Colors.red.shade700,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE53935),
-                  foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text('删除'),
-              ),
-            ],
-          ),
+  void _showDeleteConfirmation(BuildContext context, Letter letter) async {
+    final message = letter.isLocked ? '这封信还未解锁，删除后将无法恢复。' : '删除后将无法恢复。';
+    final confirmed = await AuraDialog.showDelete(
+      context,
+      title: '确定要删除这封信吗？',
+      message: message,
     );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(lettersProvider.notifier).deleteLetter(letter.id);
+        if (context.mounted) {
+          context.pop(); // 返回上一页
+          AuraToast.success(context, '信件已删除');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          AuraToast.error(context, '删除失败：${e.toString()}');
+        }
+      }
+    }
   }
 }
 

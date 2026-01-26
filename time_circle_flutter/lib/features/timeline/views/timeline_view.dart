@@ -8,6 +8,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/moment.dart';
 import '../../../shared/widgets/comment_drawer.dart';
+import '../../../shared/widgets/aura/aura_skeleton.dart';
+import '../../../shared/widgets/aura/aura_toast.dart';
+import '../../../shared/widgets/aura/aura_dialog.dart';
 import '../widgets/feed_card.dart';
 import '../widgets/filter_drawer.dart';
 
@@ -37,13 +40,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
       await ref.read(momentsProvider.notifier).refresh();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('刷新失败：${e.toString()}'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AuraToast.error(context, '刷新失败：${e.toString()}');
       }
     }
   }
@@ -71,6 +68,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     final moments = ref.watch(filteredMomentsProvider);
     final childInfo = ref.watch(childInfoProvider);
     final filter = ref.watch(timelineFilterProvider);
+    final isLoading = ref.watch(momentsIsLoadingProvider);
     final hasMoments = moments.isNotEmpty;
 
     return Scaffold(
@@ -139,8 +137,23 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                     child: _buildFilterIndicator(context, ref, filter),
                   ),
 
+                // 加载状态 - 显示骨架屏
+                if (isLoading)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.pagePadding,
+                      AppSpacing.md,
+                      AppSpacing.pagePadding,
+                      0,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: const AuraTimelineSkeleton(
+                        itemCount: 3,
+                      ).animate().fadeIn(duration: AppDurations.normal),
+                    ),
+                  )
                 // 时间线内容
-                if (hasMoments) ...[
+                else if (hasMoments) ...[
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(
                       AppSpacing.pagePadding,
@@ -183,7 +196,7 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
                   // 底部提示
                   SliverToBoxAdapter(child: _buildEndIndicator(context)),
-                ] else
+                ] else if (!isLoading)
                   // 空状态
                   SliverFillRemaining(
                     hasScrollBody: false,
@@ -213,70 +226,68 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     dynamic childInfo,
     double expandRatio,
   ) {
-    return SafeArea(
-      bottom: false,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final showExpanded = expandRatio > 0.3;
-          final showDetail = showExpanded && constraints.maxHeight > 64;
-          return ClipRect(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
-              ),
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: AnimatedSwitcher(
-                  duration: AppDurations.fast,
-                  switchInCurve: AppCurves.smooth,
-                  switchOutCurve: AppCurves.smooth,
-                  child:
-                      showExpanded
-                          ? Opacity(
-                            key: const ValueKey('expanded'),
-                            opacity: expandRatio,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+    // SliverAppBar 会自动处理状态栏，无需再包裹 SafeArea
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showExpanded = expandRatio > 0.3;
+        final showDetail = showExpanded && constraints.maxHeight > 64;
+        return ClipRect(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pagePadding,
+            ),
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: AnimatedSwitcher(
+                duration: AppDurations.fast,
+                switchInCurve: AppCurves.smooth,
+                switchOutCurve: AppCurves.smooth,
+                child:
+                    showExpanded
+                        ? Opacity(
+                          key: const ValueKey('expanded'),
+                          opacity: expandRatio,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${childInfo.name}的时间线',
+                                style: AppTypography.title(context),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (showDetail) ...[
+                                const SizedBox(height: 4),
                                 Text(
-                                  '${childInfo.name}的时间线',
-                                  style: AppTypography.title(context),
+                                  childInfo.timeLabel,
+                                  style: AppTypography.caption(
+                                    context,
+                                  ).copyWith(color: AppColors.warmGray400),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                if (showDetail) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    childInfo.timeLabel,
-                                    style: AppTypography.caption(
-                                      context,
-                                    ).copyWith(color: AppColors.warmGray400),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                                if (showDetail) const SizedBox(height: 12),
                               ],
-                            ),
-                          )
-                          : Padding(
-                            key: const ValueKey('collapsed'),
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Opacity(
-                              opacity: 1 - expandRatio,
-                              child: Text(
-                                '时间线',
-                                style: AppTypography.subtitle(context),
-                              ),
+                              if (showDetail) const SizedBox(height: 12),
+                            ],
+                          ),
+                        )
+                        : Padding(
+                          key: const ValueKey('collapsed'),
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Opacity(
+                            opacity: 1 - expandRatio,
+                            child: Text(
+                              '时间线',
+                              style: AppTypography.subtitle(context),
                             ),
                           ),
-                ),
+                        ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -354,85 +365,29 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, WidgetRef ref, String id) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-            ),
-            title: Text('删除这条记录？', style: AppTypography.subtitle(context)),
-            content: Text(
-              '删除后无法恢复，确定要继续吗？',
-              style: AppTypography.body(
-                context,
-              ).copyWith(color: AppColors.warmGray500),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(
-                  '取消',
-                  style: AppTypography.body(
-                    context,
-                  ).copyWith(color: AppColors.warmGray500),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  try {
-                    await ref.read(momentsProvider.notifier).deleteMoment(id);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(
-                                Iconsax.tick_circle,
-                                color: AppColors.white,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '已删除',
-                                style: AppTypography.body(
-                                  context,
-                                ).copyWith(color: AppColors.white),
-                              ),
-                            ],
-                          ),
-                          backgroundColor: AppColors.warmGray800,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                          ),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('删除失败：${e.toString()}'),
-                          backgroundColor: Colors.red.shade700,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: Text(
-                  '删除',
-                  style: AppTypography.body(
-                    context,
-                  ).copyWith(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
+  void _showDeleteConfirm(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+  ) async {
+    final confirmed = await AuraDialog.showDelete(
+      context,
+      title: '删除这条记录？',
+      message: '删除后无法恢复，确定要继续吗？',
     );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(momentsProvider.notifier).deleteMoment(id);
+        if (context.mounted) {
+          AuraToast.success(context, '已删除');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          AuraToast.error(context, '删除失败：${e.toString()}');
+        }
+      }
+    }
   }
 
   void _showShareToWorld(BuildContext context, WidgetRef ref, Moment moment) {
@@ -506,37 +461,11 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
     try {
       await ref.read(momentsProvider.notifier).withdrawFromWorld(moment.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Iconsax.eye_slash, color: AppColors.white, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  '已从世界撤回',
-                  style: AppTypography.body(
-                    context,
-                  ).copyWith(color: AppColors.white),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.warmGray800,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.full),
-            ),
-          ),
-        );
+        AuraToast.success(context, '已从世界撤回');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('撤回失败：${e.toString()}'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AuraToast.error(context, '撤回失败：${e.toString()}');
       }
     }
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
@@ -13,6 +12,7 @@ import '../../../shared/widgets/context_tags_view.dart';
 import '../../../shared/widgets/future_message_card.dart';
 import '../../../shared/widgets/detail_app_bar.dart';
 import '../../../shared/widgets/comment_drawer.dart';
+import '../../../shared/widgets/aura/aura_toast.dart';
 
 /// 记录详情页（沉浸回看 + 回复抽屉）
 /// 设计原则：温柔、安静、克制 - 让用户"感受时间"而非"阅读信息"
@@ -63,13 +63,7 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
       await ref.read(momentsProvider.notifier).toggleFavorite(widget.momentId);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('操作失败：${e.toString()}'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AuraToast.error(context, '操作失败：${e.toString()}');
       }
     }
   }
@@ -419,10 +413,6 @@ class _MomentDetailViewState extends ConsumerState<MomentDetailView>
 
   String _formatDate(DateTime date) {
     return '${date.year}年${date.month}月${date.day}日';
-  }
-
-  String _formatTime(DateTime date) {
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }
 

@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +16,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/moment.dart';
 import '../../../shared/widgets/app_snackbar.dart';
+import '../../../shared/widgets/aura/aura_toast.dart';
+import '../../../shared/widgets/aura/aura_dialog.dart';
 
 AssetPickerConfig _buildAssetPickerConfig(
   int maxAssets, {
@@ -1195,11 +1195,10 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       final ps = await PhotoManager.requestPermissionExtend();
       if (!ps.hasAccess) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('请允许访问相册以选择照片'),
-              backgroundColor: AppColors.warmGray800,
-            ),
+          AuraToast.show(
+            context,
+            message: '请允许访问相册以选择照片',
+            type: AuraToastType.info,
           );
           PhotoManager.openSetting();
         }
@@ -1215,12 +1214,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
       if (remaining <= 0) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('最多只能选择 9 张照片'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
+          AuraToast.warning(context, '最多只能选择 9 张照片');
         }
         return;
       }
@@ -1239,12 +1233,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
 
       if (pickedFiles.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('读取照片失败'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
+          AuraToast.error(context, '读取照片失败');
         }
         return;
       }
@@ -1260,12 +1249,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('选择照片失败: $e'),
-            backgroundColor: AppColors.warmGray800,
-          ),
-        );
+        AuraToast.error(context, '选择照片失败: $e');
       }
     }
   }
@@ -1277,11 +1261,10 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       final ps = await PhotoManager.requestPermissionExtend();
       if (!ps.hasAccess) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('请允许访问相册以选择视频'),
-              backgroundColor: AppColors.warmGray800,
-            ),
+          AuraToast.show(
+            context,
+            message: '请允许访问相册以选择视频',
+            type: AuraToastType.info,
           );
           PhotoManager.openSetting();
         }
@@ -1305,12 +1288,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       final asset = assets.first;
       if (asset.duration > 60) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('视频时长需在 1 分钟以内'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
+          AuraToast.warning(context, '视频时长需在 1 分钟以内');
         }
         return;
       }
@@ -1318,12 +1296,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       final file = await asset.file;
       if (file == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('读取视频失败'),
-              backgroundColor: AppColors.warmGray800,
-            ),
-          );
+          AuraToast.error(context, '读取视频失败');
         }
         return;
       }
@@ -1335,12 +1308,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('选择视频失败: $e'),
-            backgroundColor: AppColors.warmGray800,
-          ),
-        );
+        AuraToast.error(context, '选择视频失败: $e');
       }
     }
   }
@@ -1350,75 +1318,32 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
   Future<void> _pickAudio() async {
     // TODO: 集成 file_picker 或其他音频选择库
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('音频选择功能开发中，敬请期待'),
-          backgroundColor: AppColors.warmGray800,
-        ),
+      AuraToast.show(
+        context,
+        message: '音频选择功能开发中，敬请期待',
+        type: AuraToastType.info,
       );
     }
   }
 
-  void _showExitDialog(BuildContext context) {
+  void _showExitDialog(BuildContext context) async {
     if (_textController.text.isEmpty && _selectedMedia.isEmpty) {
       Navigator.of(context).pop();
       return;
     }
 
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: AppColors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-            content: Text(
-              '要把这一刻带走，还是留下来？',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            actionsAlignment: MainAxisAlignment.center,
-            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pop();
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.warmGray500,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                child: const Text('带走'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.warmGray800,
-                  foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text('留下'),
-              ),
-            ],
-          ),
+    final confirmed = await AuraDialog.show(
+      context,
+      title: '要把这一刻带走，还是留下来？',
+      confirmText: '留下',
+      cancelText: '带走',
     );
+
+    // confirmed == true 表示点击"留下"，继续编辑
+    // confirmed == false 表示点击"带走"，退出页面
+    if (confirmed == false && context.mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   void _submitMoment(BuildContext context) {
@@ -1459,12 +1384,7 @@ class _CreateMomentModalState extends ConsumerState<CreateMomentModal> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('发布失败：$e'),
-            backgroundColor: AppColors.warmGray800,
-          ),
-        );
+        AuraToast.error(context, '发布失败：$e');
       }
     }
   }

@@ -32,6 +32,7 @@ enum MilestoneType {
 /// - 温柔的提醒，增加仪式感
 /// - 只在接近里程碑时显示
 /// - 整百天、周年、整千天等
+/// - 适用于任何亲密关系记录场景
 class MilestoneCard extends ConsumerWidget {
   const MilestoneCard({super.key});
 

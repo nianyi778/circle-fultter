@@ -13,75 +13,75 @@ class AppColors {
   /// Aura Primary - 拾光橙（品牌主色）
   /// 用途：品牌强调、光效、进度条
   /// 气质：温暖的灵光，像午后阳光
-  static const Color primary = Color(0xFFDF8020);
+  static const Color primary = Color(0xFFD97706); // 更鲜明的橙色
   static const Color primaryLight = Color(0xFFFFF7ED);
-  static const Color primaryMuted = Color(0xFFFDBA74);
-  static const Color primaryDark = Color(0xFFB86A1A);
+  static const Color primaryMuted = Color(0xFFF59E0B); // 更亮的中间色
+  static const Color primaryDark = Color(0xFFB45309);
 
   /// 品牌光效
-  static Color get primaryGlow => primary.withValues(alpha: 0.15);
-  static Color get primaryGlowStrong => primary.withValues(alpha: 0.25);
+  static Color get primaryGlow => primary.withValues(alpha: 0.18);
+  static Color get primaryGlowStrong => primary.withValues(alpha: 0.30);
 
   // === 主色调 ===
 
   /// Time Beige（时间米白）- 背景主色
   /// 用途：App 全局背景
   /// 气质：像旧纸张、像晨光
-  static const Color timeBeige = Color(0xFFFAF9F7);
-  static const Color timeBeigeLight = Color(0xFFFCFBF9);
-  static const Color timeBeigeWarm = Color(0xFFFDF9F5);
+  static const Color timeBeige = Color(0xFFF8F6F3); // 稍微加深
+  static const Color timeBeigeLight = Color(0xFFFBFAF8);
+  static const Color timeBeigeWarm = Color(0xFFFAF5F0);
 
   // === 背景层级 ===
-  static const Color bg = Color(0xFFFAF9F7); // 主背景（时间米白）
+  static const Color bg = Color(0xFFF8F6F3); // 主背景（时间米白）
   static const Color bgElevated = Color(0xFFFFFFFF); // 浮起卡片背景
-  static const Color bgMuted = Color(0xFFF5F4F2); // 次级背景区域
+  static const Color bgMuted = Color(0xFFF0EEEB); // 次级背景区域，加深
 
   /// Warm Gray（暖灰）- 文字/分割
   /// 用途：正文、辅助说明
-  /// 10 级灰度系统，更细腻的层次
-  static const Color warmGray900 = Color(0xFF1C1917);
-  static const Color warmGray850 = Color(0xFF292524); // 新增
-  static const Color warmGray800 = Color(0xFF44403C);
-  static const Color warmGray700 = Color(0xFF57534E);
-  static const Color warmGray600 = Color(0xFF78716C);
-  static const Color warmGray500 = Color(0xFFA8A29E);
-  static const Color warmGray400 = Color(0xFFD6D3D1);
-  static const Color warmGray350 = Color(0xFFDFDDDA); // 新增
-  static const Color warmGray300 = Color(0xFFE7E5E4);
-  static const Color warmGray250 = Color(0xFFEBEAE7); // 新增
-  static const Color warmGray200 = Color(0xFFF5F5F4);
-  static const Color warmGray150 = Color(0xFFF7F7F6); // 新增
-  static const Color warmGray100 = Color(0xFFFAFAF9);
-  static const Color warmGray50 = Color(0xFFFDFDFC);
+  /// 10 级灰度系统，整体加深提高对比度
+  static const Color warmGray900 = Color(0xFF171412); // 更深的黑
+  static const Color warmGray850 = Color(0xFF231F1C);
+  static const Color warmGray800 = Color(0xFF3D3835);
+  static const Color warmGray700 = Color(0xFF504A46);
+  static const Color warmGray600 = Color(0xFF6B6460);
+  static const Color warmGray500 = Color(0xFF8A837E); // 加深
+  static const Color warmGray400 = Color(0xFFB5AFAA); // 加深
+  static const Color warmGray350 = Color(0xFFC7C2BD);
+  static const Color warmGray300 = Color(0xFFD9D5D1); // 加深
+  static const Color warmGray250 = Color(0xFFE3E0DC);
+  static const Color warmGray200 = Color(0xFFEBE9E6);
+  static const Color warmGray150 = Color(0xFFF2F0EE);
+  static const Color warmGray100 = Color(0xFFF7F6F4);
+  static const Color warmGray50 = Color(0xFFFBFAF9);
 
-  // === 情绪辅助色（低饱和，仅点缀）===
+  // === 情绪辅助色（提高饱和度）===
   // 每种颜色提供 light/medium/deep 三档变体
 
   /// Calm Blue - 平静/回忆
-  static const Color calmBlueLight = Color(0xFFE8F1FA);
-  static const Color calmBlue = Color(0xFFD4E5F7);
-  static const Color calmBlueDeep = Color(0xFF6B9FCF);
+  static const Color calmBlueLight = Color(0xFFDCEBFA);
+  static const Color calmBlue = Color(0xFFB8D4F1);
+  static const Color calmBlueDeep = Color(0xFF4A8AC9); // 更鲜明
 
   /// Warm Peach - 温暖/成长
-  static const Color warmPeachLight = Color(0xFFFFF9F5);
-  static const Color warmPeach = Color(0xFFFEE2D5);
-  static const Color warmPeachDeep = Color(0xFFE07B4F);
+  static const Color warmPeachLight = Color(0xFFFFF0E8);
+  static const Color warmPeach = Color(0xFFFFD4BE);
+  static const Color warmPeachDeep = Color(0xFFE86A3A); // 更鲜明
 
   /// Soft Green - 安心/日常
-  static const Color softGreenLight = Color(0xFFEDF5ED);
-  static const Color softGreen = Color(0xFFD8E8D8);
-  static const Color softGreenDeep = Color(0xFF6B9C6B);
+  static const Color softGreenLight = Color(0xFFDEF0DE);
+  static const Color softGreen = Color(0xFFB8DCB8);
+  static const Color softGreenDeep = Color(0xFF4A9A4A); // 更鲜明
 
   /// Muted Violet - 夜晚/思念
-  static const Color mutedVioletLight = Color(0xFFF0ECF5);
-  static const Color mutedViolet = Color(0xFFE5DDF0);
-  static const Color mutedVioletDeep = Color(0xFF9685B0);
+  static const Color mutedVioletLight = Color(0xFFE8E0F2);
+  static const Color mutedViolet = Color(0xFFD0C0E5);
+  static const Color mutedVioletDeep = Color(0xFF7A60A0); // 更鲜明
 
   /// Orange - 声音/活力/年度信
-  static const Color warmOrangeLight = Color(0xFFFFFBF5);
-  static const Color warmOrange = Color(0xFFFFF7ED);
-  static const Color warmOrangeDeep = Color(0xFFFDBA74);
-  static const Color warmOrangeDark = Color(0xFFC2410C);
+  static const Color warmOrangeLight = Color(0xFFFFF5EB);
+  static const Color warmOrange = Color(0xFFFFE8D4);
+  static const Color warmOrangeDeep = Color(0xFFF59E0B); // 更鲜明
+  static const Color warmOrangeDark = Color(0xFFB45309);
 
   // === 功能色 ===
   static const Color white = Color(0xFFFFFFFF);
@@ -89,24 +89,24 @@ class AppColors {
   static const Color transparent = Colors.transparent;
 
   /// 成功/已解锁
-  static const Color successLight = Color(0xFFDCFCE7);
-  static const Color success = Color(0xFF86EFAC);
-  static const Color successDark = Color(0xFF166534);
+  static const Color successLight = Color(0xFFD1FAE5);
+  static const Color success = Color(0xFF6EE7B7);
+  static const Color successDark = Color(0xFF059669); // 更鲜明
 
   /// 警告/草稿
-  static const Color warningLight = Color(0xFFFEF9C3);
-  static const Color warning = Color(0xFFFDE68A);
-  static const Color warningDark = Color(0xFFCA8A04);
+  static const Color warningLight = Color(0xFFFEF3C7);
+  static const Color warning = Color(0xFFFCD34D);
+  static const Color warningDark = Color(0xFFD97706); // 更鲜明
 
   /// 危险/删除
   static const Color dangerLight = Color(0xFFFEE2E2);
-  static const Color danger = Color(0xFFFECACA);
+  static const Color danger = Color(0xFFFCA5A5);
   static const Color dangerDark = Color(0xFFDC2626);
 
   /// 爱心/共鸣
   static const Color heartLight = Color(0xFFFEE2E2);
-  static const Color heart = Color(0xFFF87171);
-  static const Color heartDark = Color(0xFFDC2626);
+  static const Color heart = Color(0xFFEF4444); // 更鲜明
+  static const Color heartDark = Color(0xFFB91C1C);
 }
 
 /// Aura 设计系统 - 间距

@@ -114,17 +114,14 @@ class _CircleInfoViewState extends ConsumerState<CircleInfoView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 圈子名称
-            SettingsSectionTitle(
-              title: '圈子名称',
-              subtitle: '可以是孩子的名字、情侣昵称或任何你喜欢的称呼',
-            ),
+            SettingsSectionTitle(title: '圈子名称', subtitle: '可以是人名、昵称或任何你喜欢的称呼'),
             const SizedBox(height: 8),
             AppTextField(controller: _nameController, hintText: '输入圈子名称'),
 
             const SizedBox(height: 32),
 
             // 起始日期
-            SettingsSectionTitle(title: '起始日期', subtitle: '用于计算时间，如孩子生日、相识日等'),
+            SettingsSectionTitle(title: '起始日期', subtitle: '用于计算时间，如相识日、纪念日等'),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: _selectDate,

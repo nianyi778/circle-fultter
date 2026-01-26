@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/user.dart';
+import '../../../core/providers/app_providers.dart';
 
 /// 时间感知区头部 - 重新设计
 ///
 /// 设计理念：
-/// - 时间数字是视觉焦点，使用超大字体
-/// - 让用户一打开就感受到"时间"
-/// - 简洁、有力、温柔
-class TimeHeader extends StatefulWidget {
+/// - 日期 + 统计数据为核心
+/// - 适用于任何亲密关系记录场景
+/// - 温暖的问候语 + 今日日期
+/// - 下方显示回忆统计（XX 条回忆 / XX 封信）
+class TimeHeader extends ConsumerWidget {
   final CircleInfo circleInfo;
   final bool hasHistory;
   final int momentCount;
@@ -22,19 +25,14 @@ class TimeHeader extends StatefulWidget {
   });
 
   @override
-  State<TimeHeader> createState() => _TimeHeaderState();
-}
-
-class _TimeHeaderState extends State<TimeHeader> {
-  @override
-  Widget build(BuildContext context) {
-    if (!widget.hasHistory) {
-      // 新用户欢迎语 - 更优雅的版本
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!hasHistory) {
+      // 新用户欢迎语
       return _buildNewUserHeader(context);
     }
 
-    // 老用户：大号时间数字 + 日期信息
-    return _buildExistingUserHeader(context);
+    // 老用户：日期 + 统计
+    return _buildExistingUserHeader(context, ref);
   }
 
   /// 新用户头部
@@ -73,71 +71,155 @@ class _TimeHeaderState extends State<TimeHeader> {
     );
   }
 
-  /// 老用户头部 - 大号时间数字作为主视觉
-  Widget _buildExistingUserHeader(BuildContext context) {
+  /// 老用户头部 - 日期 + 统计数据
+  Widget _buildExistingUserHeader(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
-    final dayCount = widget.circleInfo.daysSinceBirth;
     final weekdayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     final weekday = weekdayNames[now.weekday - 1];
+    final letterCount = ref.watch(lettersCountProvider);
+
+    // 根据时间段生成问候语
+    final greeting = _getGreeting(now.hour);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 大号天数数字
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              '第 ',
-              style: AppTypography.title(
-                context,
-              ).copyWith(color: AppColors.warmGray500, fontSize: 20),
-            ),
-            // 数字使用超大字体
-            _AnimatedNumber(
-              value: dayCount,
-              style: AppTypography.hero(context),
-            ),
-            Text(
-              ' 天',
-              style: AppTypography.title(
-                context,
-              ).copyWith(color: AppColors.warmGray500, fontSize: 20),
-            ),
-          ],
+        // 问候语
+        Text(
+          greeting,
+          style: AppTypography.title(context).copyWith(
+            color: AppColors.warmGray800,
+            fontWeight: FontWeight.w500,
+            fontSize: 28,
+          ),
         ),
 
         const SizedBox(height: 12),
 
-        // 日期和圈子信息
+        // 今日日期
         Row(
           children: [
             Text(
               '${now.year}年${now.month}月${now.day}日',
-              style: AppTypography.caption(context),
+              style: AppTypography.body(
+                context,
+              ).copyWith(color: AppColors.warmGray600),
             ),
             _buildDot(),
-            Text(weekday, style: AppTypography.caption(context)),
+            Text(
+              weekday,
+              style: AppTypography.body(
+                context,
+              ).copyWith(color: AppColors.warmGray600),
+            ),
           ],
         ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Text(
-              widget.circleInfo.name,
-              style: AppTypography.caption(
-                context,
-              ).copyWith(color: AppColors.warmGray400),
-            ),
-            _buildDot(),
-            Text(
-              widget.circleInfo.ageLabel,
-              style: AppTypography.caption(
-                context,
-              ).copyWith(color: AppColors.warmGray400),
+
+        const SizedBox(height: 20),
+
+        // 统计数据条
+        _buildStatsRow(context, letterCount),
+      ],
+    );
+  }
+
+  /// 统计数据条
+  Widget _buildStatsRow(BuildContext context, int letterCount) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.bgElevated,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.warmGray200, width: 1),
+      ),
+      child: Row(
+        children: [
+          // 回忆数量
+          _buildStatItem(
+            context,
+            count: momentCount,
+            label: '条回忆',
+            color: AppColors.warmPeachDeep,
+          ),
+
+          // 分隔线
+          Container(
+            width: 1,
+            height: 24,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            color: AppColors.warmGray200,
+          ),
+
+          // 信件数量
+          _buildStatItem(
+            context,
+            count: letterCount,
+            label: '封信',
+            color: AppColors.warmOrangeDeep,
+          ),
+
+          const Spacer(),
+
+          // 圈子信息
+          if (circleInfo.name.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.warmGray100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    circleInfo.name,
+                    style: AppTypography.caption(context).copyWith(
+                      color: AppColors.warmGray600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (circleInfo.timeLabel.isNotEmpty) ...[
+                    _buildDot(),
+                    Text(
+                      circleInfo.timeLabel,
+                      style: AppTypography.caption(
+                        context,
+                      ).copyWith(color: AppColors.warmGray500),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// 单个统计项
+  Widget _buildStatItem(
+    BuildContext context, {
+    required int count,
+    required String label,
+    required Color color,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          '$count',
+          style: AppTypography.subtitle(
+            context,
+          ).copyWith(color: color, fontWeight: FontWeight.w700, fontSize: 20),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: AppTypography.caption(
+            context,
+          ).copyWith(color: AppColors.warmGray500),
         ),
       ],
     );
@@ -145,7 +227,7 @@ class _TimeHeaderState extends State<TimeHeader> {
 
   Widget _buildDot() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Container(
         width: 3,
         height: 3,
@@ -156,63 +238,21 @@ class _TimeHeaderState extends State<TimeHeader> {
       ),
     );
   }
-}
 
-/// 数字动画组件 - 从0计数到目标值
-class _AnimatedNumber extends StatefulWidget {
-  final int value;
-  final TextStyle style;
-
-  const _AnimatedNumber({required this.value, required this.style});
-
-  @override
-  State<_AnimatedNumber> createState() => _AnimatedNumberState();
-}
-
-class _AnimatedNumberState extends State<_AnimatedNumber>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<int> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: AppDurations.ceremony,
-      vsync: this,
-    );
-    _animation = IntTween(
-      begin: 0,
-      end: widget.value,
-    ).animate(CurvedAnimation(parent: _controller, curve: AppCurves.enter));
-    _controller.forward();
-  }
-
-  @override
-  void didUpdateWidget(_AnimatedNumber oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _animation = IntTween(
-        begin: _animation.value,
-        end: widget.value,
-      ).animate(CurvedAnimation(parent: _controller, curve: AppCurves.enter));
-      _controller.forward(from: 0);
+  /// 根据时间段返回问候语
+  String _getGreeting(int hour) {
+    if (hour >= 5 && hour < 9) {
+      return '早安';
+    } else if (hour >= 9 && hour < 12) {
+      return '上午好';
+    } else if (hour >= 12 && hour < 14) {
+      return '午安';
+    } else if (hour >= 14 && hour < 18) {
+      return '下午好';
+    } else if (hour >= 18 && hour < 22) {
+      return '晚上好';
+    } else {
+      return '夜深了';
     }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Text('${_animation.value}', style: widget.style);
-      },
-    );
   }
 }

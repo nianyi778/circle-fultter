@@ -5,6 +5,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/extensions/context_extensions.dart';
 import '../../../shared/widgets/settings/settings_widgets.dart';
+import '../../../shared/widgets/aura/aura_dialog.dart';
 
 /// 帮助与反馈页
 class FeedbackView extends StatelessWidget {
@@ -96,40 +97,41 @@ class FeedbackView extends StatelessWidget {
     }
   }
 
-  void _showFeedbackDialog(BuildContext context) {
+  void _showFeedbackDialog(BuildContext context) async {
     final controller = TextEditingController();
 
-    showDialog(
-      context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            title: const Text('问题反馈'),
-            content: TextField(
-              controller: controller,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                hintText: '请描述你遇到的问题或建议...',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('取消'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                  context.showSettingsMessage('感谢你的反馈！');
-                },
-                child: Text(
-                  '提交',
-                  style: TextStyle(color: const Color(0xFFE8A87C)),
-                ),
-              ),
-            ],
+    final confirmed = await AuraDialog.show(
+      context,
+      title: '问题反馈',
+      content: TextField(
+        controller: controller,
+        maxLines: 5,
+        decoration: InputDecoration(
+          hintText: '请描述你遇到的问题或建议...',
+          hintStyle: TextStyle(color: AppColors.warmGray400),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderSide: BorderSide(color: AppColors.warmGray200),
           ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderSide: BorderSide(color: AppColors.warmGray200),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderSide: BorderSide(color: AppColors.warmOrange),
+          ),
+        ),
+      ),
+      confirmText: '提交',
+      cancelText: '取消',
     );
+
+    if (confirmed == true && context.mounted) {
+      context.showSettingsMessage('感谢你的反馈！');
+    }
+
+    controller.dispose();
   }
 }
 

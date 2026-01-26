@@ -8,6 +8,8 @@ import '../../../core/models/comment.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/world_post.dart';
 import '../../../shared/widgets/comment_drawer.dart';
+import '../../../shared/widgets/aura/aura_toast.dart';
+import '../../../shared/widgets/aura/aura_skeleton.dart';
 
 /// 当前选中的频道
 final selectedChannelProvider = StateProvider<String?>((ref) => null);
@@ -37,13 +39,7 @@ class _WorldViewState extends ConsumerState<WorldView> {
       await ref.read(worldPostsProvider.notifier).refresh();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('刷新失败：${e.toString()}'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AuraToast.error(context, '刷新失败：${e.toString()}');
       }
     }
   }
@@ -71,146 +67,167 @@ class _WorldViewState extends ConsumerState<WorldView> {
     final posts = ref.watch(filteredWorldPostsProvider);
     final channels = ref.watch(worldChannelsSyncProvider);
     final selectedChannel = ref.watch(selectedChannelProvider);
+    final isLoading = ref.watch(worldPostsIsLoadingProvider);
+
+    // 获取状态栏高度，实现沉浸式全面屏
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: AppColors.warmGray100,
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          color: AppColors.warmOrangeDark,
-          backgroundColor: AppColors.white,
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
+      backgroundColor: AppColors.timeBeige, // 统一背景色
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        color: AppColors.warmOrangeDark,
+        backgroundColor: AppColors.white,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            // 状态栏占位（背景色会延伸到状态栏区域）
+            SliverToBoxAdapter(child: SizedBox(height: statusBarHeight)),
+
+            // 顶部标题
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.pagePadding,
+                  AppSpacing.xl,
+                  AppSpacing.pagePadding,
+                  0,
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '世界',
+                      style: Theme.of(context).textTheme.headlineLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '其他父母的回声。安全且匿名。',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.warmGray500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 400.ms),
             ),
-            slivers: [
-              // 顶部标题
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.pagePadding,
-                    AppSpacing.xl,
-                    AppSpacing.pagePadding,
-                    0,
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        '世界',
-                        style: Theme.of(context).textTheme.headlineLarge,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '其他父母的回声。安全且匿名。',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.warmGray500,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ).animate().fadeIn(duration: 400.ms),
-              ),
 
-              // 频道标签（可滚动，有选中态）
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 20, bottom: 8),
-                  child: SizedBox(
-                    height: 36,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.pagePadding,
-                      ),
-                      itemCount: channels.length + 1, // +1 for "全部"
-                      separatorBuilder:
-                          (context, index) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        // 第一个是"全部"
-                        if (index == 0) {
-                          final isSelected = selectedChannel == null;
-                          return _ChannelChip(
-                            label: '全部',
-                            isSelected: isSelected,
-                            onTap: () {
-                              ref.read(selectedChannelProvider.notifier).state =
-                                  null;
-                            },
-                          );
-                        }
-
-                        final channel = channels[index - 1];
-                        final isSelected = selectedChannel == channel.name;
+            // 频道标签（可滚动，有选中态）
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 20, bottom: 8),
+                child: SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.pagePadding,
+                    ),
+                    itemCount: channels.length + 1, // +1 for "全部"
+                    separatorBuilder:
+                        (context, index) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      // 第一个是"全部"
+                      if (index == 0) {
+                        final isSelected = selectedChannel == null;
                         return _ChannelChip(
-                          label: channel.name,
+                          label: '全部',
                           isSelected: isSelected,
                           onTap: () {
                             ref.read(selectedChannelProvider.notifier).state =
-                                channel.name;
+                                null;
                           },
                         );
-                      },
-                    ),
-                  ),
-                ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
-              ),
+                      }
 
-              // 帖子列表
-              if (posts.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Iconsax.message_text,
-                          size: 48,
-                          color: AppColors.warmGray300,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          '这个话题还没有回声',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.warmGray400),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.pagePadding,
-                    vertical: 8,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final post = posts[index];
-                      return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _WorldPostCard(
-                              post: post,
-                              onComment: () => _openCommentDrawer(post),
-                            ),
-                          )
-                          .animate()
-                          .fadeIn(
-                            duration: 400.ms,
-                            delay: Duration(milliseconds: 100 + (index * 40)),
-                            curve: Curves.easeOut,
-                          )
-                          .slideY(begin: 0.02, end: 0);
-                    }, childCount: posts.length),
+                      final channel = channels[index - 1];
+                      final isSelected = selectedChannel == channel.name;
+                      return _ChannelChip(
+                        label: channel.name,
+                        isSelected: isSelected,
+                        onTap: () {
+                          ref.read(selectedChannelProvider.notifier).state =
+                              channel.name;
+                        },
+                      );
+                    },
                   ),
                 ),
+              ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+            ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
-          ),
+            // 帖子列表、骨架屏或空状态
+            if (isLoading)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                  vertical: 8,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: AuraCardSkeleton(height: 160),
+                    ),
+                    childCount: 4,
+                  ),
+                ),
+              )
+            else if (posts.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Iconsax.message_text,
+                        size: 48,
+                        color: AppColors.warmGray300,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '这个话题还没有回声',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.warmGray400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                  vertical: 8,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final post = posts[index];
+                    return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _WorldPostCard(
+                            post: post,
+                            onComment: () => _openCommentDrawer(post),
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(
+                          duration: 400.ms,
+                          delay: Duration(milliseconds: 100 + (index * 40)),
+                          curve: Curves.easeOut,
+                        )
+                        .slideY(begin: 0.02, end: 0);
+                  }, childCount: posts.length),
+                ),
+              ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
         ),
       ),
     );

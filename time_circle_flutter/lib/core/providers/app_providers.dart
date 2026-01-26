@@ -185,6 +185,12 @@ class MomentsNotifier extends StateNotifier<List<Moment>> {
   bool _hasMore = true;
   int _currentPage = 1;
 
+  /// 是否已完成初始化加载
+  bool get isInitialized => _initialized;
+
+  /// 是否还有更多数据
+  bool get hasMore => _hasMore;
+
   MomentsNotifier(this._repo, this._worldRepo, this._circleId) : super([]) {
     _loadMoments();
   }
@@ -369,6 +375,9 @@ class LettersNotifier extends StateNotifier<List<Letter>> {
     _loadLetters();
   }
 
+  /// 是否已初始化（首次加载完成）
+  bool get isInitialized => _initialized;
+
   Future<void> _loadLetters() async {
     final circleId = _circleId;
     if (_initialized || circleId == null) return;
@@ -478,6 +487,14 @@ final letterByIdProvider = Provider.family<Letter?, String>((ref, id) {
   }
 });
 
+/// 信件是否正在加载（首次加载）
+final lettersIsLoadingProvider = Provider<bool>((ref) {
+  final notifier = ref.watch(lettersProvider.notifier);
+  final letters = ref.watch(lettersProvider);
+  // 如果列表为空且未初始化，认为正在加载
+  return letters.isEmpty && !notifier.isInitialized;
+});
+
 /// 年度信草稿
 final annualDraftLetterProvider = Provider<Letter?>((ref) {
   final letters = ref.watch(lettersProvider);
@@ -488,6 +505,12 @@ final annualDraftLetterProvider = Provider<Letter?>((ref) {
   } catch (_) {
     return null;
   }
+});
+
+/// 信件数量（已封存的信件）
+final lettersCountProvider = Provider<int>((ref) {
+  final letters = ref.watch(lettersProvider);
+  return letters.where((l) => l.status == LetterStatus.sealed).length;
 });
 
 // ============== 世界频道相关 ==============
@@ -509,6 +532,9 @@ class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
   WorldPostsNotifier(this._repo) : super([]) {
     _loadPosts();
   }
+
+  /// 是否已初始化（首次加载完成）
+  bool get isInitialized => _initialized;
 
   Future<void> _loadPosts() async {
     if (_initialized) return;
@@ -602,6 +628,14 @@ class WorldPostsNotifier extends StateNotifier<List<WorldPost>> {
     }
   }
 }
+
+/// 世界广场帖子是否正在加载（首次加载）
+final worldPostsIsLoadingProvider = Provider<bool>((ref) {
+  final notifier = ref.watch(worldPostsProvider.notifier);
+  final posts = ref.watch(worldPostsProvider);
+  // 如果列表为空且未初始化，认为正在加载
+  return posts.isEmpty && !notifier.isInitialized;
+});
 
 // ============== 时间线筛选相关 ==============
 
@@ -728,6 +762,14 @@ final hasEnoughMomentsProvider = Provider<bool>((ref) {
 final hasAnyMomentsProvider = Provider<bool>((ref) {
   final moments = ref.watch(momentsProvider);
   return moments.isNotEmpty;
+});
+
+/// 时间线是否正在加载（首次加载）
+final momentsIsLoadingProvider = Provider<bool>((ref) {
+  final notifier = ref.watch(momentsProvider.notifier);
+  final moments = ref.watch(momentsProvider);
+  // 如果列表为空且未初始化，认为正在加载
+  return moments.isEmpty && !notifier.isInitialized;
 });
 
 /// 可用的筛选年份列表

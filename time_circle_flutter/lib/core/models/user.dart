@@ -24,14 +24,14 @@ class User {
 /// 圈子信息
 ///
 /// 代表一个私密回忆圈子，可以是：
-/// - 亲子圈（记录孩子成长）
+/// - 亲子圈（记录家庭时光）
 /// - 情侣圈（记录恋爱时光）
 /// - 好友圈（记录友情岁月）
 /// - 个人独白（自己的时间胶囊）
 class CircleInfo {
   final String? id;
   final String name; // 圈子名称或主角名称
-  final DateTime? startDate; // 可选的起始日期（如孩子生日、相识日等）
+  final DateTime? startDate; // 可选的起始日期（如相识日、纪念日等）
   final DateTime? joinedAt; // 成员加入时间
 
   const CircleInfo({

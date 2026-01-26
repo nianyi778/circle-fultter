@@ -9,19 +9,22 @@ import '../../../shared/widgets/sync_status_indicator.dart';
 import '../widgets/memory_card.dart';
 import '../widgets/time_header.dart';
 import '../widgets/annual_letter_card.dart';
-import '../widgets/fragments_section.dart';
 import '../widgets/inspiration_tags.dart';
-import '../widgets/daily_quote_card.dart';
-import '../widgets/recent_moments_preview.dart';
 import '../widgets/milestone_card.dart';
 
-/// 首页 - 重新设计
+/// 首页 - 精简版设计
 ///
 /// 设计理念：
 /// - 时间叙事区作为视觉焦点
-/// - 沉浸式回忆卡片
-/// - 更大的呼吸空间
+/// - 仅保留 3 个核心模块：时间、回忆、年度信
+/// - 大量留白，增加呼吸空间
 /// - 温柔、安静、克制
+///
+/// 模块结构：
+/// 1. 时间叙事区 (TimeHeader) - 视觉焦点
+/// 2. 里程碑提醒 (MilestoneCard) - 条件性显示
+/// 3. 回忆漫游卡片 (MemoryCard) - 核心功能
+/// 4. 年度信卡片 (AnnualLetterCard) - 仪式感功能
 class HomeView extends ConsumerWidget {
   const HomeView({super.key});
 
@@ -30,43 +33,41 @@ class HomeView extends ConsumerWidget {
     final currentUser = ref.watch(currentUserSyncProvider);
     final childInfo = ref.watch(childInfoProvider);
     final hasAnyMoments = ref.watch(hasAnyMomentsProvider);
-    final hasEnoughMoments = ref.watch(hasEnoughMomentsProvider);
     final moments = ref.watch(momentsProvider);
+
+    // 获取状态栏高度，实现沉浸式全面屏
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: AppColors.timeBeige,
-      body: SafeArea(
-        bottom: false,
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.zero,
-          children: [
-            // ========== 顶部区域 ==========
-            _buildTopSection(
-              context,
-              currentUser: currentUser,
-              childInfo: childInfo,
-              hasAnyMoments: hasAnyMoments,
-              momentCount: moments.length,
-            ),
+      body: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.zero,
+        children: [
+          // 状态栏占位（背景色会延伸到状态栏区域）
+          SizedBox(height: statusBarHeight),
 
-            SizedBox(
-              height: hasAnyMoments ? AppSpacing.sectionGap : AppSpacing.xl,
-            ),
+          // ========== 顶部区域 ==========
+          _buildTopSection(
+            context,
+            currentUser: currentUser,
+            childInfo: childInfo,
+            hasAnyMoments: hasAnyMoments,
+            momentCount: moments.length,
+          ),
 
-            // ========== 内容区域 ==========
-            if (!hasAnyMoments)
-              _buildNewUserContent(context)
-            else
-              _buildReturningUserContent(
-                context,
-                hasEnoughMoments: hasEnoughMoments,
-              ),
+          // 更大的呼吸空间
+          SizedBox(height: hasAnyMoments ? AppSpacing.xxxl : AppSpacing.xxl),
 
-            // 底部安全区域
-            const SizedBox(height: 120),
-          ],
-        ),
+          // ========== 内容区域 ==========
+          if (!hasAnyMoments)
+            _buildNewUserContent(context)
+          else
+            _buildReturningUserContent(context),
+
+          // 底部安全区域（更大）
+          const SizedBox(height: 140),
+        ],
       ),
     );
   }
@@ -151,33 +152,28 @@ class HomeView extends ConsumerWidget {
     );
   }
 
-  /// 老用户内容
-  Widget _buildReturningUserContent(
-    BuildContext context, {
-    required bool hasEnoughMoments,
-  }) {
+  /// 老用户内容 - 精简版（仅 3 个核心模块）
+  ///
+  /// 设计原则：留白即呼吸
+  /// - 移除了今日一句、记录统计、时光碎片
+  /// - 保留里程碑（条件显示）、回忆、年度信
+  Widget _buildReturningUserContent(BuildContext context) {
     return Column(
       children: [
-        // 1. 今日一句
-        const DailyQuoteCard().animate().fadeIn(
-          duration: AppDurations.entrance,
-          delay: 50.ms,
-          curve: AppCurves.smooth,
-        ),
-
-        // 2. 里程碑提醒（条件显示）
+        // 1. 里程碑提醒（条件显示，只在接近里程碑时出现）
         const MilestoneCard()
             .animate()
             .fadeIn(
               duration: AppDurations.entrance,
-              delay: 100.ms,
+              delay: 50.ms,
               curve: AppCurves.smooth,
             )
             .slideY(begin: 0.02, end: 0),
 
-        const SizedBox(height: AppSpacing.md),
+        // 里程碑与回忆卡片之间的间距
+        const SizedBox(height: AppSpacing.lg),
 
-        // 3. 回忆漫游卡片（去年的今天）
+        // 2. 回忆漫游卡片（核心功能）
         Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.pagePadding,
@@ -187,26 +183,15 @@ class HomeView extends ConsumerWidget {
             .animate()
             .fadeIn(
               duration: AppDurations.entrance,
-              delay: 150.ms,
+              delay: 100.ms,
               curve: AppCurves.smooth,
             )
             .slideY(begin: 0.03, end: 0),
 
-        const SizedBox(height: AppSpacing.lg),
+        // 更大的模块间距（32px → 48px）
+        const SizedBox(height: AppSpacing.xxxl),
 
-        // 4. 记录统计卡片（最近30天）
-        const RecordStatsCard()
-            .animate()
-            .fadeIn(
-              duration: AppDurations.entrance,
-              delay: 200.ms,
-              curve: AppCurves.smooth,
-            )
-            .slideY(begin: 0.03, end: 0),
-
-        const SizedBox(height: AppSpacing.lg),
-
-        // 5. 年度信卡片（简化版）
+        // 3. 年度信卡片（仪式感功能）
         Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.pagePadding,
@@ -216,23 +201,10 @@ class HomeView extends ConsumerWidget {
             .animate()
             .fadeIn(
               duration: AppDurations.entrance,
-              delay: 250.ms,
+              delay: 150.ms,
               curve: AppCurves.smooth,
             )
             .slideY(begin: 0.03, end: 0),
-
-        // 6. 时光碎片（至少有5条记录才显示）
-        if (hasEnoughMoments) ...[
-          const SizedBox(height: AppSpacing.sectionGap),
-          const FragmentsSection()
-              .animate()
-              .fadeIn(
-                duration: AppDurations.entrance,
-                delay: 300.ms,
-                curve: AppCurves.smooth,
-              )
-              .slideY(begin: 0.03, end: 0),
-        ],
       ],
     );
   }

@@ -18,24 +18,17 @@ class AnnualLetterCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final draftLetter = ref.watch(annualDraftLetterProvider);
-    final childInfo = ref.watch(childInfoProvider);
-    final hasLastYearData = ref.watch(hasLastYearDataProvider);
-
     final hasDraft = draftLetter != null;
-    final isFirstYear = !hasLastYearData;
 
-    // 根据不同场景设置文案
+    // 根据不同场景设置文案 - 通用化，适用于任何亲密关系
     String title;
     IconData icon;
 
     if (hasDraft) {
       title = '还有一封草稿等你';
       icon = Iconsax.edit_2;
-    } else if (isFirstYear) {
-      title = '写一封信给未来的自己';
-      icon = Iconsax.sms;
     } else {
-      title = '给 ${childInfo.shortAgeLabel} 的他写封信';
+      title = '写一封信给未来';
       icon = Iconsax.sms;
     }
 

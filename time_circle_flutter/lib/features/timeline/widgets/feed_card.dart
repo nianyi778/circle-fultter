@@ -78,7 +78,6 @@ class _FeedCardState extends ConsumerState<FeedCard>
   @override
   Widget build(BuildContext context) {
     final moment = widget.moment;
-    final circleInfo = ref.watch(childInfoProvider);
     final hasMedia = moment.mediaUrls.isNotEmpty;
     final isImageType = moment.mediaType == MediaType.image;
 

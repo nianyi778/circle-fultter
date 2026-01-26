@@ -7,6 +7,8 @@ import 'package:iconsax/iconsax.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/letter.dart';
+import '../../../shared/widgets/aura/aura_toast.dart';
+import '../../../shared/widgets/aura/aura_skeleton.dart';
 
 class LettersView extends ConsumerWidget {
   const LettersView({super.key});
@@ -17,13 +19,7 @@ class LettersView extends ConsumerWidget {
       await ref.read(lettersProvider.notifier).refresh();
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('刷新失败：${e.toString()}'),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AuraToast.error(context, '刷新失败：${e.toString()}');
       }
     }
   }
@@ -31,140 +27,160 @@ class LettersView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final letters = ref.watch(lettersProvider);
+    final isLoading = ref.watch(lettersIsLoadingProvider);
+
+    // 获取状态栏高度，实现沉浸式全面屏
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: AppColors.timeBeige,
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: () => _onRefresh(context, ref),
-          color: AppColors.warmOrangeDark,
-          backgroundColor: AppColors.white,
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            slivers: [
-              // 顶部标题
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.pagePadding,
-                    AppSpacing.xxl,
-                    AppSpacing.pagePadding,
-                    0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '信',
-                            style: Theme.of(context).textTheme.displaySmall,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '给未来的时间胶囊。',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.warmGray500),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.warmGray800,
-                          shape: BoxShape.circle,
-                          boxShadow: AppShadows.soft,
-                        ),
-                        child: IconButton(
-                          onPressed: () {
-                            // 优先查找草稿
-                            final draft =
-                                letters
-                                    .where(
-                                      (l) => l.status == LetterStatus.draft,
-                                    )
-                                    .firstOrNull;
+      body: RefreshIndicator(
+        onRefresh: () => _onRefresh(context, ref),
+        color: AppColors.warmOrangeDark,
+        backgroundColor: AppColors.white,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            // 状态栏占位（背景色会延伸到状态栏区域）
+            SliverToBoxAdapter(child: SizedBox(height: statusBarHeight)),
 
-                            if (draft != null) {
-                              // 有草稿，编辑草稿
-                              context.push('/letter/${draft.id}/edit');
-                            } else {
-                              // 没有草稿，创建新信件
-                              _createNewLetter(context, ref);
-                            }
-                          },
-                          icon: const Icon(
-                            Iconsax.edit,
-                            color: AppColors.white,
-                            size: 20,
-                          ),
+            // 顶部标题
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.pagePadding,
+                  AppSpacing.xxl,
+                  AppSpacing.pagePadding,
+                  0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '信',
+                          style: Theme.of(context).textTheme.displaySmall,
                         ),
-                      ),
-                    ],
-                  ),
-                ).animate().fadeIn(duration: 400.ms),
-              ),
-
-              // 提示文字
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.pagePadding,
-                    AppSpacing.lg,
-                    AppSpacing.pagePadding,
-                    AppSpacing.lg,
-                  ),
-                  child: Text(
-                    '你不必现在写完。',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.warmGray400,
-                      letterSpacing: 1,
+                        const SizedBox(height: 4),
+                        Text(
+                          '给未来的时间胶囊。',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.warmGray500),
+                        ),
+                      ],
                     ),
-                  ),
-                ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
-              ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.warmGray800,
+                        shape: BoxShape.circle,
+                        boxShadow: AppShadows.soft,
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          // 优先查找草稿
+                          final draft =
+                              letters
+                                  .where((l) => l.status == LetterStatus.draft)
+                                  .firstOrNull;
 
-              // 信件列表或空状态
-              if (letters.isEmpty)
-                SliverToBoxAdapter(child: _buildEmptyState(context, ref))
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.pagePadding,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final letter = letters[index];
-                      return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _LetterCard(
-                              letter: letter,
-                              onTap: () {
-                                if (letter.status == LetterStatus.draft) {
-                                  context.push('/letter/${letter.id}/edit');
-                                } else {
-                                  context.push('/letter/${letter.id}');
-                                }
-                              },
-                            ),
-                          )
-                          .animate()
-                          .fadeIn(
-                            duration: 400.ms,
-                            delay: Duration(milliseconds: 100 + (index * 50)),
-                            curve: Curves.easeOut,
-                          )
-                          .slideY(begin: 0.05, end: 0);
-                    }, childCount: letters.length),
+                          if (draft != null) {
+                            // 有草稿，编辑草稿
+                            context.push('/letter/${draft.id}/edit');
+                          } else {
+                            // 没有草稿，创建新信件
+                            _createNewLetter(context, ref);
+                          }
+                        },
+                        icon: const Icon(
+                          Iconsax.edit,
+                          color: AppColors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 400.ms),
+            ),
+
+            // 提示文字
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.pagePadding,
+                  AppSpacing.lg,
+                  AppSpacing.pagePadding,
+                  AppSpacing.lg,
+                ),
+                child: Text(
+                  '你不必现在写完。',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.warmGray400,
+                    letterSpacing: 1,
                   ),
                 ),
+              ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+            ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
-            ],
+            // 信件列表、骨架屏或空状态
+            if (isLoading)
+              SliverToBoxAdapter(child: _buildSkeleton())
+            else if (letters.isEmpty)
+              SliverToBoxAdapter(child: _buildEmptyState(context, ref))
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final letter = letters[index];
+                    return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _LetterCard(
+                            letter: letter,
+                            onTap: () {
+                              if (letter.status == LetterStatus.draft) {
+                                context.push('/letter/${letter.id}/edit');
+                              } else {
+                                context.push('/letter/${letter.id}');
+                              }
+                            },
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(
+                          duration: 400.ms,
+                          delay: Duration(milliseconds: 100 + (index * 50)),
+                          curve: Curves.easeOut,
+                        )
+                        .slideY(begin: 0.05, end: 0);
+                  }, childCount: letters.length),
+                ),
+              ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 骨架屏加载状态
+  Widget _buildSkeleton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+      child: Column(
+        children: List.generate(
+          3,
+          (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: AuraCardSkeleton(height: 120),
           ),
         ),
       ),
