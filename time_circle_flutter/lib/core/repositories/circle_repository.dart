@@ -53,7 +53,7 @@ class CircleRepository {
       ApiConfig.circles,
       data: {
         'name': name,
-        if (startDate != null) 'startDate': startDate.toIso8601String(),
+        if (startDate != null) 'startDate': startDate.toUtc().toIso8601String(),
       },
       fromData: (data) => data as Map<String, dynamic>,
     );
@@ -84,7 +84,7 @@ class CircleRepository {
     if (clearStartDate) {
       data['startDate'] = null;
     } else if (startDate != null) {
-      data['startDate'] = startDate.toIso8601String();
+      data['startDate'] = startDate.toUtc().toIso8601String();
     }
 
     final response = await _api.put<Map<String, dynamic>>(

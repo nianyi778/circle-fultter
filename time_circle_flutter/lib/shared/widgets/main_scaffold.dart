@@ -6,8 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/haptics/haptic_service.dart';
 import '../../features/create/views/create_moment_view.dart';
-import 'sync_status_indicator.dart';
+import '../../presentation/shared/widgets/connectivity_indicator.dart';
 
 /// 当前导航索引 Provider
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -25,8 +26,8 @@ class MainScaffold extends ConsumerWidget {
     return Scaffold(
       body: Column(
         children: [
-          // 同步状态横幅（错误或离线时显示）
-          const SyncStatusBanner(),
+          // 离线状态横幅
+          const OfflineBanner(),
           // 主内容
           Expanded(child: child),
         ],
@@ -100,57 +101,60 @@ class _BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 获取底部安全区域高度（手势栏高度）
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Container(
       decoration: BoxDecoration(boxShadow: AppShadows.navigation),
       child: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
+            // 背景色延伸到手势栏区域
             color: AppColors.white.withValues(alpha: 0.92),
-            child: SafeArea(
-              top: false,
-              child: Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    // 回忆
-                    _NavItem(
-                      icon: Iconsax.home_2,
-                      activeIcon: Iconsax.home_25,
-                      isActive: currentIndex == 0,
-                      onTap: () => onTabChanged(0),
-                    ),
+            // 总高度 = 导航栏高度 + 底部安全区域
+            padding: EdgeInsets.only(bottom: bottomPadding),
+            child: Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  // 回忆
+                  _NavItem(
+                    icon: Iconsax.home_2,
+                    activeIcon: Iconsax.home_25,
+                    isActive: currentIndex == 0,
+                    onTap: () => onTabChanged(0),
+                  ),
 
-                    // 时间线
-                    _NavItem(
-                      icon: Iconsax.clock,
-                      activeIcon: Iconsax.clock5,
-                      isActive: currentIndex == 1,
-                      onTap: () => onTabChanged(1),
-                    ),
+                  // 时间线
+                  _NavItem(
+                    icon: Iconsax.clock,
+                    activeIcon: Iconsax.clock5,
+                    isActive: currentIndex == 1,
+                    onTap: () => onTabChanged(1),
+                  ),
 
-                    // 中央发布按钮（带呼吸动效）
-                    _ComposeButton(onTap: onComposeTap),
+                  // 中央发布按钮（带呼吸动效）
+                  _ComposeButton(onTap: onComposeTap),
 
-                    // 信
-                    _NavItem(
-                      icon: Iconsax.sms,
-                      activeIcon: Iconsax.sms5,
-                      isActive: currentIndex == 2,
-                      onTap: () => onTabChanged(2),
-                    ),
+                  // 信
+                  _NavItem(
+                    icon: Iconsax.sms,
+                    activeIcon: Iconsax.sms5,
+                    isActive: currentIndex == 2,
+                    onTap: () => onTabChanged(2),
+                  ),
 
-                    // 世界
-                    _NavItem(
-                      icon: Iconsax.global,
-                      activeIcon: Iconsax.global5,
-                      isActive: currentIndex == 3,
-                      onTap: () => onTabChanged(3),
-                    ),
-                  ],
-                ),
+                  // 世界
+                  _NavItem(
+                    icon: Iconsax.global,
+                    activeIcon: Iconsax.global5,
+                    isActive: currentIndex == 3,
+                    onTap: () => onTabChanged(3),
+                  ),
+                ],
               ),
             ),
           ),
@@ -208,6 +212,7 @@ class _NavItemState extends State<_NavItem>
 
   void _handleTapUp(TapUpDetails details) {
     _controller.reverse();
+    HapticService.lightTap();
     widget.onTap();
   }
 
@@ -320,6 +325,7 @@ class _ComposeButtonState extends State<_ComposeButton>
 
   void _handleTapUp(TapUpDetails details) {
     _tapController.reverse();
+    HapticService.mediumTap();
     widget.onTap();
   }
 

@@ -38,18 +38,13 @@ void _showCreateModal(BuildContext context, {String? hint}) {
   );
 }
 
-/// 回忆卡片 - 重新设计
+/// 回忆卡片 - 全新设计
 ///
 /// 设计理念：
-/// - 全宽沉浸式图片卡片
-/// - 渐变遮罩承载文字
+/// - 精致的玻璃拟态效果
+/// - 优雅的图片展示
 /// - 多条回忆可滑动切换
-/// - 280px 高度，24px 圆角
-///
-/// 场景1: 新用户（无任何记录）→ 显示「留下第一刻」引导卡片
-/// 场景2: 有去年今天的数据 → 显示沉浸式回忆卡片
-/// 场景3: 无去年今天数据但圈子满一年 → 显示"去年的今天没有记录"
-/// 场景4: 圈子不满一年但有记录 → 显示温暖的引导卡片
+/// - 诗意的空状态
 class MemoryCard extends ConsumerWidget {
   const MemoryCard({super.key});
 
@@ -108,12 +103,46 @@ class _MemorySwipeCardState extends ConsumerState<_MemorySwipeCard> {
   @override
   Widget build(BuildContext context) {
     final circleInfo = ref.watch(childInfoProvider);
-    return SizedBox(
-      height: 280,
-      child: Stack(
-        children: [
-          // 滑动卡片区
-          PageView.builder(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 标题行
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: AppColors.warmOrangeDeep,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '去年的今天',
+                style: AppTypography.subtitle(context).copyWith(
+                  color: AppColors.warmGray800,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              if (widget.moments.length > 1)
+                Text(
+                  '${_currentPage + 1} / ${widget.moments.length}',
+                  style: AppTypography.caption(
+                    context,
+                  ).copyWith(color: AppColors.warmGray400),
+                ),
+            ],
+          ),
+        ),
+
+        // 卡片区域
+        SizedBox(
+          height: 320,
+          child: PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
               setState(() {
@@ -128,24 +157,25 @@ class _MemorySwipeCardState extends ConsumerState<_MemorySwipeCard> {
               );
             },
           ),
+        ),
 
-          // 页面指示器（多于1条时显示）
-          if (widget.moments.length > 1)
-            Positioned(
-              bottom: 16,
-              right: 20,
+        // 页面指示器（多于1条时显示）
+        if (widget.moments.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Center(
               child: _PageIndicator(
                 count: widget.moments.length,
                 currentIndex: _currentPage,
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
 
-/// 单张回忆卡片 - 沉浸式设计
+/// 单张回忆卡片 - 精致设计
 class _MemorySingleCard extends StatelessWidget {
   final Moment moment;
   final String timeLabel;
@@ -160,10 +190,10 @@ class _MemorySingleCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push('/moment/${moment.id}'),
       child: Container(
-        height: 280,
+        height: 320,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: AppShadows.soft,
+          boxShadow: AppShadows.paper,
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -174,59 +204,28 @@ class _MemorySingleCard extends StatelessWidget {
               // 有图片：显示图片
               ImageUtils.buildImage(url: coverUrl, fit: BoxFit.cover)
             else
-              // 无图片：显示渐变背景
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.warmPeach.withValues(alpha: 0.6),
-                      AppColors.warmOrangeLight.withValues(alpha: 0.4),
-                      AppColors.timeBeigeLight,
-                    ],
-                  ),
-                ),
-              ),
+              // 无图片：显示精美渐变背景
+              _buildGradientBackground(),
 
-            // 渐变遮罩层
+            // 渐变遮罩层 - 更精致的多层渐变
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  stops: const [0.0, 0.4, 1.0],
+                  stops: const [0.0, 0.3, 0.6, 1.0],
                   colors: [
-                    Colors.transparent,
                     Colors.black.withValues(alpha: 0.1),
-                    Colors.black.withValues(alpha: 0.7),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.2),
+                    Colors.black.withValues(alpha: 0.75),
                   ],
                 ),
               ),
             ),
 
             // 顶部标签
-            Positioned(
-              top: 16,
-              left: 20,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(AppRadius.chip),
-                ),
-                child: Text(
-                  '去年的今天',
-                  style: AppTypography.caption(context).copyWith(
-                    color: AppColors.warmOrangeDark,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
+            Positioned(top: 16, left: 16, child: _buildTopBadge(context)),
 
             // 底部内容区
             Positioned(
@@ -239,38 +238,83 @@ class _MemorySingleCard extends StatelessWidget {
                 children: [
                   // 内容文字
                   if (moment.content.isNotEmpty)
-                    Text(
-                      '"${moment.content}"',
-                      style: AppTypography.body(context).copyWith(
-                        color: Colors.white,
-                        height: 1.6,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 4,
-                          ),
-                        ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        '"${moment.content}"',
+                        style: AppTypography.body(context).copyWith(
+                          color: Colors.white,
+                          height: 1.6,
+                          fontSize: 15,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
 
                   // 日期和年龄
                   Row(
                     children: [
+                      Icon(
+                        Iconsax.calendar_1,
+                        size: 14,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 6),
                       Text(
                         _formatDate(moment.timestamp),
                         style: AppTypography.caption(
                           context,
-                        ).copyWith(color: Colors.white.withValues(alpha: 0.8)),
+                        ).copyWith(color: Colors.white.withValues(alpha: 0.85)),
                       ),
                       _buildDot(),
                       Text(
                         timeLabel.isEmpty ? '刚开始' : timeLabel,
                         style: AppTypography.caption(
                           context,
-                        ).copyWith(color: Colors.white.withValues(alpha: 0.8)),
+                        ).copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                      ),
+                      const Spacer(),
+                      // 查看详情按钮
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '查看',
+                              style: AppTypography.caption(context).copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Iconsax.arrow_right_3,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -279,6 +323,90 @@ class _MemorySingleCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildGradientBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.warmPeach,
+            AppColors.warmOrangeLight,
+            AppColors.warmPeachLight,
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // 装饰性圆形
+          Positioned(
+            right: -50,
+            top: -30,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.warmOrangeDeep.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -30,
+            bottom: 50,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.warmPeachDeep.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopBadge(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: AppColors.warmOrangeDeep,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '时光漫游',
+            style: AppTypography.caption(context).copyWith(
+              color: AppColors.warmGray700,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -290,7 +418,7 @@ class _MemorySingleCard extends StatelessWidget {
         width: 3,
         height: 3,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.6),
+          color: Colors.white.withValues(alpha: 0.5),
           shape: BoxShape.circle,
         ),
       ),
@@ -302,7 +430,7 @@ class _MemorySingleCard extends StatelessWidget {
   }
 }
 
-/// 页面指示器 - 小圆点样式
+/// 页面指示器 - 精美设计
 class _PageIndicator extends StatelessWidget {
   final int count;
   final int currentIndex;
@@ -311,28 +439,35 @@ class _PageIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(count, (index) {
-        final isActive = index == currentIndex;
-        return AnimatedContainer(
-          duration: AppDurations.fast,
-          curve: AppCurves.smooth,
-          margin: EdgeInsets.only(left: index == 0 ? 0 : 6),
-          width: isActive ? 16 : 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color:
-                isActive ? Colors.white : Colors.white.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(3),
-          ),
-        );
-      }),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.warmGray100,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(count, (index) {
+          final isActive = index == currentIndex;
+          return AnimatedContainer(
+            duration: AppDurations.fast,
+            curve: AppCurves.smooth,
+            margin: EdgeInsets.only(left: index == 0 ? 0 : 6),
+            width: isActive ? 20 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color:
+                  isActive ? AppColors.warmOrangeDeep : AppColors.warmGray300,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          );
+        }),
+      ),
     );
   }
 }
 
-/// 新用户引导卡片 - 「留下第一刻」
+/// 新用户引导卡片 - 精美设计
 class _FirstMomentCard extends StatelessWidget {
   const _FirstMomentCard();
 
@@ -341,86 +476,138 @@ class _FirstMomentCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showCreateModal(context),
       child: Container(
-        height: 280,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: AppShadows.soft,
+          boxShadow: AppShadows.paper,
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
-          fit: StackFit.expand,
           children: [
-            // 渐变背景
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.warmGray100,
-                    AppColors.warmGray50,
-                    AppColors.timeBeige,
-                  ],
+            // 精美渐变背景
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.warmGray50,
+                      AppColors.warmGray100,
+                      AppColors.timeBeigeWarm,
+                    ],
+                  ),
                 ),
               ),
             ),
 
-            // 背景装饰 - 大号笔图标
+            // 装饰性元素
             Positioned(
-              right: -20,
-              bottom: -20,
-              child: Opacity(
-                opacity: 0.04,
-                child: Icon(
-                  Iconsax.edit,
-                  size: 200,
-                  color: AppColors.warmGray900,
+              right: -40,
+              top: -20,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.warmPeach.withValues(alpha: 0.3),
+                      AppColors.warmPeach.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            Positioned(
+              left: -30,
+              bottom: 40,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.warmOrangeLight.withValues(alpha: 0.4),
+                      AppColors.warmOrangeLight.withValues(alpha: 0),
+                    ],
+                  ),
                 ),
               ),
             ),
 
             // 内容
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // 图标
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppColors.warmOrangeDeep.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Iconsax.add_circle,
+                      size: 28,
+                      color: AppColors.warmOrangeDeep.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
                   // 标题
                   Text(
                     '留下第一刻',
-                    style: AppTypography.title(
-                      context,
-                    ).copyWith(fontWeight: FontWeight.w500),
+                    style: AppTypography.title(context).copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.warmGray800,
+                      fontSize: 22,
+                    ),
                   ),
                   const SizedBox(height: 8),
 
                   // 副标题
                   Text(
-                    '一张照片，或是一句想说的话。',
+                    '一张照片，或是一句想说的话',
                     style: AppTypography.body(
                       context,
                     ).copyWith(color: AppColors.warmGray500),
                   ),
                   const SizedBox(height: 20),
 
-                  // 开始记录按钮
-                  Row(
-                    children: [
-                      Text(
-                        '开始记录',
-                        style: AppTypography.body(context).copyWith(
-                          color: AppColors.warmOrangeDark,
-                          fontWeight: FontWeight.w600,
+                  // 按钮
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.warmGray800,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '开始记录',
+                          style: AppTypography.body(context).copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Iconsax.arrow_right_3,
-                        size: 18,
-                        color: AppColors.warmOrangeDark,
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Icon(
+                          Iconsax.arrow_right_3,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -432,79 +619,60 @@ class _FirstMomentCard extends StatelessWidget {
   }
 }
 
-/// 有记录但不满一年的引导卡片
+/// 有记录但不满一年的引导卡片 - 精美设计
 class _WelcomeCard extends StatelessWidget {
   const _WelcomeCard();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 200, // 稍矮一点
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: AppShadows.subtle,
+        boxShadow: AppShadows.paper,
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
-        fit: StackFit.expand,
         children: [
-          // 渐变背景
+          // 背景
           Container(
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
+                  AppColors.warmPeachLight,
                   AppColors.warmPeach.withValues(alpha: 0.4),
-                  AppColors.warmPeachLight.withValues(alpha: 0.6),
-                  AppColors.timeBeigeLight,
+                  AppColors.white,
                 ],
               ),
             ),
-          ),
-
-          // 装饰性圆圈
-          Positioned(
-            right: -40,
-            top: -40,
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.warmPeachDeep.withValues(alpha: 0.08),
-              ),
-            ),
-          ),
-
-          // 内容
-          Padding(
-            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 小标签
+                // 标题行
                 Row(
                   children: [
                     Container(
-                      width: 6,
-                      height: 6,
+                      width: 4,
+                      height: 16,
                       decoration: BoxDecoration(
-                        color: AppColors.warmPeachDeep.withValues(alpha: 0.6),
-                        shape: BoxShape.circle,
+                        color: AppColors.warmPeachDeep,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Text(
                       '时间的开始',
                       style: AppTypography.caption(context).copyWith(
-                        color: AppColors.warmGray500,
+                        color: AppColors.warmGray600,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: 1,
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 20),
 
                 // 主文案
@@ -512,16 +680,64 @@ class _WelcomeCard extends StatelessWidget {
                   '这里，会慢慢被时间填满',
                   style: AppTypography.subtitle(
                     context,
-                  ).copyWith(color: AppColors.warmGray800),
+                  ).copyWith(color: AppColors.warmGray800, fontSize: 18),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '明年的今天，你会在这里看见今天留下的痕迹。',
+                  '明年的今天，你会在这里看见今天留下的痕迹',
                   style: AppTypography.body(
                     context,
-                  ).copyWith(color: AppColors.warmGray500),
+                  ).copyWith(color: AppColors.warmGray500, height: 1.6),
+                ),
+
+                const SizedBox(height: 20),
+
+                // 装饰性进度条
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.warmGray200,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: 0.1, // 10% 进度
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.warmPeachDeep,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '距离一周年',
+                      style: AppTypography.caption(
+                        context,
+                      ).copyWith(color: AppColors.warmGray400),
+                    ),
+                  ],
                 ),
               ],
+            ),
+          ),
+
+          // 装饰性圆圈
+          Positioned(
+            right: -30,
+            top: -30,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.warmPeachDeep.withValues(alpha: 0.08),
+              ),
             ),
           ),
         ],
@@ -530,63 +746,85 @@ class _WelcomeCard extends StatelessWidget {
   }
 }
 
-/// 满一年但去年今天没有记录
+/// 满一年但去年今天没有记录 - 精美设计
 class _EmptyMemoryCard extends StatelessWidget {
   const _EmptyMemoryCard();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 160, // 更矮
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.warmGray150, width: 1),
-        boxShadow: AppShadows.subtle,
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 标题
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 标题行
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 16),
+          child: Row(
             children: [
               Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
                   color: AppColors.warmGray300,
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
                 '去年的今天',
-                style: AppTypography.caption(
-                  context,
-                ).copyWith(color: AppColors.warmGray500, letterSpacing: 1),
+                style: AppTypography.subtitle(context).copyWith(
+                  color: AppColors.warmGray600,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+        ),
 
-          // 空状态文案
-          Text(
-            '去年的这一天，没有留下记录。',
-            style: AppTypography.body(
-              context,
-            ).copyWith(color: AppColors.warmGray400),
+        // 空状态卡片
+        Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: AppColors.warmGray150, width: 1),
+            boxShadow: AppShadows.subtle,
           ),
-          const SizedBox(height: 4),
-          Text(
-            '时间有它自己的节奏。',
-            style: AppTypography.caption(
-              context,
-            ).copyWith(color: AppColors.warmGray300),
+          child: Column(
+            children: [
+              // 图标
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.warmGray100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Iconsax.calendar_remove,
+                  size: 28,
+                  color: AppColors.warmGray400,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 空状态文案
+              Text(
+                '去年的这一天，没有留下记录',
+                style: AppTypography.body(
+                  context,
+                ).copyWith(color: AppColors.warmGray500),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '时间有它自己的节奏',
+                style: AppTypography.caption(
+                  context,
+                ).copyWith(color: AppColors.warmGray400),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -24,7 +24,9 @@ class WorldRepository {
       );
     }
 
-    return response.data!.map((json) => _parseChannel(json)).toList();
+    return response.data!
+        .map((json) => _parseChannel(json as Map<String, dynamic>))
+        .toList();
   }
 
   /// 获取世界帖子列表
@@ -40,10 +42,10 @@ class WorldRepository {
 
     if (tag != null) queryParams['tag'] = tag;
 
-    final response = await _api.get<Map<String, dynamic>>(
+    final response = await _api.get<List<dynamic>>(
       ApiConfig.worldPosts,
       queryParameters: queryParams,
-      fromData: (data) => data as Map<String, dynamic>,
+      fromData: (data) => data as List<dynamic>,
     );
 
     if (!response.success) {
@@ -53,14 +55,15 @@ class WorldRepository {
       );
     }
 
-    final data = response.data!['data'] as List<dynamic>? ?? [];
-    final meta = response.data!['meta'] as Map<String, dynamic>?;
+    final data = response.data ?? [];
+    final meta = response.meta;
 
     return WorldPostListResult(
-      posts: data.map((json) => _parsePost(json)).toList(),
-      page: meta?['page'] as int? ?? page,
-      total: meta?['total'] as int? ?? data.length,
-      hasMore: meta?['hasMore'] as bool? ?? false,
+      posts:
+          data.map((json) => _parsePost(json as Map<String, dynamic>)).toList(),
+      page: meta?.page ?? page,
+      total: meta?.total ?? data.length,
+      hasMore: meta?.hasMore ?? false,
     );
   }
 

@@ -1,29 +1,22 @@
 /**
- * Auth Routes
+ * Auth Routes (Refactored with Repository Pattern)
  */
 
 import { Hono } from 'hono';
-import { z } from 'zod';
-import { hashPassword, verifyPassword } from '../utils/password';
-import { createTokenPair, verifyToken, REFRESH_TOKEN_EXPIRY } from '../utils/jwt';
-import { generateId, generateToken } from '../utils/id';
 import { success, error, ErrorCodes } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
-import type { Env, User, Session } from '../types';
+import { verifyToken } from '../utils/jwt';
+import { UserRepository } from '../repositories';
+import {
+  registerSchema,
+  loginSchema,
+  refreshTokenSchema,
+  changePasswordSchema,
+  updateUserSchema,
+} from '../schemas';
+import type { Env } from '../types';
 
 const auth = new Hono<{ Bindings: Env }>();
-
-// Validation schemas
-const registerSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  name: z.string().min(1, 'Name is required').max(50),
-});
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
 
 /**
  * POST /auth/register
@@ -42,56 +35,22 @@ auth.post('/register', async (c) => {
   }
   
   const { email, password, name } = result.data;
+  const userRepo = new UserRepository(c.env.DB);
   
   // Check if email exists
-  const existingUser = await c.env.DB.prepare(
-    'SELECT id FROM users WHERE email = ?'
-  )
-    .bind(email.toLowerCase())
-    .first();
-  
-  if (existingUser) {
+  if (await userRepo.emailExists(email)) {
     return c.json(error(ErrorCodes.EMAIL_EXISTS, 'Email already registered'), 409);
   }
   
-  // Hash password
-  const passwordHash = await hashPassword(password);
-  
   // Create user
-  const userId = generateId('u');
-  const now = new Date().toISOString();
-  
-  await c.env.DB.prepare(
-    `INSERT INTO users (id, email, password_hash, name, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  )
-    .bind(userId, email.toLowerCase(), passwordHash, name, now, now)
-    .run();
+  const user = await userRepo.create({ email, password, name });
   
   // Create tokens
-  const tokens = await createTokenPair(userId, email.toLowerCase(), c.env.JWT_SECRET);
-  
-  // Store refresh token session
-  const sessionId = generateId('ses');
-  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY * 1000).toISOString();
-  
-  await c.env.DB.prepare(
-    `INSERT INTO sessions (id, user_id, refresh_token, expires_at)
-     VALUES (?, ?, ?, ?)`
-  )
-    .bind(sessionId, userId, tokens.refreshToken, expiresAt)
-    .run();
+  const tokens = await userRepo.createSession(user.id, user.email, c.env.JWT_SECRET);
   
   return c.json(
     success({
-      user: {
-        id: userId,
-        email: email.toLowerCase(),
-        name,
-        avatar: null,
-        created_at: now,
-        updated_at: now,
-      },
+      user,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       expiresIn: tokens.expiresIn,
@@ -117,14 +76,10 @@ auth.post('/login', async (c) => {
   }
   
   const { email, password } = result.data;
+  const userRepo = new UserRepository(c.env.DB);
   
-  // Find user
-  const user = await c.env.DB.prepare(
-    'SELECT * FROM users WHERE email = ?'
-  )
-    .bind(email.toLowerCase())
-    .first<User>();
-  
+  // Verify credentials
+  const user = await userRepo.verifyPassword(email, password);
   if (!user) {
     return c.json(
       error(ErrorCodes.INVALID_CREDENTIALS, 'Invalid email or password'),
@@ -132,35 +87,12 @@ auth.post('/login', async (c) => {
     );
   }
   
-  // Verify password
-  const valid = await verifyPassword(password, user.password_hash);
-  if (!valid) {
-    return c.json(
-      error(ErrorCodes.INVALID_CREDENTIALS, 'Invalid email or password'),
-      401
-    );
-  }
-  
   // Create tokens
-  const tokens = await createTokenPair(user.id, user.email, c.env.JWT_SECRET);
-  
-  // Store refresh token session
-  const sessionId = generateId('ses');
-  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY * 1000).toISOString();
-  
-  await c.env.DB.prepare(
-    `INSERT INTO sessions (id, user_id, refresh_token, expires_at)
-     VALUES (?, ?, ?, ?)`
-  )
-    .bind(sessionId, user.id, tokens.refreshToken, expiresAt)
-    .run();
-  
-  // Remove password_hash from response
-  const { password_hash, ...userWithoutPassword } = user;
+  const tokens = await userRepo.createSession(user.id, user.email, c.env.JWT_SECRET);
   
   return c.json(
     success({
-      user: userWithoutPassword,
+      user: userRepo.toResponse(user),
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       expiresIn: tokens.expiresIn,
@@ -174,47 +106,34 @@ auth.post('/login', async (c) => {
  */
 auth.post('/refresh', async (c) => {
   const body = await c.req.json();
-  const { refreshToken } = body as { refreshToken?: string };
   
-  if (!refreshToken) {
+  // Validate input
+  const result = refreshTokenSchema.safeParse({
+    refresh_token: body.refreshToken || body.refresh_token,
+  });
+  
+  if (!result.success) {
     return c.json(error(ErrorCodes.INVALID_INPUT, 'Refresh token required'), 400);
   }
   
+  const { refresh_token } = result.data;
+  
   try {
     // Verify refresh token
-    const payload = await verifyToken(refreshToken, c.env.JWT_SECRET);
+    await verifyToken(refresh_token, c.env.JWT_SECRET);
     
-    // Check if session exists and is valid
-    const session = await c.env.DB.prepare(
-      `SELECT s.*, u.email, u.name, u.avatar
-       FROM sessions s
-       JOIN users u ON s.user_id = u.id
-       WHERE s.refresh_token = ? AND s.expires_at > datetime('now')`
-    )
-      .bind(refreshToken)
-      .first<Session & { email: string; name: string; avatar: string | null }>();
+    const userRepo = new UserRepository(c.env.DB);
+    const refreshResult = await userRepo.refreshSession(refresh_token, c.env.JWT_SECRET);
     
-    if (!session) {
+    if (!refreshResult) {
       return c.json(error(ErrorCodes.INVALID_TOKEN, 'Invalid or expired refresh token'), 401);
     }
     
-    // Create new tokens
-    const tokens = await createTokenPair(session.user_id, session.email, c.env.JWT_SECRET);
-    
-    // Update session with new refresh token
-    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY * 1000).toISOString();
-    
-    await c.env.DB.prepare(
-      `UPDATE sessions SET refresh_token = ?, expires_at = ? WHERE id = ?`
-    )
-      .bind(tokens.refreshToken, expiresAt, session.id)
-      .run();
-    
     return c.json(
       success({
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresIn: tokens.expiresIn,
+        accessToken: refreshResult.tokens.accessToken,
+        refreshToken: refreshResult.tokens.refreshToken,
+        expiresIn: refreshResult.tokens.expiresIn,
       })
     );
   } catch {
@@ -224,26 +143,22 @@ auth.post('/refresh', async (c) => {
 
 /**
  * GET /auth/me
- * Get current user profile
+ * Get current user profile with circles
  */
 auth.get('/me', authMiddleware, async (c) => {
-  const user = c.get('user');
+  const userId = c.get('userId');
+  const userRepo = new UserRepository(c.env.DB);
   
-  // Get user's circles
-  const circles = await c.env.DB.prepare(
-    `SELECT c.*, cm.role, cm.role_label, cm.joined_at
-     FROM circles c
-     JOIN circle_members cm ON c.id = cm.circle_id
-     WHERE cm.user_id = ?
-     ORDER BY cm.joined_at DESC`
-  )
-    .bind(user.id)
-    .all();
+  const result = await userRepo.getUserWithCircles(userId);
+  
+  if (!result) {
+    return c.json(error(ErrorCodes.NOT_FOUND, 'User not found'), 404);
+  }
   
   return c.json(
     success({
-      user,
-      circles: circles.results,
+      user: result.user,
+      circles: result.circles,
     })
   );
 });
@@ -255,61 +170,35 @@ auth.get('/me', authMiddleware, async (c) => {
 auth.put('/me', authMiddleware, async (c) => {
   const userId = c.get('userId');
   const body = await c.req.json();
-  const { name, avatar, roleLabel } = body as {
-    name?: string;
-    avatar?: string;
-    roleLabel?: string;
-  };
   
-  // Build update query dynamically
-  const updates: string[] = [];
-  const values: (string | null)[] = [];
-  
-  if (name !== undefined) {
-    if (name.length < 1 || name.length > 50) {
-      return c.json(
-        error(ErrorCodes.VALIDATION_ERROR, 'Name must be 1-50 characters'),
-        400
-      );
-    }
-    updates.push('name = ?');
-    values.push(name);
+  // Validate input
+  const result = updateUserSchema.safeParse(body);
+  if (!result.success) {
+    return c.json(
+      error(ErrorCodes.VALIDATION_ERROR, result.error.errors[0].message),
+      400
+    );
   }
   
-  if (avatar !== undefined) {
-    updates.push('avatar = ?');
-    values.push(avatar || null);
-  }
+  const userRepo = new UserRepository(c.env.DB);
+  const updates = result.data;
   
-  if (updates.length === 0) {
+  // If nothing to update
+  if (Object.keys(updates).length === 0 && !body.roleLabel) {
     return c.json(error(ErrorCodes.INVALID_INPUT, 'No fields to update'), 400);
   }
   
-  updates.push("updated_at = datetime('now')");
-  values.push(userId);
+  // Update user
+  const updatedUser = await userRepo.update(userId, updates);
   
-  await c.env.DB.prepare(
-    `UPDATE users SET ${updates.join(', ')} WHERE id = ?`
-  )
-    .bind(...values)
-    .run();
-  
-  // Also update role_label in circle_members if provided
-  if (roleLabel !== undefined) {
-    // Update all circle memberships for this user
-    await c.env.DB.prepare(
-      `UPDATE circle_members SET role_label = ? WHERE user_id = ?`
-    )
-      .bind(roleLabel || null, userId)
-      .run();
+  if (!updatedUser) {
+    return c.json(error(ErrorCodes.NOT_FOUND, 'User not found'), 404);
   }
   
-  // Get updated user
-  const updatedUser = await c.env.DB.prepare(
-    'SELECT id, email, name, avatar, created_at, updated_at FROM users WHERE id = ?'
-  )
-    .bind(userId)
-    .first();
+  // Also update role_label in circle_members if provided
+  if (body.roleLabel !== undefined) {
+    await userRepo.updateRoleLabel(userId, body.roleLabel || null);
+  }
   
   return c.json(success({ user: updatedUser }));
 });
@@ -321,57 +210,40 @@ auth.put('/me', authMiddleware, async (c) => {
 auth.put('/password', authMiddleware, async (c) => {
   const userId = c.get('userId');
   const body = await c.req.json();
-  const { currentPassword, newPassword } = body as {
-    currentPassword?: string;
-    newPassword?: string;
-  };
   
-  if (!currentPassword || !newPassword) {
+  // Validate input
+  const result = changePasswordSchema.safeParse({
+    current_password: body.currentPassword || body.current_password,
+    new_password: body.newPassword || body.new_password,
+  });
+  
+  if (!result.success) {
     return c.json(
-      error(ErrorCodes.INVALID_INPUT, 'Current password and new password required'),
+      error(ErrorCodes.VALIDATION_ERROR, result.error.errors[0].message),
       400
     );
   }
   
-  if (newPassword.length < 6) {
-    return c.json(
-      error(ErrorCodes.VALIDATION_ERROR, 'New password must be at least 6 characters'),
-      400
-    );
-  }
+  const { current_password, new_password } = result.data;
+  const userRepo = new UserRepository(c.env.DB);
   
   // Get current user
-  const user = await c.env.DB.prepare(
-    'SELECT password_hash FROM users WHERE id = ?'
-  )
-    .bind(userId)
-    .first<{ password_hash: string }>();
-  
+  const user = await userRepo.findById(userId);
   if (!user) {
     return c.json(error(ErrorCodes.NOT_FOUND, 'User not found'), 404);
   }
   
   // Verify current password
-  const valid = await verifyPassword(currentPassword, user.password_hash);
+  const valid = await userRepo.verifyPassword(user.email, current_password);
   if (!valid) {
     return c.json(error(ErrorCodes.INVALID_CREDENTIALS, 'Current password is incorrect'), 401);
   }
   
-  // Hash new password
-  const newPasswordHash = await hashPassword(newPassword);
-  
   // Update password
-  await c.env.DB.prepare(
-    `UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`
-  )
-    .bind(newPasswordHash, userId)
-    .run();
+  await userRepo.updatePassword(userId, new_password);
   
-  // Invalidate all sessions except current
-  // (In production, you might want to keep current session)
-  await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?')
-    .bind(userId)
-    .run();
+  // Invalidate all sessions
+  await userRepo.deleteAllSessions(userId);
   
   return c.json(success({ message: 'Password updated successfully' }));
 });
@@ -382,12 +254,11 @@ auth.put('/password', authMiddleware, async (c) => {
  */
 auth.post('/logout', authMiddleware, async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  const { refreshToken } = body as { refreshToken?: string };
+  const refreshToken = body.refreshToken || body.refresh_token;
   
   if (refreshToken) {
-    await c.env.DB.prepare('DELETE FROM sessions WHERE refresh_token = ?')
-      .bind(refreshToken)
-      .run();
+    const userRepo = new UserRepository(c.env.DB);
+    await userRepo.deleteSession(refreshToken);
   }
   
   return c.json(success({ message: 'Logged out successfully' }));

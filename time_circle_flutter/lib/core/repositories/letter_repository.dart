@@ -131,7 +131,7 @@ class LetterRepository {
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiConfig.letterSeal(letterId),
-      data: {'unlockDate': unlockDate.toIso8601String()},
+      data: {'unlockDate': unlockDate.toUtc().toIso8601String()},
       fromData: (data) => data as Map<String, dynamic>,
     );
 

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/haptics/haptic_service.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../../shared/widgets/app_logo.dart';
 import '../../../shared/widgets/settings/settings_widgets.dart';
 import '../providers/settings_provider.dart';
+import '../../../presentation/shared/aura/animations/aura_stagger_list.dart';
 
 /// 设置页
 class SettingsView extends ConsumerWidget {
@@ -33,7 +34,10 @@ class SettingsView extends ConsumerWidget {
             elevation: 0,
             pinned: true,
             leading: IconButton(
-              onPressed: () => context.pop(),
+              onPressed: () {
+                HapticService.lightTap();
+                context.pop();
+              },
               icon: const Icon(
                 Iconsax.arrow_left_2,
                 color: AppColors.warmGray700,
@@ -50,177 +54,217 @@ class SettingsView extends ConsumerWidget {
 
           // 顶部说明
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
-                vertical: AppSpacing.md,
-              ),
-              child: Text(
-                '这里，你可以决定这些回忆如何被保存。',
-                style: AppTypography.caption(context).copyWith(
-                  color: AppColors.warmGray400,
-                  fontStyle: FontStyle.italic,
+            child: AuraStaggerItem(
+              index: 0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                  vertical: AppSpacing.md,
                 ),
-                textAlign: TextAlign.center,
+                child: Text(
+                  '这里，你可以决定这些回忆如何被保存。',
+                  style: AppTypography.caption(context).copyWith(
+                    color: AppColors.warmGray400,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ).animate().fadeIn(duration: 400.ms),
+            ),
           ),
 
           // 用户信息卡片
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
+            child: AuraStaggerItem(
+              index: 1,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                ),
+                child: _UserCard(
+                  currentUser: currentUser,
+                  childInfo: childInfo,
+                ),
               ),
-              child: _UserCard(currentUser: currentUser, childInfo: childInfo),
-            ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+            ),
           ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 28)),
 
           // 设置分组
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 我的圈子
-                  _SettingsGroup(
-                    title: '我的圈子',
-                    iconColor: AppColors.softGreenDeep,
-                    children: [
-                      SettingsListTile(
-                        icon: Iconsax.people,
-                        iconColor: AppColors.softGreenDeep,
-                        title: '成员管理',
-                        subtitle: '邀请成员加入',
-                        onTap: () => context.push('/settings/members'),
-                      ),
-                      SettingsListTile(
-                        icon: Iconsax.user_octagon,
-                        iconColor: AppColors.softGreenDeep,
-                        title: '圈子信息',
-                        subtitle: childInfo.name,
-                        onTap: () => context.push('/settings/circle'),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // 隐私与安全
-                  _SettingsGroup(
-                    title: '隐私与安全',
-                    iconColor: const Color(0xFF5A8AB8),
-                    children: [
-                      SettingsListTile(
-                        icon: Iconsax.shield_tick,
-                        iconColor: const Color(0xFF5A8AB8),
-                        title: '内容可见性',
-                        subtitle: '默认私密',
-                        onTap: () => context.push('/settings/visibility'),
-                      ),
-                      SettingsListTile(
-                        icon: Iconsax.eye_slash,
-                        iconColor: const Color(0xFF5A8AB8),
-                        title: '面部自动模糊',
-                        subtitle: '分享时保护隐私',
-                        trailing: SettingsSwitch(
-                          value: settings.faceBlurEnabled,
-                          onChanged:
-                              (v) => ref
-                                  .read(settingsProvider.notifier)
-                                  .setFaceBlurEnabled(v),
+            child: AuraStaggerItem(
+              index: 2,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 我的圈子
+                    _SettingsGroup(
+                      title: '我的圈子',
+                      iconColor: AppColors.softGreenDeep,
+                      children: [
+                        SettingsListTile(
+                          icon: Iconsax.people,
+                          iconColor: AppColors.softGreenDeep,
+                          title: '成员管理',
+                          subtitle: '邀请成员加入',
+                          onTap: () {
+                            HapticService.lightTap();
+                            context.push('/settings/members');
+                          },
                         ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // 回忆与信
-                  _SettingsGroup(
-                    title: '回忆与信',
-                    iconColor: const Color(0xFFE8A87C),
-                    children: [
-                      SettingsListTile(
-                        icon: Iconsax.sms,
-                        iconColor: const Color(0xFFE8A87C),
-                        title: '年度信提醒',
-                        subtitle: '纪念日提醒',
-                        trailing: SettingsSwitch(
-                          value: settings.annualLetterReminder,
-                          onChanged:
-                              (v) => ref
-                                  .read(settingsProvider.notifier)
-                                  .setAnnualLetterReminder(v),
+                        SettingsListTile(
+                          icon: Iconsax.user_octagon,
+                          iconColor: AppColors.softGreenDeep,
+                          title: '圈子信息',
+                          subtitle: childInfo.name,
+                          onTap: () {
+                            HapticService.lightTap();
+                            context.push('/settings/circle');
+                          },
                         ),
-                      ),
-                      SettingsListTile(
-                        icon: Iconsax.lock_1,
-                        iconColor: const Color(0xFFE8A87C),
-                        title: '时间锁信规则',
-                        subtitle: '默认锁定时长',
-                        onTap: () => context.push('/settings/time-lock'),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // 导出
-                  _SettingsGroup(
-                    title: '导出',
-                    iconColor: const Color(0xFF8B7A9C),
-                    children: [
-                      SettingsListTile(
-                        icon: Iconsax.document_download,
-                        iconColor: const Color(0xFF8B7A9C),
-                        title: '导出回忆',
-                        subtitle: '下载 ZIP / PDF',
-                        onTap: () => context.push('/settings/export'),
-                      ),
-                    ],
-                  ),
+                    // 隐私与安全
+                    _SettingsGroup(
+                      title: '隐私与安全',
+                      iconColor: const Color(0xFF5A8AB8),
+                      children: [
+                        SettingsListTile(
+                          icon: Iconsax.shield_tick,
+                          iconColor: const Color(0xFF5A8AB8),
+                          title: '内容可见性',
+                          subtitle: '默认私密',
+                          onTap: () {
+                            HapticService.lightTap();
+                            context.push('/settings/visibility');
+                          },
+                        ),
+                        SettingsListTile(
+                          icon: Iconsax.eye_slash,
+                          iconColor: const Color(0xFF5A8AB8),
+                          title: '面部自动模糊',
+                          subtitle: '分享时保护隐私',
+                          trailing: SettingsSwitch(
+                            value: settings.faceBlurEnabled,
+                            onChanged: (v) {
+                              HapticService.lightTap();
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .setFaceBlurEnabled(v);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // 关于
-                  _SettingsGroup(
-                    title: '关于',
-                    iconColor: AppColors.warmGray600,
-                    children: [
-                      SettingsListTile(
-                        icon: Iconsax.heart,
-                        iconColor: AppColors.warmGray600,
-                        title: '产品理念',
-                        onTap: () => context.push('/settings/about'),
-                      ),
-                      SettingsListTile(
-                        icon: Iconsax.document_text,
-                        iconColor: AppColors.warmGray600,
-                        title: '数据承诺',
-                        onTap: () => context.push('/settings/about'),
-                      ),
-                      SettingsListTile(
-                        icon: Iconsax.message_question,
-                        iconColor: AppColors.warmGray600,
-                        title: '帮助与反馈',
-                        onTap: () => context.push('/settings/feedback'),
-                      ),
-                    ],
-                  ),
+                    // 回忆与信
+                    _SettingsGroup(
+                      title: '回忆与信',
+                      iconColor: const Color(0xFFE8A87C),
+                      children: [
+                        SettingsListTile(
+                          icon: Iconsax.sms,
+                          iconColor: const Color(0xFFE8A87C),
+                          title: '年度信提醒',
+                          subtitle: '纪念日提醒',
+                          trailing: SettingsSwitch(
+                            value: settings.annualLetterReminder,
+                            onChanged: (v) {
+                              HapticService.lightTap();
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .setAnnualLetterReminder(v);
+                            },
+                          ),
+                        ),
+                        SettingsListTile(
+                          icon: Iconsax.lock_1,
+                          iconColor: const Color(0xFFE8A87C),
+                          title: '时间锁信规则',
+                          subtitle: '默认锁定时长',
+                          onTap: () {
+                            HapticService.lightTap();
+                            context.push('/settings/time-lock');
+                          },
+                        ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 40),
+                    const SizedBox(height: 24),
 
-                  // 底部 Logo + 版本号
-                  _buildFooter(context),
-                ],
+                    // 导出
+                    _SettingsGroup(
+                      title: '导出',
+                      iconColor: const Color(0xFF8B7A9C),
+                      children: [
+                        SettingsListTile(
+                          icon: Iconsax.document_download,
+                          iconColor: const Color(0xFF8B7A9C),
+                          title: '导出回忆',
+                          subtitle: '下载 ZIP / PDF',
+                          onTap: () {
+                            HapticService.lightTap();
+                            context.push('/settings/export');
+                          },
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // 关于
+                    _SettingsGroup(
+                      title: '关于',
+                      iconColor: AppColors.warmGray600,
+                      children: [
+                        SettingsListTile(
+                          icon: Iconsax.heart,
+                          iconColor: AppColors.warmGray600,
+                          title: '产品理念',
+                          onTap: () {
+                            HapticService.lightTap();
+                            context.push('/settings/about');
+                          },
+                        ),
+                        SettingsListTile(
+                          icon: Iconsax.document_text,
+                          iconColor: AppColors.warmGray600,
+                          title: '数据承诺',
+                          onTap: () {
+                            HapticService.lightTap();
+                            context.push('/settings/about');
+                          },
+                        ),
+                        SettingsListTile(
+                          icon: Iconsax.message_question,
+                          iconColor: AppColors.warmGray600,
+                          title: '帮助与反馈',
+                          onTap: () {
+                            HapticService.lightTap();
+                            context.push('/settings/feedback');
+                          },
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // 底部 Logo + 版本号
+                    _buildFooter(context),
+                  ],
+                ),
               ),
-            ).animate().fadeIn(duration: 500.ms, delay: 200.ms),
+            ),
           ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 60)),

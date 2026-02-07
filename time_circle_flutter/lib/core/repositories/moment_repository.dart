@@ -33,9 +33,10 @@ class MomentRepository {
     if (mediaType != null) queryParams['mediaType'] = mediaType;
     if (favorite == true) queryParams['favorite'] = 'true';
     if (startDate != null) {
-      queryParams['startDate'] = startDate.toIso8601String();
+      queryParams['startDate'] = startDate.toUtc().toIso8601String();
     }
-    if (endDate != null) queryParams['endDate'] = endDate.toIso8601String();
+    if (endDate != null)
+      queryParams['endDate'] = endDate.toUtc().toIso8601String();
 
     final response = await _api.get<Map<String, dynamic>>(
       ApiConfig.circleMoments(circleId),
@@ -96,7 +97,8 @@ class MomentRepository {
     };
 
     if (mediaUrls != null) data['mediaUrls'] = mediaUrls;
-    if (timestamp != null) data['timestamp'] = timestamp.toIso8601String();
+    if (timestamp != null)
+      data['timestamp'] = timestamp.toUtc().toIso8601String();
     if (contextTags != null && contextTags.isNotEmpty) {
       data['contextTags'] =
           contextTags

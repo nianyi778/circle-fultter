@@ -81,7 +81,7 @@ class LettersView extends ConsumerWidget {
                         boxShadow: AppShadows.soft,
                       ),
                       child: IconButton(
-                        onPressed: () {
+                        onPressed: () async {
                           // 优先查找草稿
                           final draft =
                               letters
@@ -93,7 +93,7 @@ class LettersView extends ConsumerWidget {
                             context.push('/letter/${draft.id}/edit');
                           } else {
                             // 没有草稿，创建新信件
-                            _createNewLetter(context, ref);
+                            await _createNewLetter(context, ref);
                           }
                         },
                         icon: const Icon(
@@ -283,10 +283,10 @@ class LettersView extends ConsumerWidget {
   }
 
   /// 创建新信件
-  void _createNewLetter(BuildContext context, WidgetRef ref) {
+  Future<void> _createNewLetter(BuildContext context, WidgetRef ref) async {
     final childInfo = ref.read(childInfoProvider);
     final newLetter = Letter(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: '', // 临时 ID，会被服务器替换
       circleId: childInfo.id,
       title: '给 ${childInfo.shortAgeLabel} 的${childInfo.name}',
       preview: '',
@@ -297,8 +297,22 @@ class LettersView extends ConsumerWidget {
       updatedAt: DateTime.now(),
     );
 
-    ref.read(lettersProvider.notifier).addLetter(newLetter);
-    context.push('/letter/${newLetter.id}/edit');
+    try {
+      await ref.read(lettersProvider.notifier).addLetter(newLetter);
+      // 获取刚刚创建的草稿信件（应该在列表最前面）
+      final letters = ref.read(lettersProvider);
+      final createdLetter = letters.firstWhere(
+        (l) => l.status == LetterStatus.draft && l.type == LetterType.annual,
+        orElse: () => letters.first,
+      );
+      if (context.mounted) {
+        context.push('/letter/${createdLetter.id}/edit');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        AuraToast.error(context, '创建信件失败：${e.toString()}');
+      }
+    }
   }
 }
 

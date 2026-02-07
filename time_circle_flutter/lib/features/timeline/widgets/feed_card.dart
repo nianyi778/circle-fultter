@@ -4,6 +4,7 @@ import 'package:iconsax/iconsax.dart';
 import 'dart:math' as math;
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/haptics/haptic_service.dart';
 import '../../../core/models/moment.dart';
 import '../../../core/models/comment.dart';
 import '../../../core/providers/app_providers.dart';
@@ -68,6 +69,7 @@ class _FeedCardState extends ConsumerState<FeedCard>
   }
 
   void _handleLike() {
+    HapticService.lightTap();
     _likeController.forward();
     ref.read(momentsProvider.notifier).toggleFavorite(widget.moment.id);
   }

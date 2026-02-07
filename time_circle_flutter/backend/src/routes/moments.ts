@@ -1,45 +1,24 @@
 /**
- * Moments Routes
+ * Moments Routes (Refactored with Repository Pattern)
  */
 
 import { Hono } from 'hono';
-import { z } from 'zod';
-import { generateId } from '../utils/id';
-import { success, error, paginate, ErrorCodes } from '../utils/response';
+import { success, error, ErrorCodes } from '../utils/response';
 import { authMiddleware, circleMemberMiddleware } from '../middleware/auth';
-import type { Env, Moment } from '../types';
+import { MomentRepository, CircleRepository } from '../repositories';
+import {
+  createMomentSchema,
+  updateMomentSchema,
+  momentFilterSchema,
+  paginationSchema,
+  shareToWorldSchema,
+} from '../schemas';
+import type { Env } from '../types';
 
 const moments = new Hono<{ Bindings: Env }>();
 
 // All routes require authentication
 moments.use('*', authMiddleware);
-
-// Validation schemas
-const createMomentSchema = z.object({
-  content: z.string().min(1, 'Content is required'),
-  mediaType: z.enum(['text', 'image', 'video', 'audio']),
-  mediaUrls: z.array(z.string()).optional(),
-  timestamp: z.string().optional(),
-  contextTags: z.array(z.object({
-    type: z.string(),
-    label: z.string(),
-    emoji: z.string(),
-  })).optional(),
-  location: z.string().optional(),
-  futureMessage: z.string().optional(),
-});
-
-const updateMomentSchema = z.object({
-  content: z.string().min(1).optional(),
-  mediaUrls: z.array(z.string()).optional(),
-  contextTags: z.array(z.object({
-    type: z.string(),
-    label: z.string(),
-    emoji: z.string(),
-  })).optional(),
-  location: z.string().nullable().optional(),
-  futureMessage: z.string().nullable().optional(),
-});
 
 /**
  * GET /moments/:id
@@ -49,45 +28,22 @@ moments.get('/:id', async (c) => {
   const momentId = c.req.param('id');
   const userId = c.get('userId');
   
+  const momentRepo = new MomentRepository(c.env.DB);
+  const circleRepo = new CircleRepository(c.env.DB);
+  
   // Get moment with author info
-  const moment = await c.env.DB.prepare(
-    `SELECT m.*, u.name as author_name, u.avatar as author_avatar
-     FROM moments m
-     JOIN users u ON m.author_id = u.id
-     WHERE m.id = ? AND m.deleted_at IS NULL`
-  )
-    .bind(momentId)
-    .first();
+  const moment = await momentRepo.findById(momentId);
   
   if (!moment) {
     return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
   }
   
   // Check if user is a member of the circle
-  const isMember = await c.env.DB.prepare(
-    'SELECT 1 FROM circle_members WHERE circle_id = ? AND user_id = ?'
-  )
-    .bind(moment.circle_id, userId)
-    .first();
-  
-  if (!isMember) {
+  if (!(await circleRepo.isMember(moment.circle_id, userId))) {
     return c.json(error(ErrorCodes.FORBIDDEN, 'Not a member of this circle'), 403);
   }
   
-  // Get comment count
-  const commentCount = await c.env.DB.prepare(
-    `SELECT COUNT(*) as count FROM comments 
-     WHERE target_id = ? AND target_type = 'moment' AND deleted_at IS NULL`
-  )
-    .bind(momentId)
-    .first<{ count: number }>();
-  
-  return c.json(success({
-    ...moment,
-    context_tags: moment.context_tags ? JSON.parse(moment.context_tags as string) : [],
-    media_urls: moment.media_urls ? JSON.parse(moment.media_urls as string) : [],
-    comment_count: commentCount?.count || 0,
-  }));
+  return c.json(success(momentRepo.toResponse(moment)));
 });
 
 /**
@@ -99,22 +55,26 @@ moments.put('/:id', async (c) => {
   const userId = c.get('userId');
   const body = await c.req.json();
   
+  const momentRepo = new MomentRepository(c.env.DB);
+  
   // Check ownership
-  const moment = await c.env.DB.prepare(
-    'SELECT circle_id, author_id FROM moments WHERE id = ? AND deleted_at IS NULL'
-  )
-    .bind(momentId)
-    .first<{ circle_id: string; author_id: string }>();
-  
-  if (!moment) {
-    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
+  if (!(await momentRepo.isAuthor(momentId, userId))) {
+    const moment = await momentRepo.findById(momentId);
+    if (!moment) {
+      return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
+    }
+    return c.json(error(ErrorCodes.FORBIDDEN, "Cannot edit others' moments"), 403);
   }
   
-  if (moment.author_id !== userId) {
-    return c.json(error(ErrorCodes.FORBIDDEN, 'Cannot edit others\' moments'), 403);
-  }
+  // Validate input - convert camelCase to snake_case
+  const result = updateMomentSchema.safeParse({
+    content: body.content,
+    media_urls: body.mediaUrls || body.media_urls,
+    context_tags: body.contextTags || body.context_tags,
+    location: body.location,
+    future_message: body.futureMessage || body.future_message,
+  });
   
-  const result = updateMomentSchema.safeParse(body);
   if (!result.success) {
     return c.json(
       error(ErrorCodes.VALIDATION_ERROR, result.error.errors[0].message),
@@ -122,125 +82,60 @@ moments.put('/:id', async (c) => {
     );
   }
   
-  const updates: string[] = [];
-  const values: (string | null)[] = [];
+  // Check if there are updates
+  const updates = {
+    content: result.data.content,
+    media_urls: result.data.media_urls,
+    context_tags: result.data.context_tags,
+    location: result.data.location,
+    future_message: result.data.future_message,
+  };
   
-  if (result.data.content !== undefined) {
-    updates.push('content = ?');
-    values.push(result.data.content);
-  }
+  // Filter out undefined values
+  const cleanUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([, v]) => v !== undefined)
+  );
   
-  if (result.data.mediaUrls !== undefined) {
-    updates.push('media_urls = ?');
-    values.push(JSON.stringify(result.data.mediaUrls));
-  }
-
-  
-  if (result.data.contextTags !== undefined) {
-    updates.push('context_tags = ?');
-    values.push(JSON.stringify(result.data.contextTags));
-  }
-  
-  if (result.data.location !== undefined) {
-    updates.push('location = ?');
-    values.push(result.data.location);
-  }
-  
-  if (result.data.futureMessage !== undefined) {
-    updates.push('future_message = ?');
-    values.push(result.data.futureMessage);
-  }
-  
-  if (updates.length === 0) {
+  if (Object.keys(cleanUpdates).length === 0) {
     return c.json(error(ErrorCodes.INVALID_INPUT, 'No updates provided'), 400);
   }
   
-  updates.push("updated_at = datetime('now')");
-  values.push(momentId);
+  const updated = await momentRepo.update(momentId, cleanUpdates);
   
-  await c.env.DB.prepare(
-    `UPDATE moments SET ${updates.join(', ')} WHERE id = ?`
-  )
-    .bind(...values)
-    .run();
+  if (!updated) {
+    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
+  }
   
-  // Log sync event
-  await c.env.DB.prepare(
-    `INSERT INTO sync_log (circle_id, entity_type, entity_id, action)
-     VALUES (?, 'moment', ?, 'update')`
-  )
-    .bind(moment.circle_id, momentId)
-    .run();
-  
-  const updated = await c.env.DB.prepare(
-    `SELECT m.*, u.name as author_name, u.avatar as author_avatar
-     FROM moments m
-     JOIN users u ON m.author_id = u.id
-     WHERE m.id = ?`
-  )
-    .bind(momentId)
-    .first();
-  
-  return c.json(success({
-    ...updated,
-    context_tags: updated?.context_tags ? JSON.parse(updated.context_tags as string) : [],
-    media_urls: updated?.media_urls ? JSON.parse(updated.media_urls as string) : [],
-  }));
+  return c.json(success(momentRepo.toResponse(updated)));
 });
 
 /**
  * DELETE /moments/:id
- * Soft delete moment (author only)
+ * Soft delete moment (author only or admin)
  */
 moments.delete('/:id', async (c) => {
   const momentId = c.req.param('id');
   const userId = c.get('userId');
   
-  // Check ownership
-  const moment = await c.env.DB.prepare(
-    'SELECT circle_id, author_id FROM moments WHERE id = ? AND deleted_at IS NULL'
-  )
-    .bind(momentId)
-    .first<{ circle_id: string; author_id: string }>();
+  const momentRepo = new MomentRepository(c.env.DB);
+  const circleRepo = new CircleRepository(c.env.DB);
+  
+  // Get moment first
+  const moment = await momentRepo.findById(momentId);
   
   if (!moment) {
     return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
   }
   
-  if (moment.author_id !== userId) {
-    // Check if admin
-    const isAdmin = await c.env.DB.prepare(
-      `SELECT 1 FROM circle_members WHERE circle_id = ? AND user_id = ? AND role = 'admin'`
-    )
-      .bind(moment.circle_id, userId)
-      .first();
-    
-    if (!isAdmin) {
-      return c.json(error(ErrorCodes.FORBIDDEN, 'Cannot delete others\' moments'), 403);
-    }
+  // Check if author or admin
+  const isAuthor = moment.author_id === userId;
+  const isAdmin = await circleRepo.isAdmin(moment.circle_id, userId);
+  
+  if (!isAuthor && !isAdmin) {
+    return c.json(error(ErrorCodes.FORBIDDEN, "Cannot delete others' moments"), 403);
   }
   
-  // Soft delete
-  await c.env.DB.prepare(
-    `UPDATE moments SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
-  )
-    .bind(momentId)
-    .run();
-  
-  // Also delete any world post linked to this moment
-  await c.env.DB.prepare(
-    `UPDATE world_posts SET deleted_at = datetime('now') WHERE moment_id = ?`
-  )
-    .bind(momentId)
-    .run();
-  
-  // Log sync event
-  await c.env.DB.prepare(
-    `INSERT INTO sync_log (circle_id, entity_type, entity_id, action)
-     VALUES (?, 'moment', ?, 'delete')`
-  )
-    .bind(moment.circle_id, momentId)
-    .run();
+  await momentRepo.delete(momentId);
   
   return c.json(success({ message: 'Moment deleted' }));
 });
@@ -253,102 +148,87 @@ moments.put('/:id/favorite', async (c) => {
   const momentId = c.req.param('id');
   const userId = c.get('userId');
   
-  // Check membership
-  const moment = await c.env.DB.prepare(
-    'SELECT circle_id, is_favorite FROM moments WHERE id = ? AND deleted_at IS NULL'
-  )
-    .bind(momentId)
-    .first<{ circle_id: string; is_favorite: number }>();
+  const momentRepo = new MomentRepository(c.env.DB);
+  const circleRepo = new CircleRepository(c.env.DB);
   
-  if (!moment) {
+  // Get moment and check membership
+  const circleId = await momentRepo.getCircleId(momentId);
+  
+  if (!circleId) {
     return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
   }
   
-  const isMember = await c.env.DB.prepare(
-    'SELECT 1 FROM circle_members WHERE circle_id = ? AND user_id = ?'
-  )
-    .bind(moment.circle_id, userId)
-    .first();
-  
-  if (!isMember) {
+  if (!(await circleRepo.isMember(circleId, userId))) {
     return c.json(error(ErrorCodes.FORBIDDEN, 'Not a member of this circle'), 403);
   }
   
-  const newValue = moment.is_favorite ? 0 : 1;
+  const isFavorite = await momentRepo.toggleFavorite(momentId);
   
-  await c.env.DB.prepare(
-    `UPDATE moments SET is_favorite = ?, updated_at = datetime('now') WHERE id = ?`
-  )
-    .bind(newValue, momentId)
-    .run();
+  if (isFavorite === null) {
+    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
+  }
   
-  // Log sync event
-  await c.env.DB.prepare(
-    `INSERT INTO sync_log (circle_id, entity_type, entity_id, action)
-     VALUES (?, 'moment', ?, 'update')`
-  )
-    .bind(moment.circle_id, momentId)
-    .run();
+  return c.json(success({ is_favorite: isFavorite }));
+});
+
+/**
+ * POST /moments/:id/share
+ * Share moment to world
+ */
+moments.post('/:id/share', async (c) => {
+  const momentId = c.req.param('id');
+  const userId = c.get('userId');
+  const body = await c.req.json();
   
-  return c.json(success({ is_favorite: newValue === 1 }));
+  // Validate input
+  const result = shareToWorldSchema.safeParse(body);
+  if (!result.success) {
+    return c.json(
+      error(ErrorCodes.VALIDATION_ERROR, result.error.errors[0].message),
+      400
+    );
+  }
+  
+  const momentRepo = new MomentRepository(c.env.DB);
+  
+  // Check ownership
+  if (!(await momentRepo.isAuthor(momentId, userId))) {
+    return c.json(error(ErrorCodes.FORBIDDEN, 'Can only share your own moments'), 403);
+  }
+  
+  const worldPostId = await momentRepo.shareToWorld(
+    momentId,
+    result.data.tag,
+    result.data.bg_gradient
+  );
+  
+  if (!worldPostId) {
+    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
+  }
+  
+  return c.json(success({ world_post_id: worldPostId }));
 });
 
 /**
  * DELETE /moments/:id/world
- * Withdraw moment from world (remove associated world post)
+ * Withdraw moment from world
  */
 moments.delete('/:id/world', async (c) => {
   const momentId = c.req.param('id');
   const userId = c.get('userId');
   
+  const momentRepo = new MomentRepository(c.env.DB);
+  
   // Check ownership
-  const moment = await c.env.DB.prepare(
-    'SELECT author_id, is_shared_to_world FROM moments WHERE id = ? AND deleted_at IS NULL'
-  )
-    .bind(momentId)
-    .first<{ author_id: string; is_shared_to_world: number }>();
-  
-  if (!moment) {
-    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
+  if (!(await momentRepo.isAuthor(momentId, userId))) {
+    return c.json(error(ErrorCodes.FORBIDDEN, "Cannot withdraw others' moments"), 403);
   }
   
-  if (moment.author_id !== userId) {
-    return c.json(error(ErrorCodes.FORBIDDEN, 'Cannot withdraw others\' moments'), 403);
-  }
+  const success_ = await momentRepo.withdrawFromWorld(momentId);
   
-  if (!moment.is_shared_to_world) {
+  if (!success_) {
     return c.json(error(ErrorCodes.INVALID_INPUT, 'Moment is not shared to world'), 400);
   }
-  
-  // Find and soft delete the world post
-  const worldPost = await c.env.DB.prepare(
-    'SELECT id, tag FROM world_posts WHERE moment_id = ? AND deleted_at IS NULL'
-  )
-    .bind(momentId)
-    .first<{ id: string; tag: string }>();
-  
-  if (worldPost) {
-    // Soft delete the world post
-    await c.env.DB.prepare(
-      `UPDATE world_posts SET deleted_at = datetime('now') WHERE id = ?`
-    )
-      .bind(worldPost.id)
-      .run();
-    
-    // Update channel post count
-    await c.env.DB.prepare(
-      `UPDATE world_channels SET post_count = MAX(0, post_count - 1) WHERE id = ?`
-    )
-      .bind(worldPost.tag)
-      .run();
-  }
-  
-  // Update moment
-  await c.env.DB.prepare(
-    `UPDATE moments SET is_shared_to_world = 0, world_topic = NULL, updated_at = datetime('now') WHERE id = ?`
-  )
-    .bind(momentId)
-    .run();
   
   return c.json(success({ message: 'Withdrawn from world' }));
 });
@@ -361,83 +241,49 @@ circleMoments.use('*', circleMemberMiddleware);
 
 /**
  * GET /circles/:circleId/moments
- * List moments in a circle
+ * List moments in a circle with filters
  */
 circleMoments.get('/', async (c) => {
   const circleId = c.req.param('circleId')!;
-  const page = parseInt(c.req.query('page') || '1');
-  const limit = Math.min(parseInt(c.req.query('limit') || '20'), 100);
-  const offset = (page - 1) * limit;
   
-  // Filters
-  const authorId = c.req.query('authorId');
-  const mediaType = c.req.query('mediaType');
-  const favorite = c.req.query('favorite');
-  const startDate = c.req.query('startDate');
-  const endDate = c.req.query('endDate');
+  // Parse pagination
+  const paginationResult = paginationSchema.safeParse({
+    page: c.req.query('page'),
+    limit: c.req.query('limit'),
+  });
   
-  let whereClause = 'WHERE m.circle_id = ? AND m.deleted_at IS NULL';
-  const params: (string | number)[] = [circleId];
+  const pagination = paginationResult.success
+    ? paginationResult.data
+    : { page: 1, limit: 20 };
   
-  if (authorId) {
-    whereClause += ' AND m.author_id = ?';
-    params.push(authorId);
-  }
+  // Parse filters - support both camelCase and snake_case
+  const filterResult = momentFilterSchema.safeParse({
+    author_id: c.req.query('authorId') || c.req.query('author_id'),
+    media_type: c.req.query('mediaType') || c.req.query('media_type'),
+    favorite: c.req.query('favorite'),
+    start_date: c.req.query('startDate') || c.req.query('start_date'),
+    end_date: c.req.query('endDate') || c.req.query('end_date'),
+    year: c.req.query('year'),
+  });
   
-  if (mediaType) {
-    whereClause += ' AND m.media_type = ?';
-    params.push(mediaType);
-  }
+  const filter = filterResult.success ? {
+    author_id: filterResult.data.author_id,
+    media_type: filterResult.data.media_type,
+    favorite: filterResult.data.favorite === 'true',
+    start_date: filterResult.data.start_date,
+    end_date: filterResult.data.end_date,
+    year: filterResult.data.year,
+  } : undefined;
   
-  if (favorite === 'true') {
-    whereClause += ' AND m.is_favorite = 1';
-  }
+  const momentRepo = new MomentRepository(c.env.DB);
   
-  if (startDate) {
-    whereClause += ' AND m.timestamp >= ?';
-    params.push(startDate);
-  }
-  
-  if (endDate) {
-    whereClause += ' AND m.timestamp <= ?';
-    params.push(endDate);
-  }
-  
-  // Get total count
-  const countResult = await c.env.DB.prepare(
-    `SELECT COUNT(*) as total FROM moments m ${whereClause}`
-  )
-    .bind(...params)
-    .first<{ total: number }>();
-  
-  const total = countResult?.total || 0;
-  
-  // Get moments
-  const momentsResult = await c.env.DB.prepare(
-    `SELECT m.*, u.name as author_name, u.avatar as author_avatar,
-            (SELECT COUNT(*) FROM comments WHERE target_id = m.id AND target_type = 'moment' AND deleted_at IS NULL) as comment_count
-     FROM moments m
-     JOIN users u ON m.author_id = u.id
-     ${whereClause}
-     ORDER BY m.timestamp DESC
-     LIMIT ? OFFSET ?`
-  )
-    .bind(...params, limit, offset)
-    .all();
-  
-  const momentsWithParsedTags = momentsResult.results.map((m: any) => ({
-    ...m,
-    context_tags: m.context_tags ? JSON.parse(m.context_tags) : [],
-    media_urls: m.media_urls ? JSON.parse(m.media_urls) : [],
-  }));
+  const result = await momentRepo.findByCircle(circleId, pagination, filter);
   
   return c.json(
-    success(
-      {
-        data: momentsWithParsedTags,
-        meta: paginate(page, limit, total),
-      },
-    ),
+    success({
+      data: result.data.map((m) => momentRepo.toResponse(m)),
+      meta: result.meta,
+    })
   );
 });
 
@@ -446,11 +292,21 @@ circleMoments.get('/', async (c) => {
  * Create a moment
  */
 circleMoments.post('/', async (c) => {
-  const circleId = c.req.param('circleId');
+  const circleId = c.req.param('circleId')!;
   const userId = c.get('userId');
   const body = await c.req.json();
   
-  const result = createMomentSchema.safeParse(body);
+  // Validate input - support both camelCase and snake_case
+  const result = createMomentSchema.safeParse({
+    content: body.content,
+    media_type: body.mediaType || body.media_type,
+    media_urls: body.mediaUrls || body.media_urls,
+    timestamp: body.timestamp,
+    context_tags: body.contextTags || body.context_tags,
+    location: body.location,
+    future_message: body.futureMessage || body.future_message,
+  });
+  
   if (!result.success) {
     return c.json(
       error(ErrorCodes.VALIDATION_ERROR, result.error.errors[0].message),
@@ -458,61 +314,79 @@ circleMoments.post('/', async (c) => {
     );
   }
   
-  const data = result.data;
-  const momentId = generateId('mom');
-  const now = new Date().toISOString();
-  const timestamp = data.timestamp || now;
+  const momentRepo = new MomentRepository(c.env.DB);
   
-  await c.env.DB.prepare(
-    `INSERT INTO moments (
-      id, circle_id, author_id, content, media_type, media_urls,
-      timestamp, context_tags, location, future_message,
-      created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      momentId,
-      circleId,
-      userId,
-      data.content,
-      data.mediaType,
-      JSON.stringify(data.mediaUrls ?? []),
-      timestamp,
-      data.contextTags ? JSON.stringify(data.contextTags) : null,
-      data.location || null,
-      data.futureMessage || null,
-      now,
-      now
-    )
-    .run();
+  const moment = await momentRepo.create({
+    circle_id: circleId,
+    author_id: userId,
+    content: result.data.content,
+    media_type: result.data.media_type,
+    media_urls: result.data.media_urls,
+    timestamp: result.data.timestamp,
+    context_tags: result.data.context_tags,
+    location: result.data.location,
+    future_message: result.data.future_message,
+  });
   
-  // Log sync event
-  await c.env.DB.prepare(
-    `INSERT INTO sync_log (circle_id, entity_type, entity_id, action)
-     VALUES (?, 'moment', ?, 'create')`
-  )
-    .bind(circleId, momentId)
-    .run();
+  return c.json(success(momentRepo.toResponse(moment)), 201);
+});
+
+/**
+ * GET /circles/:circleId/moments/memory
+ * Get "this day in history" moments
+ */
+circleMoments.get('/memory', async (c) => {
+  const circleId = c.req.param('circleId')!;
+  const limit = Math.min(parseInt(c.req.query('limit') || '10'), 50);
   
-  // Get created moment with author info
-  const moment = await c.env.DB.prepare(
-    `SELECT m.*, u.name as author_name, u.avatar as author_avatar
-     FROM moments m
-     JOIN users u ON m.author_id = u.id
-     WHERE m.id = ?`
-  )
-    .bind(momentId)
-    .first();
+  const momentRepo = new MomentRepository(c.env.DB);
   
-   return c.json(
-     success({
-       ...moment,
-       context_tags: data.contextTags || [],
-       media_urls: data.mediaUrls ?? [],
-       comment_count: 0,
-     }),
-     201
-   );
+  const moments = await momentRepo.findLastYearToday(circleId, limit);
+  
+  return c.json(success(moments.map((m) => momentRepo.toResponse(m))));
+});
+
+/**
+ * GET /circles/:circleId/moments/random
+ * Get random moments for memory roaming
+ */
+circleMoments.get('/random', async (c) => {
+  const circleId = c.req.param('circleId')!;
+  const count = Math.min(parseInt(c.req.query('count') || '5'), 20);
+  
+  const momentRepo = new MomentRepository(c.env.DB);
+  
+  const moments = await momentRepo.findRandom(circleId, count);
+  
+  return c.json(success(moments.map((m) => momentRepo.toResponse(m))));
+});
+
+/**
+ * GET /circles/:circleId/moments/years
+ * Get available years for filtering
+ */
+circleMoments.get('/years', async (c) => {
+  const circleId = c.req.param('circleId')!;
+  
+  const momentRepo = new MomentRepository(c.env.DB);
+  
+  const years = await momentRepo.getAvailableYears(circleId);
+  
+  return c.json(success(years));
+});
+
+/**
+ * GET /circles/:circleId/moments/stats
+ * Get moment stats by author
+ */
+circleMoments.get('/stats', async (c) => {
+  const circleId = c.req.param('circleId')!;
+  
+  const momentRepo = new MomentRepository(c.env.DB);
+  
+  const stats = await momentRepo.getCountByAuthor(circleId);
+  
+  return c.json(success(stats));
 });
 
 export { moments as momentRoutes, circleMoments as circleMomentRoutes };

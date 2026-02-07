@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'transitions.dart';
 import '../../features/auth/views/login_view.dart';
 import '../../features/auth/views/register_view.dart';
 import '../../features/auth/views/circle_setup_view.dart';
@@ -34,10 +34,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/splash',
         name: 'splash',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.fade(
               key: state.pageKey,
               child: const SplashView(),
-              transitionsBuilder: _fadeTransition,
+              name: 'splash',
             ),
       ),
 
@@ -46,10 +46,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/login',
         name: 'login',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.fade(
               key: state.pageKey,
               child: const LoginView(),
-              transitionsBuilder: _fadeTransition,
+              name: 'login',
             ),
       ),
 
@@ -58,10 +58,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/register',
         name: 'register',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const RegisterView(),
-              transitionsBuilder: _fadeTransition,
+              name: 'register',
             ),
       ),
 
@@ -70,10 +70,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/circle-setup',
         name: 'circleSetup',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const CircleSetupView(),
-              transitionsBuilder: _fadeTransition,
+              name: 'circleSetup',
             ),
       ),
 
@@ -87,54 +87,55 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/home',
             name: 'home',
             pageBuilder:
-                (context, state) => CustomTransitionPage(
+                (context, state) => AuraPageTransitions.fade(
                   key: state.pageKey,
                   child: const HomeView(),
-                  transitionsBuilder: _fadeTransition,
+                  name: 'home',
                 ),
           ),
           GoRoute(
             path: '/timeline',
             name: 'timeline',
             pageBuilder:
-                (context, state) => CustomTransitionPage(
+                (context, state) => AuraPageTransitions.fade(
                   key: state.pageKey,
                   child: const TimelineView(),
-                  transitionsBuilder: _fadeTransition,
+                  name: 'timeline',
                 ),
           ),
           GoRoute(
             path: '/letters',
             name: 'letters',
             pageBuilder:
-                (context, state) => CustomTransitionPage(
+                (context, state) => AuraPageTransitions.fade(
                   key: state.pageKey,
                   child: const LettersView(),
-                  transitionsBuilder: _fadeTransition,
+                  name: 'letters',
                 ),
           ),
           GoRoute(
             path: '/world',
             name: 'world',
             pageBuilder:
-                (context, state) => CustomTransitionPage(
+                (context, state) => AuraPageTransitions.fade(
                   key: state.pageKey,
                   child: const WorldView(),
-                  transitionsBuilder: _fadeTransition,
+                  name: 'world',
                 ),
           ),
         ],
       ),
 
+      // 详情页 - 使用滑动上入动画
       GoRoute(
         path: '/moment/:id',
         name: 'momentDetail',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id']!;
-          return CustomTransitionPage(
+          return AuraPageTransitions.slideUp(
             key: state.pageKey,
             child: MomentDetailView(momentId: id),
-            transitionsBuilder: _slideUpTransition,
+            name: 'momentDetail',
           );
         },
       ),
@@ -144,10 +145,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'letterDetail',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id']!;
-          return CustomTransitionPage(
+          return AuraPageTransitions.slideUp(
             key: state.pageKey,
             child: LetterDetailView(letterId: id),
-            transitionsBuilder: _slideUpTransition,
+            name: 'letterDetail',
           );
         },
       ),
@@ -157,22 +158,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'letterEditor',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id']!;
-          return CustomTransitionPage(
+          return AuraPageTransitions.slideUp(
             key: state.pageKey,
             child: LetterEditorView(letterId: id),
-            transitionsBuilder: _slideUpTransition,
+            name: 'letterEditor',
           );
         },
       ),
 
+      // 设置页 - 使用滑动上入动画
       GoRoute(
         path: '/settings',
         name: 'settings',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const SettingsView(),
-              transitionsBuilder: _slideUpTransition,
+              name: 'settings',
             ),
       ),
 
@@ -181,10 +183,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings/profile',
         name: 'profileEdit',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const ProfileEditView(),
-              transitionsBuilder: _slideUpTransition,
+              name: 'profileEdit',
             ),
       ),
 
@@ -192,10 +194,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings/circle',
         name: 'circleInfo',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const CircleInfoView(),
-              transitionsBuilder: _slideUpTransition,
+              name: 'circleInfo',
             ),
       ),
 
@@ -203,10 +205,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings/members',
         name: 'members',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const MembersView(),
-              transitionsBuilder: _slideUpTransition,
+              name: 'members',
             ),
       ),
 
@@ -214,10 +216,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings/visibility',
         name: 'visibility',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const VisibilityView(),
-              transitionsBuilder: _slideUpTransition,
+              name: 'visibility',
             ),
       ),
 
@@ -225,10 +227,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings/time-lock',
         name: 'timeLock',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const TimeLockView(),
-              transitionsBuilder: _slideUpTransition,
+              name: 'timeLock',
             ),
       ),
 
@@ -236,10 +238,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings/export',
         name: 'export',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const ExportView(),
-              transitionsBuilder: _slideUpTransition,
+              name: 'export',
             ),
       ),
 
@@ -247,10 +249,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings/about',
         name: 'about',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const AboutView(),
-              transitionsBuilder: _slideUpTransition,
+              name: 'about',
             ),
       ),
 
@@ -258,48 +260,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings/feedback',
         name: 'feedback',
         pageBuilder:
-            (context, state) => CustomTransitionPage(
+            (context, state) => AuraPageTransitions.slideUp(
               key: state.pageKey,
               child: const FeedbackView(),
-              transitionsBuilder: _slideUpTransition,
+              name: 'feedback',
             ),
       ),
     ],
   );
 });
-
-/// 淡入淡出过渡 - 用于标签页切换
-Widget _fadeTransition(
-  BuildContext context,
-  Animation<double> animation,
-  Animation<double> secondaryAnimation,
-  Widget child,
-) {
-  return FadeTransition(
-    opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-    child: child,
-  );
-}
-
-/// 底部滑入过渡 - 用于模态页面
-Widget _slideUpTransition(
-  BuildContext context,
-  Animation<double> animation,
-  Animation<double> secondaryAnimation,
-  Widget child,
-) {
-  final slideAnimation = Tween<Offset>(
-    begin: const Offset(0, 0.1),
-    end: Offset.zero,
-  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
-
-  final fadeAnimation = CurvedAnimation(
-    parent: animation,
-    curve: Curves.easeOut,
-  );
-
-  return SlideTransition(
-    position: slideAnimation,
-    child: FadeTransition(opacity: fadeAnimation, child: child),
-  );
-}

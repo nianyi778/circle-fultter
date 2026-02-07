@@ -5,12 +5,15 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/animations/animation_config.dart';
+import '../../../core/haptics/haptic_service.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/moment.dart';
 import '../../../shared/widgets/comment_drawer.dart';
 import '../../../shared/widgets/aura/aura_skeleton.dart';
 import '../../../shared/widgets/aura/aura_toast.dart';
 import '../../../shared/widgets/aura/aura_dialog.dart';
+import '../../../presentation/shared/aura/animations/aura_stagger_list.dart';
 import '../widgets/feed_card.dart';
 import '../widgets/filter_drawer.dart';
 
@@ -36,9 +39,12 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
 
   /// 下拉刷新
   Future<void> _onRefresh(WidgetRef ref) async {
+    HapticService.refresh();
     try {
       await ref.read(momentsProvider.notifier).refresh();
+      HapticService.success();
     } catch (e) {
+      HapticService.error();
       if (mounted) {
         AuraToast.error(context, '刷新失败：${e.toString()}');
       }
@@ -164,32 +170,28 @@ class _TimelineViewState extends ConsumerState<TimelineView> {
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final moment = moments[index];
-                        return Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.cardGap,
-                              ),
-                              child: FeedCard(
-                                moment: moment,
-                                onTap:
-                                    () => context.push('/moment/${moment.id}'),
-                                onDelete:
-                                    (id) =>
-                                        _showDeleteConfirm(context, ref, id),
-                                onShareToWorld:
-                                    (_) =>
-                                        _showShareToWorld(context, ref, moment),
-                                onReply: () => _openCommentDrawer(moment),
-                              ),
-                            )
-                            .animate()
-                            .fadeIn(
-                              duration: AppDurations.normal,
-                              delay: Duration(
-                                milliseconds: 50 * (index.clamp(0, 5)),
-                              ),
-                              curve: AppCurves.smooth,
-                            )
-                            .slideY(begin: 0.03, end: 0);
+                        return AuraStaggerItem(
+                          index: index,
+                          config: StaggerConfig.standard,
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.cardGap,
+                            ),
+                            child: FeedCard(
+                              moment: moment,
+                              onTap: () {
+                                HapticService.lightTap();
+                                context.push('/moment/${moment.id}');
+                              },
+                              onDelete:
+                                  (id) => _showDeleteConfirm(context, ref, id),
+                              onShareToWorld:
+                                  (_) =>
+                                      _showShareToWorld(context, ref, moment),
+                              onReply: () => _openCommentDrawer(moment),
+                            ),
+                          ),
+                        );
                       }, childCount: moments.length),
                     ),
                   ),

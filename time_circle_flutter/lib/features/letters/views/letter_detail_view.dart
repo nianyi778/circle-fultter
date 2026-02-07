@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/animations/animation_config.dart';
+import '../../../core/haptics/haptic_service.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/models/letter.dart';
 import '../../../shared/widgets/date_wheel_picker.dart';
 import '../../../shared/widgets/aura/aura_toast.dart';
 import '../../../shared/widgets/aura/aura_dialog.dart';
+import '../../../presentation/shared/aura/animations/aura_stagger_list.dart';
 
 /// 信件详情页（阅读态）- 沉浸式回看
 class LetterDetailView extends ConsumerStatefulWidget {
@@ -81,7 +83,10 @@ class _LetterDetailViewState extends ConsumerState<LetterDetailView> {
                 pinned: false,
                 floating: true,
                 leading: IconButton(
-                  onPressed: () => context.pop(),
+                  onPressed: () {
+                    HapticService.lightTap();
+                    context.pop();
+                  },
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -98,7 +103,10 @@ class _LetterDetailViewState extends ConsumerState<LetterDetailView> {
                 ),
                 actions: [
                   IconButton(
-                    onPressed: () => _showActionSheet(context, letter),
+                    onPressed: () {
+                      HapticService.lightTap();
+                      _showActionSheet(context, letter);
+                    },
                     icon: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -132,41 +140,43 @@ class _LetterDetailViewState extends ConsumerState<LetterDetailView> {
                       const SizedBox(height: 24),
 
                       // 标题
-                      Text(
-                        letter.title,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          height: 1.3,
+                      AuraStaggerItem(
+                        index: 0,
+                        child: Text(
+                          letter.title,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            height: 1.3,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
-                      ).animate().fadeIn(duration: 500.ms, delay: 100.ms),
+                      ),
                       const SizedBox(height: 8),
 
                       // 收件人
-                      Text(
-                        '致：${letter.recipient}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.warmGray400,
+                      AuraStaggerItem(
+                        index: 1,
+                        child: Text(
+                          '致：${letter.recipient}',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.warmGray400),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
-                      ).animate().fadeIn(duration: 500.ms, delay: 150.ms),
+                      ),
 
                       const SizedBox(height: 32),
 
                       // 分隔线
-                      Container(
-                            width: 48,
-                            height: 1,
-                            color: AppColors.warmGray300,
-                          )
-                          .animate()
-                          .fadeIn(duration: 400.ms, delay: 200.ms)
-                          .scale(
-                            begin: const Offset(0, 1),
-                            end: const Offset(1, 1),
-                          ),
+                      AuraStaggerItem(
+                        index: 2,
+                        child: Container(
+                          width: 48,
+                          height: 1,
+                          color: AppColors.warmGray300,
+                        ),
+                      ),
 
                       const SizedBox(height: 40),
                     ],
@@ -190,9 +200,10 @@ class _LetterDetailViewState extends ConsumerState<LetterDetailView> {
               // 底部签名装饰
               if (!isLocked)
                 SliverToBoxAdapter(
-                  child: _buildSignature(
-                    context,
-                  ).animate().fadeIn(duration: 600.ms, delay: 500.ms),
+                  child: AuraStaggerItem(
+                    index: 4,
+                    child: _buildSignature(context),
+                  ),
                 ),
 
               // 底部留白
@@ -227,91 +238,96 @@ class _LetterDetailViewState extends ConsumerState<LetterDetailView> {
   }
 
   Widget _buildStatusBadge(BuildContext context, Letter letter, bool isLocked) {
-    return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.warmGray100,
-            borderRadius: BorderRadius.circular(AppRadius.full),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isLocked ? Iconsax.lock : Iconsax.calendar_1,
-                size: 12,
+    return _FadeScaleInWidget(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.warmGray100,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isLocked ? Iconsax.lock : Iconsax.calendar_1,
+              size: 12,
+              color: AppColors.warmGray500,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              isLocked
+                  ? '解锁日期: ${_formatUnlockDate(letter.unlockDate)}'
+                  : '已解锁',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: AppColors.warmGray500,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.5,
               ),
-              const SizedBox(width: 6),
-              Text(
-                isLocked
-                    ? '解锁日期: ${_formatUnlockDate(letter.unlockDate)}'
-                    : '已解锁',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.warmGray500,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        )
-        .animate()
-        .fadeIn(duration: 400.ms)
-        .scale(
-          begin: const Offset(0.9, 0.9),
-          end: const Offset(1, 1),
-          curve: Curves.easeOut,
-        );
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildLockedContent(BuildContext context, Letter letter) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 60),
-      child: Column(
-        children: [
-          // 锁定图标
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.warmGray100,
-              shape: BoxShape.circle,
+    return AuraStaggerItem(
+      index: 3,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          children: [
+            // 锁定图标
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.warmGray100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Iconsax.lock5,
+                size: 36,
+                color: AppColors.warmGray400,
+              ),
             ),
-            child: Icon(Iconsax.lock5, size: 36, color: AppColors.warmGray400),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // 锁定提示
-          Text(
-            '这封信已封存，要在未来才能打开。',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppColors.warmGray600,
-              height: 1.6,
+            // 锁定提示
+            Text(
+              '这封信已封存，要在未来才能打开。',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: AppColors.warmGray600,
+                height: 1.6,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '美好的事物值得等待。',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.warmGray400),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              '美好的事物值得等待。',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.warmGray400),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
-    ).animate().fadeIn(duration: 600.ms, delay: 300.ms);
+    );
   }
 
   Widget _buildUnlockedContent(BuildContext context, Letter letter) {
-    return Text(
-      letter.content ?? letter.preview,
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        height: 2.2,
-        fontSize: 17,
-        color: AppColors.warmGray700,
+    return AuraStaggerItem(
+      index: 3,
+      child: Text(
+        letter.content ?? letter.preview,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          height: 2.2,
+          fontSize: 17,
+          color: AppColors.warmGray700,
+        ),
       ),
-    ).animate().fadeIn(duration: 800.ms, delay: 300.ms);
+    );
   }
 
   Widget _buildSignature(BuildContext context) {
@@ -564,6 +580,69 @@ class _ActionSheetItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 淡入 + 缩放动画组件
+class _FadeScaleInWidget extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+  final Duration delay;
+
+  const _FadeScaleInWidget({
+    required this.child,
+    this.duration = AuraDurations.normal,
+    this.delay = Duration.zero,
+  });
+
+  @override
+  State<_FadeScaleInWidget> createState() => _FadeScaleInWidgetState();
+}
+
+class _FadeScaleInWidgetState extends State<_FadeScaleInWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(duration: widget.duration, vsync: this);
+
+    _opacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: AuraCurves.enter));
+
+    _scale = Tween<double>(
+      begin: 0.9,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: AuraCurves.enter));
+
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacity.value,
+          child: Transform.scale(scale: _scale.value, child: child),
+        );
+      },
+      child: widget.child,
     );
   }
 }

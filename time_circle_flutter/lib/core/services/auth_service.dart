@@ -285,7 +285,7 @@ class AuthService {
       ApiConfig.circles,
       data: {
         'name': name,
-        if (startDate != null) 'startDate': startDate.toIso8601String(),
+        if (startDate != null) 'startDate': startDate.toUtc().toIso8601String(),
       },
       fromData: (data) => data as Map<String, dynamic>,
     );

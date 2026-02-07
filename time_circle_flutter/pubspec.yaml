@@ -10,37 +10,77 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  
+  # State Management (Riverpod 2.0 with code generation)
   flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  
+  # Navigation
   go_router: ^14.8.1
+  
+  # Animation
   flutter_animate: ^4.5.2
+  
+  # UI Components
   cached_network_image: ^3.4.1
   google_fonts: ^6.2.1
-  intl: ^0.20.2
-  uuid: ^4.5.1
   iconsax: ^0.0.8
   flutter_svg: ^2.0.10+1
-  # 路径和存储
+  
+  # Internationalization
+  intl: ^0.20.2
+  
+  # Utilities
+  uuid: ^4.5.1
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  collection: ^1.18.0
+  
+  # File System
   path: ^1.9.1
   path_provider: ^2.1.5
-  # 图片/视频选择
+  
+  # Media Picker
   image_picker: ^1.1.2
   wechat_assets_picker: ^10.1.0
   photo_manager: ^3.8.3
-  # 网络请求
+  
+  # Network
   dio: ^5.4.0
-  # 安全存储
+  
+  # Local Database (Drift for offline-first)
+  drift: ^2.22.1
+  sqlite3_flutter_libs: ^0.5.28
+  
+  # Secure Storage
   flutter_secure_storage: ^9.2.2
-  # 网络状态
+  
+  # Connectivity
   connectivity_plus: ^6.0.3
-  # 本地设置存储
+  
+  # Local Storage
   shared_preferences: ^2.2.2
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.3
-  image: ^4.3.0  # 用于生成图标
+  image: ^4.3.0
+  
+  # Code Generation
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.6.2
+  freezed: ^2.5.7
+  json_serializable: ^6.8.0
+  drift_dev: ^2.22.1
+  
+  # Testing
+  mockito: ^5.4.4
+  mocktail: ^1.0.4
 
 # App 图标配置
 flutter_launcher_icons:

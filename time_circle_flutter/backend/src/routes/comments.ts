@@ -1,27 +1,16 @@
 /**
- * Comments Routes
+ * Comments Routes (Refactored with Repository Pattern)
  * Comments for moments and world posts
  */
 
 import { Hono } from 'hono';
-import { z } from 'zod';
-import { generateId } from '../utils/id';
-import { success, error, ErrorCodes, paginate } from '../utils/response';
+import { success, error, ErrorCodes } from '../utils/response';
 import { authMiddleware } from '../middleware/auth';
-import type { Env, Comment } from '../types';
+import { CommentRepository, MomentRepository, WorldRepository, CircleRepository } from '../repositories';
+import { createCommentSchema, paginationSchema } from '../schemas';
+import type { Env } from '../types';
 
 const comments = new Hono<{ Bindings: Env }>();
-
-// Validation schemas
-const createCommentSchema = z.object({
-  content: z.string().min(1).max(500),
-  replyToId: z.string().optional(),
-});
-
-type CommentWithAuthor = Comment & {
-  author_name: string;
-  author_avatar: string | null;
-};
 
 /**
  * GET /comments/moment/:momentId
@@ -30,68 +19,47 @@ type CommentWithAuthor = Comment & {
 comments.get('/moment/:momentId', authMiddleware, async (c) => {
   const momentId = c.req.param('momentId');
   const userId = c.get('userId');
-  const page = parseInt(c.req.query('page') || '1');
-  const limit = Math.min(parseInt(c.req.query('limit') || '20'), 50);
-  const offset = (page - 1) * limit;
-
-  // Verify user has access to the moment (is in the same circle)
-  const moment = await c.env.DB.prepare(
-    `SELECT m.circle_id FROM moments m
-     JOIN circle_members cm ON m.circle_id = cm.circle_id
-     WHERE m.id = ? AND cm.user_id = ? AND m.deleted_at IS NULL`
-  )
-    .bind(momentId, userId)
-    .first<{ circle_id: string }>();
-
-  if (!moment) {
-    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found or access denied'), 404);
+  
+  // Parse pagination
+  const paginationResult = paginationSchema.safeParse({
+    page: c.req.query('page'),
+    limit: c.req.query('limit'),
+  });
+  
+  const pagination = paginationResult.success
+    ? paginationResult.data
+    : { page: 1, limit: 20 };
+  
+  pagination.limit = Math.min(pagination.limit, 50);
+  
+  const momentRepo = new MomentRepository(c.env.DB);
+  const circleRepo = new CircleRepository(c.env.DB);
+  const commentRepo = new CommentRepository(c.env.DB);
+  
+  // Get moment and verify access
+  const circleId = await momentRepo.getCircleId(momentId);
+  
+  if (!circleId) {
+    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
   }
-
-  const [commentsResult, countResult] = await Promise.all([
-    c.env.DB.prepare(
-      `SELECT c.*, u.name as author_name, u.avatar as author_avatar
-       FROM comments c
-       JOIN users u ON c.author_id = u.id
-       WHERE c.target_id = ? AND c.target_type = 'moment' AND c.deleted_at IS NULL
-       ORDER BY c.created_at ASC
-       LIMIT ? OFFSET ?`
-    )
-      .bind(momentId, limit, offset)
-      .all<CommentWithAuthor>(),
-    c.env.DB.prepare(
-      `SELECT COUNT(*) as total FROM comments 
-       WHERE target_id = ? AND target_type = 'moment' AND deleted_at IS NULL`
-    )
-      .bind(momentId)
-      .first<{ total: number }>(),
-  ]);
-
-  const total = countResult?.total || 0;
-
-  // Build nested replies structure
-  const commentMap = new Map<string, CommentWithAuthor & { replies: CommentWithAuthor[] }>();
-  const rootComments: (CommentWithAuthor & { replies: CommentWithAuthor[] })[] = [];
-
-  for (const comment of commentsResult.results) {
-    const commentWithReplies = { ...comment, replies: [] };
-    commentMap.set(comment.id, commentWithReplies);
-
-    if (!comment.reply_to_id) {
-      rootComments.push(commentWithReplies);
-    }
+  
+  if (!(await circleRepo.isMember(circleId, userId))) {
+    return c.json(error(ErrorCodes.FORBIDDEN, 'Not a member of this circle'), 403);
   }
-
-  // Link replies to parents
-  for (const comment of commentsResult.results) {
-    if (comment.reply_to_id) {
-      const parent = commentMap.get(comment.reply_to_id);
-      if (parent) {
-        parent.replies.push(commentMap.get(comment.id)!);
-      }
-    }
-  }
-
-  return c.json(success(rootComments, paginate(page, limit, total)));
+  
+  // Get all comments and build tree structure
+  const allComments = await commentRepo.getAllForTarget(momentId, 'moment');
+  const tree = commentRepo.processAsTree(allComments, false);
+  
+  // For simple pagination, return flat list
+  const result = await commentRepo.getForMoment(momentId, pagination);
+  
+  return c.json(
+    success({
+      data: tree, // Return tree structure
+      meta: result.meta,
+    })
+  );
 });
 
 /**
@@ -100,49 +68,38 @@ comments.get('/moment/:momentId', authMiddleware, async (c) => {
  */
 comments.get('/world/:postId', authMiddleware, async (c) => {
   const postId = c.req.param('postId');
-  const page = parseInt(c.req.query('page') || '1');
-  const limit = Math.min(parseInt(c.req.query('limit') || '20'), 50);
-  const offset = (page - 1) * limit;
-
+  
+  // Parse pagination
+  const paginationResult = paginationSchema.safeParse({
+    page: c.req.query('page'),
+    limit: c.req.query('limit'),
+  });
+  
+  const pagination = paginationResult.success
+    ? paginationResult.data
+    : { page: 1, limit: 20 };
+  
+  pagination.limit = Math.min(pagination.limit, 50);
+  
+  const worldRepo = new WorldRepository(c.env.DB);
+  const commentRepo = new CommentRepository(c.env.DB);
+  
   // Verify post exists
-  const post = await c.env.DB.prepare(
-    'SELECT id FROM world_posts WHERE id = ? AND deleted_at IS NULL'
-  )
-    .bind(postId)
-    .first<{ id: string }>();
-
+  const post = await worldRepo.findPostById(postId);
+  
   if (!post) {
     return c.json(error(ErrorCodes.NOT_FOUND, 'Post not found'), 404);
   }
-
-  const [commentsResult, countResult] = await Promise.all([
-    c.env.DB.prepare(
-      `SELECT c.*, u.name as author_name, u.avatar as author_avatar
-       FROM comments c
-       JOIN users u ON c.author_id = u.id
-       WHERE c.target_id = ? AND c.target_type = 'world_post' AND c.deleted_at IS NULL
-       ORDER BY c.created_at ASC
-       LIMIT ? OFFSET ?`
-    )
-      .bind(postId, limit, offset)
-      .all<CommentWithAuthor>(),
-    c.env.DB.prepare(
-      `SELECT COUNT(*) as total FROM comments 
-       WHERE target_id = ? AND target_type = 'world_post' AND deleted_at IS NULL`
-    )
-      .bind(postId)
-      .first<{ total: number }>(),
-  ]);
-
-  const total = countResult?.total || 0;
-
-  // Anonymize for world posts (show first char only)
-  const anonymizedComments = commentsResult.results.map((comment) => ({
-    ...comment,
-    author_name: comment.author_name?.charAt(0) + '***',
-  }));
-
-  return c.json(success(anonymizedComments, paginate(page, limit, total)));
+  
+  // Get comments - anonymize for world posts
+  const result = await commentRepo.getForWorldPost(postId, pagination);
+  
+  return c.json(
+    success({
+      data: commentRepo.processForList(result.data, true), // Anonymize
+      meta: result.meta,
+    })
+  );
 });
 
 /**
@@ -153,75 +110,57 @@ comments.post('/moment/:momentId', authMiddleware, async (c) => {
   const momentId = c.req.param('momentId');
   const userId = c.get('userId');
   const body = await c.req.json();
-
-  // Validate input
-  const result = createCommentSchema.safeParse(body);
+  
+  // Validate input - support both formats
+  const result = createCommentSchema.safeParse({
+    content: body.content,
+    reply_to_id: body.replyToId || body.reply_to_id,
+  });
+  
   if (!result.success) {
     return c.json(
       error(ErrorCodes.VALIDATION_ERROR, result.error.errors[0].message),
       400
     );
   }
-
-  const { content, replyToId } = result.data;
-
-  // Verify user has access to the moment (is in the same circle)
-  const moment = await c.env.DB.prepare(
-    `SELECT m.circle_id FROM moments m
-     JOIN circle_members cm ON m.circle_id = cm.circle_id
-     WHERE m.id = ? AND cm.user_id = ? AND m.deleted_at IS NULL`
-  )
-    .bind(momentId, userId)
-    .first<{ circle_id: string }>();
-
-  if (!moment) {
-    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found or access denied'), 404);
+  
+  const momentRepo = new MomentRepository(c.env.DB);
+  const circleRepo = new CircleRepository(c.env.DB);
+  const commentRepo = new CommentRepository(c.env.DB);
+  
+  // Get moment and verify access
+  const circleId = await momentRepo.getCircleId(momentId);
+  
+  if (!circleId) {
+    return c.json(error(ErrorCodes.NOT_FOUND, 'Moment not found'), 404);
   }
-
-  // If replying, verify parent comment exists
-  if (replyToId) {
-    const parentComment = await c.env.DB.prepare(
-      `SELECT id FROM comments 
-       WHERE id = ? AND target_id = ? AND target_type = 'moment' AND deleted_at IS NULL`
-    )
-      .bind(replyToId, momentId)
-      .first<{ id: string }>();
-
-    if (!parentComment) {
+  
+  if (!(await circleRepo.isMember(circleId, userId))) {
+    return c.json(error(ErrorCodes.FORBIDDEN, 'Not a member of this circle'), 403);
+  }
+  
+  // If replying, verify parent exists
+  if (result.data.reply_to_id) {
+    const parentExists = await commentRepo.parentExists(
+      result.data.reply_to_id,
+      momentId,
+      'moment'
+    );
+    
+    if (!parentExists) {
       return c.json(error(ErrorCodes.NOT_FOUND, 'Parent comment not found'), 404);
     }
   }
-
-  // Create comment
-  const commentId = generateId('cmt');
-  const now = new Date().toISOString();
-
-  await c.env.DB.prepare(
-    `INSERT INTO comments (id, target_id, target_type, author_id, content, reply_to_id, created_at)
-     VALUES (?, ?, 'moment', ?, ?, ?, ?)`
-  )
-    .bind(commentId, momentId, userId, content, replyToId || null, now)
-    .run();
-
-  // Log for sync
-  await c.env.DB.prepare(
-    `INSERT INTO sync_log (circle_id, entity_type, entity_id, action, data, timestamp)
-     VALUES (?, 'comment', ?, 'create', ?, ?)`
-  )
-    .bind(moment.circle_id, commentId, JSON.stringify({ momentId }), now)
-    .run();
-
-  // Get created comment with author info
-  const comment = await c.env.DB.prepare(
-    `SELECT c.*, u.name as author_name, u.avatar as author_avatar
-     FROM comments c
-     JOIN users u ON c.author_id = u.id
-     WHERE c.id = ?`
-  )
-    .bind(commentId)
-    .first<CommentWithAuthor>();
-
-  return c.json(success(comment), 201);
+  
+  const comment = await commentRepo.createForMoment(
+    momentId,
+    userId,
+    result.data.content,
+    result.data.reply_to_id,
+    circleId
+  );
+  
+  return c.json(success(commentRepo.toResponse(comment)), 201);
 });
 
 /**
@@ -232,70 +171,52 @@ comments.post('/world/:postId', authMiddleware, async (c) => {
   const postId = c.req.param('postId');
   const userId = c.get('userId');
   const body = await c.req.json();
-
+  
   // Validate input
-  const result = createCommentSchema.safeParse(body);
+  const result = createCommentSchema.safeParse({
+    content: body.content,
+    reply_to_id: body.replyToId || body.reply_to_id,
+  });
+  
   if (!result.success) {
     return c.json(
       error(ErrorCodes.VALIDATION_ERROR, result.error.errors[0].message),
       400
     );
   }
-
-  const { content, replyToId } = result.data;
-
+  
+  const worldRepo = new WorldRepository(c.env.DB);
+  const commentRepo = new CommentRepository(c.env.DB);
+  
   // Verify post exists
-  const post = await c.env.DB.prepare(
-    'SELECT id FROM world_posts WHERE id = ? AND deleted_at IS NULL'
-  )
-    .bind(postId)
-    .first<{ id: string }>();
-
+  const post = await worldRepo.findPostById(postId);
+  
   if (!post) {
     return c.json(error(ErrorCodes.NOT_FOUND, 'Post not found'), 404);
   }
-
-  // If replying, verify parent comment exists
-  if (replyToId) {
-    const parentComment = await c.env.DB.prepare(
-      `SELECT id FROM comments 
-       WHERE id = ? AND target_id = ? AND target_type = 'world_post' AND deleted_at IS NULL`
-    )
-      .bind(replyToId, postId)
-      .first<{ id: string }>();
-
-    if (!parentComment) {
+  
+  // If replying, verify parent exists
+  if (result.data.reply_to_id) {
+    const parentExists = await commentRepo.parentExists(
+      result.data.reply_to_id,
+      postId,
+      'world_post'
+    );
+    
+    if (!parentExists) {
       return c.json(error(ErrorCodes.NOT_FOUND, 'Parent comment not found'), 404);
     }
   }
-
-  // Create comment
-  const commentId = generateId('cmt');
-  const now = new Date().toISOString();
-
-  await c.env.DB.prepare(
-    `INSERT INTO comments (id, target_id, target_type, author_id, content, reply_to_id, created_at)
-     VALUES (?, ?, 'world_post', ?, ?, ?, ?)`
-  )
-    .bind(commentId, postId, userId, content, replyToId || null, now)
-    .run();
-
-  // Get created comment with author info (anonymized)
-  const comment = await c.env.DB.prepare(
-    `SELECT c.*, u.name as author_name, u.avatar as author_avatar
-     FROM comments c
-     JOIN users u ON c.author_id = u.id
-     WHERE c.id = ?`
-  )
-    .bind(commentId)
-    .first<CommentWithAuthor>();
-
-  // Anonymize
-  if (comment) {
-    comment.author_name = comment.author_name?.charAt(0) + '***';
-  }
-
-  return c.json(success(comment), 201);
+  
+  const comment = await commentRepo.createForWorldPost(
+    postId,
+    userId,
+    result.data.content,
+    result.data.reply_to_id
+  );
+  
+  // Anonymize response for world posts
+  return c.json(success(commentRepo.toResponse(comment, true)), 201);
 });
 
 /**
@@ -305,46 +226,24 @@ comments.post('/world/:postId', authMiddleware, async (c) => {
 comments.delete('/:id', authMiddleware, async (c) => {
   const commentId = c.req.param('id');
   const userId = c.get('userId');
-
-  const comment = await c.env.DB.prepare(
-    'SELECT * FROM comments WHERE id = ? AND deleted_at IS NULL'
-  )
-    .bind(commentId)
-    .first<Comment>();
-
-  if (!comment) {
-    return c.json(error(ErrorCodes.NOT_FOUND, 'Comment not found'), 404);
-  }
-
-  if (comment.author_id !== userId) {
+  
+  const commentRepo = new CommentRepository(c.env.DB);
+  
+  // Check ownership
+  if (!(await commentRepo.isAuthor(commentId, userId))) {
+    const comment = await commentRepo.findByIdBasic(commentId);
+    if (!comment) {
+      return c.json(error(ErrorCodes.NOT_FOUND, 'Comment not found'), 404);
+    }
     return c.json(error(ErrorCodes.FORBIDDEN, 'Not your comment'), 403);
   }
-
-  // Soft delete
-  await c.env.DB.prepare(
-    `UPDATE comments SET deleted_at = datetime('now') WHERE id = ?`
-  )
-    .bind(commentId)
-    .run();
-
-  // If it's a moment comment, log for sync
-  if (comment.target_type === 'moment') {
-    const moment = await c.env.DB.prepare(
-      'SELECT circle_id FROM moments WHERE id = ?'
-    )
-      .bind(comment.target_id)
-      .first<{ circle_id: string }>();
-
-    if (moment) {
-      await c.env.DB.prepare(
-        `INSERT INTO sync_log (circle_id, entity_type, entity_id, action, timestamp)
-         VALUES (?, 'comment', ?, 'delete', datetime('now'))`
-      )
-        .bind(moment.circle_id, commentId)
-        .run();
-    }
+  
+  const result = await commentRepo.delete(commentId);
+  
+  if (!result.success) {
+    return c.json(error(ErrorCodes.NOT_FOUND, 'Comment not found'), 404);
   }
-
+  
   return c.json(success({ message: 'Comment deleted' }));
 });
 
@@ -354,30 +253,22 @@ comments.delete('/:id', authMiddleware, async (c) => {
  */
 comments.post('/:id/like', authMiddleware, async (c) => {
   const commentId = c.req.param('id');
-
-  const comment = await c.env.DB.prepare(
-    'SELECT id FROM comments WHERE id = ? AND deleted_at IS NULL'
-  )
-    .bind(commentId)
-    .first<{ id: string }>();
-
-  if (!comment) {
-    return c.json(error(ErrorCodes.NOT_FOUND, 'Comment not found'), 404);
+  
+  const commentRepo = new CommentRepository(c.env.DB);
+  
+  try {
+    const likes = await commentRepo.like(commentId);
+    
+    return c.json(success({ likes }));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    
+    if (message === 'Comment not found') {
+      return c.json(error(ErrorCodes.NOT_FOUND, 'Comment not found'), 404);
+    }
+    
+    throw err;
   }
-
-  await c.env.DB.prepare(
-    'UPDATE comments SET likes = likes + 1 WHERE id = ?'
-  )
-    .bind(commentId)
-    .run();
-
-  const updated = await c.env.DB.prepare(
-    'SELECT likes FROM comments WHERE id = ?'
-  )
-    .bind(commentId)
-    .first<{ likes: number }>();
-
-  return c.json(success({ likes: updated?.likes || 0 }));
 });
 
 export { comments as commentsRoutes };

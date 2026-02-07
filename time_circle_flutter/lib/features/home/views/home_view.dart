@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/animations/animation_config.dart';
+import '../../../core/haptics/haptic_service.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../presentation/shared/aura/animations/aura_stagger_list.dart';
 import '../../../shared/widgets/sync_status_indicator.dart';
 import '../widgets/memory_card.dart';
 import '../widgets/time_header.dart';
@@ -12,13 +16,22 @@ import '../widgets/annual_letter_card.dart';
 import '../widgets/inspiration_tags.dart';
 import '../widgets/milestone_card.dart';
 
-/// 首页 - 精简版设计
+/// 首页入场动画配置
+const _homeStaggerConfig = StaggerConfig(
+  baseDelay: Duration(milliseconds: 80),
+  itemDuration: Duration(milliseconds: 500),
+  maxDelayItems: 4,
+  slideOffset: Offset(0, 0.03),
+);
+
+/// 首页 - 全新设计
 ///
 /// 设计理念：
 /// - 时间叙事区作为视觉焦点
-/// - 仅保留 3 个核心模块：时间、回忆、年度信
+/// - 精致的卡片式布局
 /// - 大量留白，增加呼吸空间
 /// - 温柔、安静、克制
+/// - 支持全面屏设备
 ///
 /// 模块结构：
 /// 1. 时间叙事区 (TimeHeader) - 视觉焦点
@@ -30,201 +43,218 @@ class HomeView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentUser = ref.watch(currentUserSyncProvider);
+    // currentUser can be used for future features
+    ref.watch(currentUserSyncProvider);
     final childInfo = ref.watch(childInfoProvider);
     final hasAnyMoments = ref.watch(hasAnyMomentsProvider);
     final moments = ref.watch(momentsProvider);
 
-    // 获取状态栏高度，实现沉浸式全面屏
-    final statusBarHeight = MediaQuery.of(context).padding.top;
+    // 获取安全区域
+    final mediaQuery = MediaQuery.of(context);
+    final topPadding = mediaQuery.padding.top;
+    final bottomPadding = mediaQuery.padding.bottom;
+
+    // 设置状态栏样式
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.timeBeige,
-      body: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.zero,
-        children: [
-          // 状态栏占位（背景色会延伸到状态栏区域）
-          SizedBox(height: statusBarHeight),
-
-          // ========== 顶部区域 ==========
-          _buildTopSection(
-            context,
-            currentUser: currentUser,
-            childInfo: childInfo,
-            hasAnyMoments: hasAnyMoments,
-            momentCount: moments.length,
+      extendBodyBehindAppBar: true,
+      extendBody: true,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        slivers: [
+          // 顶部安全区域 + 操作栏
+          SliverToBoxAdapter(
+            child: Container(
+              padding: EdgeInsets.only(top: topPadding),
+              child: _buildTopBar(context),
+            ),
           ),
 
-          // 更大的呼吸空间
-          SizedBox(height: hasAnyMoments ? AppSpacing.xxxl : AppSpacing.xxl),
+          // 时间叙事区
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.pagePadding,
+                AppSpacing.lg,
+                AppSpacing.pagePadding,
+                0,
+              ),
+              child: TimeHeader(
+                circleInfo: childInfo,
+                hasHistory: hasAnyMoments,
+                momentCount: moments.length,
+              ),
+            ),
+          ),
 
-          // ========== 内容区域 ==========
+          // 间距
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: hasAnyMoments ? AppSpacing.xxl : AppSpacing.xl,
+            ),
+          ),
+
+          // 内容区域
           if (!hasAnyMoments)
-            _buildNewUserContent(context)
+            SliverToBoxAdapter(child: _buildNewUserContent(context))
           else
-            _buildReturningUserContent(context),
+            SliverToBoxAdapter(child: _buildReturningUserContent(context)),
 
-          // 底部安全区域（更大）
-          const SizedBox(height: 140),
+          // 底部安全区域
+          SliverToBoxAdapter(child: SizedBox(height: 100 + bottomPadding)),
         ],
       ),
     );
   }
 
-  /// 顶部区域：时间叙事 + 头像
-  Widget _buildTopSection(
-    BuildContext context, {
-    required dynamic currentUser,
-    required dynamic childInfo,
-    required bool hasAnyMoments,
-    required int momentCount,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.pagePadding,
-        AppSpacing.lg,
-        AppSpacing.pagePadding,
-        0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 顶部行：同步状态 + 头像（右对齐）
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // 同步状态指示器
-              const SyncStatusIndicator(size: 18),
-              const SizedBox(width: 12),
-              _buildSettingsButton(context),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
+  /// 顶部操作栏
+  Widget _buildTopBar(BuildContext context) {
+    return AuraStaggerItem(
+      index: 0,
+      config: _homeStaggerConfig,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.pagePadding,
+          vertical: AppSpacing.md,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // 左侧：App Logo/名称
+            Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.warmOrangeDeep,
+                        AppColors.warmPeachDeep,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Iconsax.sun_15, size: 18, color: Colors.white),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '拾光',
+                  style: AppTypography.subtitle(context).copyWith(
+                    color: AppColors.warmGray800,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 17,
+                  ),
+                ),
+              ],
+            ),
 
-          // 时间叙事区
-          TimeHeader(
-            circleInfo: childInfo,
-            hasHistory: hasAnyMoments,
-            momentCount: momentCount,
-          ),
-        ],
+            // 右侧：同步状态 + 设置
+            Row(
+              children: [
+                const SyncStatusIndicator(size: 18),
+                const SizedBox(width: 12),
+                _buildSettingsButton(context),
+              ],
+            ),
+          ],
+        ),
       ),
-    ).animate().fadeIn(duration: AppDurations.normal, curve: AppCurves.smooth);
+    );
   }
 
   /// 新用户内容
   Widget _buildNewUserContent(BuildContext context) {
-    return Column(
+    return AuraStaggerList(
+      baseDelay: _homeStaggerConfig.baseDelay,
+      itemDuration: _homeStaggerConfig.itemDuration,
+      maxDelayItems: _homeStaggerConfig.maxDelayItems,
+      slideOffset: _homeStaggerConfig.slideOffset,
       children: [
         // 留下第一刻卡片
         Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
-              ),
-              child: const MemoryCard(),
-            )
-            .animate()
-            .fadeIn(
-              duration: AppDurations.entrance,
-              delay: 100.ms,
-              curve: AppCurves.smooth,
-            )
-            .slideY(begin: 0.03, end: 0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pagePadding,
+          ),
+          child: const MemoryCard(),
+        ),
 
         const SizedBox(height: AppSpacing.sectionGap),
 
         // 灵感胶囊
         Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
-              ),
-              child: const InspirationTags(),
-            )
-            .animate()
-            .fadeIn(
-              duration: AppDurations.entrance,
-              delay: 200.ms,
-              curve: AppCurves.smooth,
-            )
-            .slideY(begin: 0.03, end: 0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pagePadding,
+          ),
+          child: const InspirationTags(),
+        ),
       ],
     );
   }
 
-  /// 老用户内容 - 精简版（仅 3 个核心模块）
-  ///
-  /// 设计原则：留白即呼吸
-  /// - 移除了今日一句、记录统计、时光碎片
-  /// - 保留里程碑（条件显示）、回忆、年度信
+  /// 老用户内容 - 精简版
   Widget _buildReturningUserContent(BuildContext context) {
-    return Column(
+    return AuraStaggerList(
+      baseDelay: _homeStaggerConfig.baseDelay,
+      itemDuration: _homeStaggerConfig.itemDuration,
+      maxDelayItems: _homeStaggerConfig.maxDelayItems,
+      slideOffset: _homeStaggerConfig.slideOffset,
       children: [
-        // 1. 里程碑提醒（条件显示，只在接近里程碑时出现）
-        const MilestoneCard()
-            .animate()
-            .fadeIn(
-              duration: AppDurations.entrance,
-              delay: 50.ms,
-              curve: AppCurves.smooth,
-            )
-            .slideY(begin: 0.02, end: 0),
+        // 1. 里程碑提醒（条件显示）
+        const MilestoneCard(),
 
-        // 里程碑与回忆卡片之间的间距
         const SizedBox(height: AppSpacing.lg),
 
-        // 2. 回忆漫游卡片（核心功能）
+        // 2. 回忆漫游卡片
         Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
-              ),
-              child: const MemoryCard(),
-            )
-            .animate()
-            .fadeIn(
-              duration: AppDurations.entrance,
-              delay: 100.ms,
-              curve: AppCurves.smooth,
-            )
-            .slideY(begin: 0.03, end: 0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pagePadding,
+          ),
+          child: const MemoryCard(),
+        ),
 
-        // 更大的模块间距（32px → 48px）
-        const SizedBox(height: AppSpacing.xxxl),
+        const SizedBox(height: AppSpacing.sectionGap),
 
-        // 3. 年度信卡片（仪式感功能）
+        // 3. 年度信卡片
         Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
-              ),
-              child: const AnnualLetterCard(),
-            )
-            .animate()
-            .fadeIn(
-              duration: AppDurations.entrance,
-              delay: 150.ms,
-              curve: AppCurves.smooth,
-            )
-            .slideY(begin: 0.03, end: 0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pagePadding,
+          ),
+          child: const AnnualLetterCard(),
+        ),
       ],
     );
   }
 
-  /// 构建设置按钮（点击进入设置）
+  /// 设置按钮
   Widget _buildSettingsButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/settings'),
+      onTap: () {
+        HapticService.lightTap();
+        context.push('/settings');
+      },
       child: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppColors.bgElevated,
+          color: AppColors.white,
           shape: BoxShape.circle,
+          border: Border.all(color: AppColors.warmGray150, width: 1),
+          boxShadow: AppShadows.subtle,
         ),
-        child: Icon(
-          Icons.settings_outlined,
-          size: 22,
-          color: AppColors.warmGray600,
-        ),
+        child: Icon(Iconsax.setting_2, size: 20, color: AppColors.warmGray600),
       ),
     );
   }

@@ -28,10 +28,11 @@ class ApiConfig {
   /// 圈子选择相关
   static const String selectedCircleKey = 'selected_circle_id';
 
-  /// 端点路径
+  /// 端点路径 - Auth
   static const String authRegister = '/auth/register';
   static const String authLogin = '/auth/login';
   static const String authRefresh = '/auth/refresh';
+  static const String refreshToken = '/auth/refresh'; // Alias for consistency
   static const String authLogout = '/auth/logout';
   static const String authMe = '/auth/me';
   static const String authPassword = '/auth/password';
